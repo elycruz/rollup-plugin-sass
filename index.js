@@ -35,5 +35,4 @@ function plugin() {
     };
 }
 
-plugin.compiler = compiler;
 module.exports = plugin;
