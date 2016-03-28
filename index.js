@@ -14,8 +14,6 @@ function plugin() {
                 return null;
             }
 
-            console.log(code)
-
             return new Promise(function (resolve, reject) {
                 nodeSass.render(Object.assign({
                     data: code
