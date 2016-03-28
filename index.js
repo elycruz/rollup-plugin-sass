@@ -14,12 +14,14 @@ function plugin() {
                 return null;
             }
 
+            console.log(code)
+
             return new Promise(function (resolve, reject) {
                 nodeSass.render(Object.assign({
                     data: code
                 }, options.config || {}), function (error, result) {
                     var temp = {
-                        code: result,
+                        code: result.css.toString(),
                         map: { mappings: '' }
                     };
 
