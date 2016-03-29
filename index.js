@@ -16,7 +16,7 @@ function plugin() {
 
             return new Promise(function (resolve, reject) {
                 nodeSass.render(Object.assign({
-                    data: code
+                    file: id
                 }, options.config || {}), function (error, result) {
                     var temp = {
                         code: result.css.toString(),
