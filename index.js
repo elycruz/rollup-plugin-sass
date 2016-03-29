@@ -26,7 +26,7 @@ function plugin() {
 
                 nodeSass.render(sassConfig, function (error, result) {
                     var temp = {
-                        code: result.css.toString(),
+                        code: `export default ${JSON.stringify(result.css.toString())};`,
                         map: { mappings: '' }
                     };
 
