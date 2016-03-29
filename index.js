@@ -1,11 +1,11 @@
 'use strict';
 
+var path = require('path');
 var nodeSass = require('node-sass');
 var rollupPluginutils = require('rollup-pluginutils');
 
 function plugin() {
     var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
-
     var filter = rollupPluginutils.createFilter(options.include || [ '**/*.sass', '**/*.scss' ], options.exclude || 'node_modules/**');
 
     return {
@@ -15,16 +15,23 @@ function plugin() {
             }
 
             return new Promise(function (resolve, reject) {
-                nodeSass.render(Object.assign({
+                var paths = [path.dirname(id), process.cwd()];
+                var sassConfig = Object.assign({
                     file: id
-                }, options.config || {}), function (error, result) {
+                });
+
+                sassConfig.includePaths = sassConfig.includePaths
+                    ? sassConfig.includePaths.concat(paths)
+                    : paths;
+
+                nodeSass.render(sassConfig, function (error, result) {
                     var temp = {
                         code: result.css.toString(),
                         map: { mappings: '' }
                     };
 
                     if (error) {
-                        temp.error = error;
+                        temp.error = error.codeFrame;
                         reject(error);
                     }
 
