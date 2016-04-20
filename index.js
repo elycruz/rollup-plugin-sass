@@ -17,7 +17,7 @@ function plugin() {
             return new Promise(function (resolve, reject) {
                 var paths = [path.dirname(id), process.cwd()];
                 var sassConfig = Object.assign({
-                    file: id
+                    data: code
                 });
 
                 sassConfig.includePaths = sassConfig.includePaths
