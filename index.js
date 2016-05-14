@@ -1,45 +1,43 @@
-'use strict';
+import { dirname } from 'path';
+import { writeFile } from 'fs';
+import { renderSync } from 'node-sass'
+import { isString, isFunction } from 'util';
+import { createFilter } from 'rollup-pluginutils';
 
-var path = require('path');
-var nodeSass = require('node-sass');
-var rollupPluginutils = require('rollup-pluginutils');
-
-function plugin() {
-    var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
-    var filter = rollupPluginutils.createFilter(options.include || [ '**/*.sass', '**/*.scss' ], options.exclude || 'node_modules/**');
+export default function plugin(options = {}) {
+    const filter = createFilter(options.include || [ '**/*.sass', '**/*.scss' ], options.exclude || 'node_modules/**');
 
     return {
-        transform: function transform(code, id) {
+        async transform(code, id) {
             if (!filter(id)) {
                 return null;
             }
 
-            return new Promise(function (resolve, reject) {
-                var paths = [path.dirname(id), process.cwd()];
-                var sassConfig = Object.assign({
-                    data: code
-                });
+            const paths = [dirname(id), process.cwd()];
+            const sassConfig = Object.assign({ data: code }, options.options);
 
-                sassConfig.includePaths = sassConfig.includePaths
-                    ? sassConfig.includePaths.concat(paths)
-                    : paths;
+            sassConfig.includePaths = sassConfig.includePaths
+                ? sassConfig.includePaths.concat(paths)
+                : paths;
 
-                nodeSass.render(sassConfig, function (error, result) {
-                    var temp = {
-                        code: `export default ${JSON.stringify(result.css.toString())};`,
-                        map: { mappings: '' }
-                    };
+            try {
+                let css = renderSync(sassConfig).css.toString();
 
-                    if (error) {
-                        temp.error = error.codeFrame;
-                        reject(error);
-                    }
+                if (isFunction(options.output)) {
+                    css = await options.output(css);
+                }
 
-                    resolve(temp);
-                });
-            });
+                if (isString(options.output)) {
+                    return await fs.writeFile(options.output, css);
+                }
+
+                return {
+                    code: `export default ${JSON.stringify(css.toString())};`,
+                    map: { mappings: '' }
+                };
+            } catch (error) {
+                throw error;
+            }
         }
     };
-}
-
-module.exports = plugin;
+};

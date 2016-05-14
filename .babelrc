@@ -1,0 +1,9 @@
+{
+    "plugins": [
+        "transform-async-to-generator",
+        "transform-runtime"
+    ],
+    "presets": [
+        "es2015-rollup"
+    ]
+}
