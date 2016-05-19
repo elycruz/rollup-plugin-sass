@@ -46,7 +46,7 @@ function plugin() {
                                 }
 
                                 _context.next = 10;
-                                return options.output(css);
+                                return options.output(css, id);
 
                             case 10:
                                 css = _context.sent;

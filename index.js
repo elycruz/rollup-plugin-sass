@@ -24,7 +24,7 @@ export default function plugin(options = {}) {
                 let css = renderSync(sassConfig).css.toString();
 
                 if (isFunction(options.output)) {
-                    css = await options.output(css);
+                    css = await options.output(css, id);
                 }
 
                 if (isString(options.output)) {
