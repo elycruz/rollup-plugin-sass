@@ -74,3 +74,15 @@ test('should process support promise', t => {
         t.is(outputCode, `${style}\n${timestamp}`);
     });
 });
+
+test( 'rollup-plugin-less', t => {
+    return rollup({
+        entry: 'samples/html/test.js',
+        plugins: [ sass() ]
+    }).then((bundle) => {
+        bundle.write({
+            dest: './samples/html/dist.js',
+            format: 'cjs'
+        });
+   });
+});
