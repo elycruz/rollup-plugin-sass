@@ -5,23 +5,31 @@ import _asyncToGenerator from 'babel-runtime/helpers/asyncToGenerator';
 import { dirname } from 'path';
 import 'fs';
 import { renderSync } from 'node-sass';
-import { isString, isFunction } from 'util';
+import { isFunction, isString } from 'util';
 import { createFilter } from 'rollup-pluginutils';
 
 /*
- * create a style tag and append to head tag
- * @params {String} css style
+ * Create a style tag and append to head tag
+ *
+ * @param {String} css style
+ * @return {String} css style
  */
-
 function insertStyle(css) {
-    if (!css) return;
+    if (!css) {
+        return;
+    }
 
-    if (typeof window == 'undefined') return;
+    if (typeof window === 'undefined') {
+        return;
+    }
+
     var style = document.createElement('style');
-    style.setAttribute('media', 'screen');
 
+    style.setAttribute('type', 'text/css');
     style.innerHTML = css;
+
     document.head.appendChild(style);
+
     return css;
 }
 
@@ -29,11 +37,13 @@ function plugin() {
     var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
 
     var filter = createFilter(options.include || ['**/*.sass', '**/*.scss'], options.exclude || 'node_modules/**');
-    var injectFnName = '___$styleInject';
+    var insertFnName = '___$insertStyle';
 
     return {
         intro: function intro() {
-            return insertStyle.toString().replace(/insertStyle/, injectFnName);
+            if (options.insert) {
+                return insertStyle.toString().replace(/insertStyle/, insertFnName);
+            }
         },
         transform: function transform(code, id) {
             var _this = this;
@@ -61,46 +71,57 @@ function plugin() {
                                 _context.prev = 5;
                                 css = renderSync(sassConfig).css.toString();
 
-                                if (!isFunction(options.output)) {
-                                    _context.next = 11;
+                                if (!isString(options.output)) {
+                                    _context.next = 13;
                                     break;
                                 }
 
                                 _context.next = 10;
-                                return options.output(css, id);
+                                return fs.writeFile(options.output, css);
 
                             case 10:
-                                css = _context.sent;
+                                return _context.abrupt('return', _context.sent);
 
-                            case 11:
-                                if (!isString(options.output)) {
-                                    _context.next = 15;
+                            case 13:
+                                if (!isFunction(options.output)) {
+                                    _context.next = 17;
                                     break;
                                 }
 
-                                _context.next = 14;
-                                return fs.writeFile(options.output, css);
+                                _context.next = 16;
+                                return options.output(css, id);
 
-                            case 14:
-                                return _context.abrupt('return', _context.sent);
+                            case 16:
+                                css = _context.sent;
 
-                            case 15:
+                            case 17:
+
+                                css = _JSON$stringify(css);
+
+                                if (options.insert) {
+                                    css = insertFnName + '(' + css + ')';
+                                }
+
                                 return _context.abrupt('return', {
-                                    code: 'export default ' + injectFnName + '(' + _JSON$stringify(css.toString()) + ');',
+                                    code: 'export default ' + css + ';',
                                     map: { mappings: '' }
                                 });
 
-                            case 18:
-                                _context.prev = 18;
+                            case 20:
+                                _context.next = 25;
+                                break;
+
+                            case 22:
+                                _context.prev = 22;
                                 _context.t0 = _context['catch'](5);
                                 throw _context.t0;
 
-                            case 21:
+                            case 25:
                             case 'end':
                                 return _context.stop();
                         }
                     }
-                }, _callee, _this, [[5, 18]]);
+                }, _callee, _this, [[5, 22]]);
             }))();
         }
     };

@@ -2,7 +2,7 @@ const rollup = require('rollup').rollup;
 const babel = require('rollup-plugin-babel');
 
 rollup({
-    entry: 'index.js',
+    entry: './src/index.js',
     external: [
         'babel-runtime/core-js/json/stringify',
         'babel-runtime/core-js/object/assign',
