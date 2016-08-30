@@ -3,11 +3,16 @@ import { writeFile } from 'fs';
 import { renderSync } from 'node-sass'
 import { isString, isFunction } from 'util';
 import { createFilter } from 'rollup-pluginutils';
+import { insertStyle } from './src/style.js'
 
 export default function plugin(options = {}) {
     const filter = createFilter(options.include || [ '**/*.sass', '**/*.scss' ], options.exclude || 'node_modules/**');
+    const injectFnName = '___$styleInject'
 
     return {
+        intro() {
+            return insertStyle.toString().replace(/insertStyle/, injectFnName);
+        },
         async transform(code, id) {
             if (!filter(id)) {
                 return null;
@@ -32,7 +37,7 @@ export default function plugin(options = {}) {
                 }
 
                 return {
-                    code: `export default ${JSON.stringify(css.toString())};`,
+                    code: `export default ${injectFnName}(${JSON.stringify(css.toString())});`,
                     map: { mappings: '' }
                 };
             } catch (error) {

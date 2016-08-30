@@ -12,12 +12,33 @@ var nodeSass = require('node-sass');
 var util = require('util');
 var rollupPluginutils = require('rollup-pluginutils');
 
+/*
+ * create a style tag and append to head tag
+ * @params {String} css style
+ */
+
+function insertStyle(css) {
+    if (!css) return;
+
+    if (typeof window == 'undefined') return;
+    var style = document.createElement('style');
+    style.setAttribute('media', 'screen');
+
+    style.innerHTML = css;
+    document.head.appendChild(style);
+    return css;
+}
+
 function plugin() {
     var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
 
     var filter = rollupPluginutils.createFilter(options.include || ['**/*.sass', '**/*.scss'], options.exclude || 'node_modules/**');
+    var injectFnName = '___$styleInject';
 
     return {
+        intro: function intro() {
+            return insertStyle.toString().replace(/insertStyle/, injectFnName);
+        },
         transform: function transform(code, id) {
             var _this = this;
 
@@ -69,7 +90,7 @@ function plugin() {
 
                             case 15:
                                 return _context.abrupt('return', {
-                                    code: 'export default ' + _JSON$stringify(css.toString()) + ';',
+                                    code: 'export default ' + injectFnName + '(' + _JSON$stringify(css.toString()) + ');',
                                     map: { mappings: '' }
                                 });
 
