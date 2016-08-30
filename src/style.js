@@ -10,13 +10,12 @@ function insertStyle(css) {
     }
 
     if (typeof window === 'undefined') {
-         return;
+        return;
     }
 
     let style = document.createElement('style');
 
     style.setAttribute('type', 'text/css');
-    style.setAttribute('media', 'screen');
     style.innerHTML = css;
 
     document.head.appendChild(style);
