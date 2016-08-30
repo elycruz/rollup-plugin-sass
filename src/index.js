@@ -3,16 +3,19 @@ import { writeFile } from 'fs';
 import { renderSync } from 'node-sass'
 import { isString, isFunction } from 'util';
 import { createFilter } from 'rollup-pluginutils';
-import { insertStyle } from './src/style.js'
+import { insertStyle } from './style.js'
 
 export default function plugin(options = {}) {
     const filter = createFilter(options.include || [ '**/*.sass', '**/*.scss' ], options.exclude || 'node_modules/**');
-    const injectFnName = '___$styleInject'
+    const insertFnName = '___$insertStyle';
 
     return {
         intro() {
-            return insertStyle.toString().replace(/insertStyle/, injectFnName);
+            if (options.insert) {
+                return insertStyle.toString().replace(/insertStyle/, insertFnName);
+            }
         },
+
         async transform(code, id) {
             if (!filter(id)) {
                 return null;
@@ -28,18 +31,24 @@ export default function plugin(options = {}) {
             try {
                 let css = renderSync(sassConfig).css.toString();
 
-                if (isFunction(options.output)) {
-                    css = await options.output(css, id);
-                }
-
                 if (isString(options.output)) {
                     return await fs.writeFile(options.output, css);
-                }
+                } else {
+                    if (isFunction(options.output)) {
+                        css = await options.output(css, id);
+                    }
 
-                return {
-                    code: `export default ${injectFnName}(${JSON.stringify(css.toString())});`,
-                    map: { mappings: '' }
-                };
+                    css = JSON.stringify(css);
+
+                    if (options.insert) {
+                        css = `${insertFnName}(${css})`;
+                    }
+
+                    return {
+                        code: `export default ${css};`,
+                        map: { mappings: '' }
+                    };
+                }
             } catch (error) {
                 throw error;
             }

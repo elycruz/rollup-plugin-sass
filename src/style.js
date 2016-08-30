@@ -1,20 +1,29 @@
 /*
- * create a style tag and append to head tag
- * @params {String} css style
+ * Create a style tag and append to head tag
+ *
+ * @param {String} css style
+ * @return {String} css style
  */
+function insertStyle(css) {
+    if (!css) {
+        return;
+    }
 
-function insertStyle ( css ) {
-    if(!css) return ;
+    if (typeof window === 'undefined') {
+         return;
+    }
 
-    if(typeof(window) == 'undefined') return ;
     let style = document.createElement('style');
-    style.setAttribute('media', 'screen');
 
-    style.innerHTML = css
+    style.setAttribute('type', 'text/css');
+    style.setAttribute('media', 'screen');
+    style.innerHTML = css;
+
     document.head.appendChild(style);
-    return css
+
+    return css;
 }
 
 export {
     insertStyle
-}
+};
