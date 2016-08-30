@@ -27,14 +27,13 @@ test('should import *.scss and *.sass files', t => {
 
 test('should process code with output function', t => {
     let outputCode = '';
-    let timestamp = String(Date.now());
 
     return rollup({
         entry: 'samples/output-function/index.js',
         plugins: [
             sass({
                 output(code) {
-                    return outputCode = code + timestamp;
+                    return outputCode = code;
                 },
                 options: sassOptions
             })
@@ -44,13 +43,12 @@ test('should process code with output function', t => {
         const style = readFileSync('samples/output-function/style.scss').toString();
 
         t.truthy(outputCode);
-        t.is(outputCode, `${style}\n${timestamp}`);
+        t.is(outputCode, `${style}\n`);
     })
 });
 
 test('should process support promise', t => {
-    let outputCode;
-    let timestamp = String(Date.now());
+    let outputCode = '';
 
     return rollup({
         entry: 'samples/output-promise/index.js',
@@ -59,7 +57,7 @@ test('should process support promise', t => {
                 output(code) {
                     return new Promise((resolve) => {
                         setTimeout(() => {
-                            resolve(outputCode = code + timestamp)
+                            resolve(outputCode = code)
                         }, 100);
                     });
                 },
@@ -71,18 +69,43 @@ test('should process support promise', t => {
         const style = readFileSync('samples/output-promise/style.scss').toString();
 
         t.truthy(outputCode);
-        t.is(outputCode, `${style}\n${timestamp}`);
+        t.is(outputCode, `${style}\n`);
     });
 });
 
-test( 'rollup-plugin-less', t => {
+test('should insert CSS into head tag', t => {
     return rollup({
-        entry: 'samples/html/test.js',
-        plugins: [ sass() ]
-    }).then((bundle) => {
-        bundle.write({
-            dest: './samples/html/dist.js',
-            format: 'cjs'
-        });
-   });
+        entry: 'samples/insert-css/index.js',
+        plugins: [
+            sass({
+                insert: true,
+                options: sassOptions
+            })
+        ]
+    }).then(bundle => {
+        const code = bundle.generate().code;
+        const style = readFileSync('samples/insert-css/style.scss').toString();
+
+        global.window = {};
+        global.document = {
+            innerHTML: '',
+            head: {
+                appendChild(mockNode) {
+                    t.true(mockNode.hasOwnProperty('setAttribute'));
+                    t.is(mockNode.innerHTML, `${style}\n`);
+                }
+            },
+            createElement() {
+                return {
+                    setAttribute(key, value) {
+                        if (key === 'type') {
+                            t.is(value, 'text/css');
+                        }
+                    }
+                };
+            }
+        };
+
+        new Function(code)();
+    });
 });
