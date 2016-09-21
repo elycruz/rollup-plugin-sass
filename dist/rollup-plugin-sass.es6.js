@@ -3,7 +3,7 @@ import _JSON$stringify from 'babel-runtime/core-js/json/stringify';
 import _Object$assign from 'babel-runtime/core-js/object/assign';
 import _asyncToGenerator from 'babel-runtime/helpers/asyncToGenerator';
 import { dirname } from 'path';
-import 'fs';
+import { writeFile } from 'fs';
 import { renderSync } from 'node-sass';
 import { isFunction, isString } from 'util';
 import { createFilter } from 'rollup-pluginutils';
@@ -77,7 +77,7 @@ function plugin() {
                                 }
 
                                 _context.next = 10;
-                                return fs.writeFile(options.output, css);
+                                return writeFile(options.output, css);
 
                             case 10:
                                 return _context.abrupt('return', _context.sent);
