@@ -32,7 +32,7 @@ export default function plugin(options = {}) {
                 let css = renderSync(sassConfig).css.toString();
 
                 if (isString(options.output)) {
-                    return await fs.writeFile(options.output, css);
+                    return await writeFile(options.output, css);
                 } else {
                     if (isFunction(options.output)) {
                         css = await options.output(css, id);
