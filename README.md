@@ -1,8 +1,6 @@
 rollup-plugin-sass
 =====
 
-Roll .sass files.
-
 <p>
     <a href="LICENSE">
         <img src="https://img.shields.io/badge/license-MIT-brightgreen.svg" alt="Software License" />
