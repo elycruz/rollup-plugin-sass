@@ -41,23 +41,22 @@ rollup({
 
 ## Options
 
-### insert
+### `insert`
 
-+ Default: `false`
-+ Type: `Boolean`
++ Type: `Boolean` _(default: false)_
 
 If you specify `true`, the plugin will insert compiled CSS into `<head/>` tag.
 
-### output
+### `output`
 
 + Type: `String|Function`
 
 If you specify a string, it will be the path to write the generated CSS.
 If you specify a function, call it passing the generated CSS as an argument.
 
-### options
+### `options`
 
-+ Type: `Object`
++ Type: `Object` _(default: null)_
 
 Options for [node-sass](https://github.com/sass/node-sass#options).
 
