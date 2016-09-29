@@ -1,5 +1,5 @@
 import test from 'ava';
-import { readFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { rollup } from 'rollup';
 import sass from '..';
 
@@ -9,7 +9,7 @@ const sassOptions = {
 
 test('should import *.scss and *.sass files', t => {
     return rollup({
-        entry: 'samples/basic/index.js',
+        entry: 'fixtures/basic/index.js',
         plugins: [
             sass({
                 options: sassOptions
@@ -17,8 +17,8 @@ test('should import *.scss and *.sass files', t => {
         ]
     }).then(bundle => {
         const code = bundle.generate().code;
-        const style1 = readFileSync('samples/basic/style1.scss').toString();
-        const style2 = readFileSync('samples/basic/style2.sass').toString();
+        const style1 = readFileSync('fixtures/basic/style1.scss').toString();
+        const style2 = readFileSync('fixtures/basic/style2.sass').toString();
 
         t.true(code.indexOf(style1) > -1);
         t.true(code.indexOf(style2) > -1);
@@ -29,7 +29,7 @@ test('should process code with output function', t => {
     let outputCode = '';
 
     return rollup({
-        entry: 'samples/output-function/index.js',
+        entry: 'fixtures/output-function/index.js',
         plugins: [
             sass({
                 output(code) {
@@ -40,18 +40,39 @@ test('should process code with output function', t => {
         ]
     }).then(bundle => {
         const code = bundle.generate().code;
-        const style = readFileSync('samples/output-function/style.scss').toString();
+        const style = readFileSync('fixtures/output-function/style.scss').toString();
 
         t.truthy(outputCode);
         t.is(outputCode, `${style}\n`);
     })
 });
 
+test('should process code with output path', t => {
+    writeFileSync('fixtures/output-string/output.css', '');
+
+    return rollup({
+        entry: 'fixtures/output-string/index.js',
+        plugins: [
+            sass({
+                output: 'fixtures/output-string/output.css',
+                options: sassOptions
+            })
+        ]
+    }).then(bundle => {
+        const code = bundle.generate().code;
+        const style = readFileSync('fixtures/output-string/style.scss').toString();
+        const output = readFileSync('fixtures/output-string/output.css').toString();
+
+        t.is(output, `${style}\n`);
+    })
+});
+
+
 test('should process support promise', t => {
     let outputCode = '';
 
     return rollup({
-        entry: 'samples/output-promise/index.js',
+        entry: 'fixtures/output-promise/index.js',
         plugins: [
             sass({
                 output(code) {
@@ -66,7 +87,7 @@ test('should process support promise', t => {
         ]
     }).then(bundle => {
         const code = bundle.generate().code;
-        const style = readFileSync('samples/output-promise/style.scss').toString();
+        const style = readFileSync('fixtures/output-promise/style.scss').toString();
 
         t.truthy(outputCode);
         t.is(outputCode, `${style}\n`);
@@ -75,7 +96,7 @@ test('should process support promise', t => {
 
 test('should insert CSS into head tag', t => {
     return rollup({
-        entry: 'samples/insert-css/index.js',
+        entry: 'fixtures/insert-css/index.js',
         plugins: [
             sass({
                 insert: true,
@@ -84,7 +105,7 @@ test('should insert CSS into head tag', t => {
         ]
     }).then(bundle => {
         const code = bundle.generate().code;
-        const style = readFileSync('samples/insert-css/style.scss').toString();
+        const style = readFileSync('fixtures/insert-css/style.scss').toString();
 
         global.window = {};
         global.document = {
