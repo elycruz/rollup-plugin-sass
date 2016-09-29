@@ -1,5 +1,5 @@
 import { dirname } from 'path';
-import { writeFile } from 'fs';
+import { writeFileSync } from 'fs';
 import { renderSync } from 'node-sass'
 import { isString, isFunction } from 'util';
 import { createFilter } from 'rollup-pluginutils';
@@ -32,7 +32,9 @@ export default function plugin(options = {}) {
                 let css = renderSync(sassConfig).css.toString();
 
                 if (isString(options.output)) {
-                    return await writeFile(options.output, css);
+                    writeFileSync(options.output, css);
+
+                    code = 'export default "";';
                 } else {
                     if (isFunction(options.output)) {
                         css = await options.output(css, id);
@@ -44,11 +46,13 @@ export default function plugin(options = {}) {
                         css = `${insertFnName}(${css})`;
                     }
 
-                    return {
-                        code: `export default ${css};`,
-                        map: { mappings: '' }
-                    };
+                    code = `export default ${css};`;
                 }
+
+                return {
+                    code: code,
+                    map: { mappings: '' }
+                };
             } catch (error) {
                 throw error;
             }
