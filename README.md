@@ -51,7 +51,7 @@ If you specify `true`, the plugin will insert compiled CSS into `<head/>` tag.
 
 + Type: `String|Function`
 
-If you specify a string, it will be the path to write the generated CSS.
+If you specify a string, it will be the path to write the generated CSS.<br/>
 If you specify a function, call it passing the generated CSS as an argument.
 
 ### `options`
