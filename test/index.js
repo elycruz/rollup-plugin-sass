@@ -43,7 +43,7 @@ test('should process code with output function', t => {
         const style = readFileSync('fixtures/output-function/style.scss').toString();
 
         t.truthy(outputCode);
-        t.is(outputCode, `${style}\n`);
+        t.is(outputCode.trim(), `${style}`);
     })
 });
 
@@ -63,7 +63,7 @@ test('should process code with output path', t => {
         const style = readFileSync('fixtures/output-string/style.scss').toString();
         const output = readFileSync('fixtures/output-string/output.css').toString();
 
-        t.is(output, `${style}\n`);
+        t.is(output.trim(), `${style}`);
     })
 });
 
@@ -90,7 +90,7 @@ test('should process support promise', t => {
         const style = readFileSync('fixtures/output-promise/style.scss').toString();
 
         t.truthy(outputCode);
-        t.is(outputCode, `${style}\n`);
+        t.is(outputCode.trim(), `${style}`);
     });
 });
 
@@ -113,7 +113,7 @@ test('should insert CSS into head tag', t => {
             head: {
                 appendChild(mockNode) {
                     t.true(mockNode.hasOwnProperty('setAttribute'));
-                    t.is(mockNode.innerHTML, `${style}\n`);
+                    t.is(mockNode.innerHTML.trim(), `${style}`);
                 }
             },
             createElement() {
