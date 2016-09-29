@@ -76,29 +76,29 @@ function plugin() {
                                 css = nodeSass.renderSync(sassConfig).css.toString();
 
                                 if (!util.isString(options.output)) {
-                                    _context.next = 13;
+                                    _context.next = 12;
                                     break;
                                 }
 
-                                _context.next = 10;
-                                return fs.writeFile(options.output, css);
+                                fs.writeFileSync(options.output, css);
 
-                            case 10:
-                                return _context.abrupt('return', _context.sent);
+                                code = 'export default "";';
+                                _context.next = 19;
+                                break;
 
-                            case 13:
+                            case 12:
                                 if (!util.isFunction(options.output)) {
-                                    _context.next = 17;
+                                    _context.next = 16;
                                     break;
                                 }
 
-                                _context.next = 16;
+                                _context.next = 15;
                                 return options.output(css, id);
 
-                            case 16:
+                            case 15:
                                 css = _context.sent;
 
-                            case 17:
+                            case 16:
 
                                 css = _JSON$stringify(css);
 
@@ -106,14 +106,13 @@ function plugin() {
                                     css = insertFnName + '(' + css + ')';
                                 }
 
+                                code = 'export default ' + css + ';';
+
+                            case 19:
                                 return _context.abrupt('return', {
-                                    code: 'export default ' + css + ';',
+                                    code: code,
                                     map: { mappings: '' }
                                 });
-
-                            case 20:
-                                _context.next = 25;
-                                break;
 
                             case 22:
                                 _context.prev = 22;

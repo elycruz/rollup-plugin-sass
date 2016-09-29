@@ -3,7 +3,7 @@ import _JSON$stringify from 'babel-runtime/core-js/json/stringify';
 import _Object$assign from 'babel-runtime/core-js/object/assign';
 import _asyncToGenerator from 'babel-runtime/helpers/asyncToGenerator';
 import { dirname } from 'path';
-import { writeFile } from 'fs';
+import { writeFileSync } from 'fs';
 import { renderSync } from 'node-sass';
 import { isFunction, isString } from 'util';
 import { createFilter } from 'rollup-pluginutils';
@@ -72,29 +72,29 @@ function plugin() {
                                 css = renderSync(sassConfig).css.toString();
 
                                 if (!isString(options.output)) {
-                                    _context.next = 13;
+                                    _context.next = 12;
                                     break;
                                 }
 
-                                _context.next = 10;
-                                return writeFile(options.output, css);
+                                writeFileSync(options.output, css);
 
-                            case 10:
-                                return _context.abrupt('return', _context.sent);
+                                code = 'export default "";';
+                                _context.next = 19;
+                                break;
 
-                            case 13:
+                            case 12:
                                 if (!isFunction(options.output)) {
-                                    _context.next = 17;
+                                    _context.next = 16;
                                     break;
                                 }
 
-                                _context.next = 16;
+                                _context.next = 15;
                                 return options.output(css, id);
 
-                            case 16:
+                            case 15:
                                 css = _context.sent;
 
-                            case 17:
+                            case 16:
 
                                 css = _JSON$stringify(css);
 
@@ -102,14 +102,13 @@ function plugin() {
                                     css = insertFnName + '(' + css + ')';
                                 }
 
+                                code = 'export default ' + css + ';';
+
+                            case 19:
                                 return _context.abrupt('return', {
-                                    code: 'export default ' + css + ';',
+                                    code: code,
                                     map: { mappings: '' }
                                 });
-
-                            case 20:
-                                _context.next = 25;
-                                break;
 
                             case 22:
                                 _context.prev = 22;
