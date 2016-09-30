@@ -17,6 +17,9 @@ rollup-plugin-sass
     <a href="https://github.com/differui/rollup-plugin-sass/releases">
         <img src="https://img.shields.io/github/release/differui/rollup-plugin-sass.svg" alt="Latest Version" />
     </a>
+    <a href="https://travis-ci.org/differui/rollup-plugin-sass">
+        <img src="https://travis-ci.org/differui/rollup-plugin-sass.svg?branch=master" />
+    </a>
 </p>
 
 ## Installation
