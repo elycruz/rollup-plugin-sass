@@ -19,7 +19,7 @@ rollup({
             runtimeHelpers: true
         })
     ]
-}).then((bundle) => {
+}).then(function (bundle) {
     bundle.write({
         dest: 'dist/rollup-plugin-sass.cjs.js',
         format: 'cjs'
