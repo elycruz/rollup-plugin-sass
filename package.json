@@ -1,9 +1,9 @@
 {
   "name": "rollup-plugin-sass",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "Rollup .sass files.",
   "main": "dist/rollup-plugin-sass.cjs.js",
-  "jsnext:main": "dist/rollup-plugin-sass.es6.js",
+  "jsnext:main": "dist/rollup-plugin-sass.es.js",
   "scripts": {
     "prepublish": "npm run test",
     "pretest": "npm run build",
@@ -26,9 +26,6 @@
   "files": [
     "dist"
   ],
-  "peerDependencies": {
-    "rollup": ">= 0.26.3"
-  },
   "dependencies": {
     "babel-plugin-transform-runtime": ">= 6.8.0",
     "node-sass": ">= 3.8.0",
@@ -38,6 +35,7 @@
     "ava": "^0.16.0",
     "babel-plugin-transform-async-to-generator": "^6.8.0",
     "babel-preset-es2015-rollup": "^1.1.1",
+    "rollup": ">= 0.26.3",
     "rollup-plugin-babel": "^2.4.0"
   }
 }

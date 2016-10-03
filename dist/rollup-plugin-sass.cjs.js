@@ -38,7 +38,7 @@ function insertStyle(css) {
 }
 
 function plugin() {
-    var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+    var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
     var filter = rollupPluginutils.createFilter(options.include || ['**/*.sass', '**/*.scss'], options.exclude || 'node_modules/**');
     var insertFnName = '___$insertStyle';
@@ -128,6 +128,6 @@ function plugin() {
             }))();
         }
     };
-};
+}
 
 module.exports = plugin;

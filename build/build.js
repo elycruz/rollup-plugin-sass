@@ -19,13 +19,13 @@ rollup({
             runtimeHelpers: true
         })
     ]
-}).then((bundle) => {
+}).then(function (bundle) {
     bundle.write({
         dest: 'dist/rollup-plugin-sass.cjs.js',
         format: 'cjs'
     });
     bundle.write({
-        dest: 'dist/rollup-plugin-sass.es6.js',
-        format: 'es6'
+        dest: 'dist/rollup-plugin-sass.es.js',
+        format: 'es'
     });
 }).catch(console.error);
