@@ -42,12 +42,24 @@ function plugin() {
 
     var filter = rollupPluginutils.createFilter(options.include || ['**/*.sass', '**/*.scss'], options.exclude || 'node_modules/**');
     var insertFnName = '___$insertStyle';
+    var styles = [];
+    var dest = '';
+
+    options.output = options.output || false;
+    options.insert = options.insert || false;
+    options.processor = options.processor || null;
+    options.options = options.options || null;
 
     return {
+        name: 'sass',
+
         intro: function intro() {
             if (options.insert) {
                 return insertStyle.toString().replace(/insertStyle/, insertFnName);
             }
+        },
+        options: function options(opts) {
+            dest = opts.dest || opts.entry;
         },
         transform: function transform(code, id) {
             var _this = this;
@@ -75,56 +87,106 @@ function plugin() {
                                 _context.prev = 5;
                                 css = nodeSass.renderSync(sassConfig).css.toString();
 
-                                if (!util.isString(options.output)) {
+                                if (!css.trim()) {
+                                    _context.next = 14;
+                                    break;
+                                }
+
+                                if (!util.isFunction(options.processor)) {
                                     _context.next = 12;
                                     break;
                                 }
 
-                                fs.writeFileSync(options.output, css);
+                                _context.next = 11;
+                                return options.processor(css, id);
 
-                                code = 'export default "";';
-                                _context.next = 19;
-                                break;
-
-                            case 12:
-                                if (!util.isFunction(options.output)) {
-                                    _context.next = 16;
-                                    break;
-                                }
-
-                                _context.next = 15;
-                                return options.output(css, id);
-
-                            case 15:
+                            case 11:
                                 css = _context.sent;
 
-                            case 16:
+                            case 12:
 
-                                css = _JSON$stringify(css);
+                                styles.push({
+                                    id: id,
+                                    content: css
+                                });
 
                                 if (options.insert) {
                                     css = insertFnName + '(' + css + ')';
                                 }
 
-                                code = 'export default ' + css + ';';
-
-                            case 19:
+                            case 14:
                                 return _context.abrupt('return', {
-                                    code: code,
+                                    code: 'export default ' + (options.output === false ? _JSON$stringify(css) : '\'\'') + ';',
                                     map: { mappings: '' }
                                 });
 
-                            case 22:
-                                _context.prev = 22;
+                            case 17:
+                                _context.prev = 17;
                                 _context.t0 = _context['catch'](5);
                                 throw _context.t0;
 
-                            case 25:
+                            case 20:
                             case 'end':
                                 return _context.stop();
                         }
                     }
-                }, _callee, _this, [[5, 22]]);
+                }, _callee, _this, [[5, 17]]);
+            }))();
+        },
+        ongenerate: function ongenerate(opts) {
+            var _this2 = this;
+
+            return _asyncToGenerator(_regeneratorRuntime.mark(function _callee2() {
+                var css;
+                return _regeneratorRuntime.wrap(function _callee2$(_context2) {
+                    while (1) {
+                        switch (_context2.prev = _context2.next) {
+                            case 0:
+                                if (!(!styles.length || options.output === false)) {
+                                    _context2.next = 2;
+                                    break;
+                                }
+
+                                return _context2.abrupt('return');
+
+                            case 2:
+                                css = styles.map(function (style) {
+                                    return style.content;
+                                }).join('');
+
+                                if (!util.isString(options.output)) {
+                                    _context2.next = 7;
+                                    break;
+                                }
+
+                                return _context2.abrupt('return', fs.writeFileSync(options.output, css));
+
+                            case 7:
+                                if (!util.isFunction(options.output)) {
+                                    _context2.next = 11;
+                                    break;
+                                }
+
+                                return _context2.abrupt('return', options.output(css, styles));
+
+                            case 11:
+                                if (!dest) {
+                                    _context2.next = 14;
+                                    break;
+                                }
+
+                                if (dest.endsWith('.js')) {
+                                    dest = dest.slice(0, -3);
+                                }
+
+                                return _context2.abrupt('return', fs.writeFileSync(dest + '.css', css));
+
+                            case 14:
+                            case 'end':
+                                return _context2.stop();
+                        }
+                    }
+                }, _callee2, _this2);
             }))();
         }
     };
