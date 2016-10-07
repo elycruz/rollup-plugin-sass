@@ -44,18 +44,60 @@ rollup({
 
 ## Options
 
+### `output`
+
++ Type: `Boolean|String|Function` _(default: false)_
+
+```js
+sass({
+    // Default behaviour disable output
+    output: false,
+
+    // Write all styles to the bundle destination where .js is replaced by .css
+    output: true,
+
+    // Filename to write all styles
+    output: 'bundle.css',
+
+    // Callback that will be called ongenerate with two arguments:
+    // - styles: the concatentated styles in order of imported
+    // - styleNodes: an array of style objects:
+    //   [
+    //     { id: './style1.scss', content: 'body { color: red };' },
+    //     { id: './style2.scss', content: 'body { color: green };' }
+    //   ]
+    output(styles, styleNodes) {
+        writeFileSync('bundle.css', styles);
+    }
+});
+```
+
 ### `insert`
 
 + Type: `Boolean` _(default: false)_
 
 If you specify `true`, the plugin will insert compiled CSS into `<head/>` tag.
 
-### `output`
+### `processor`
 
-+ Type: `String|Function`
++ Type: `Function` _(default: null)_
 
-If you specify a string, it will be the path to write the generated CSS.<br/>
-If you specify a function, call it passing the generated CSS as an argument.
+If you specify a function as processor, the plugin will invoke it with compiled css.
+
+```js
+sass({
+    // Processor will be called with two arguments:
+    // - style: the compiled css
+    // - id: import id
+    processor(style, id) {
+        return postcss([ require('autoprefixer') ])
+            .process(css)
+            .then((result) {
+                return result.css;
+            });
+    }
+});
+```
 
 ### `options`
 
