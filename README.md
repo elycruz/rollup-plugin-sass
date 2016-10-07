@@ -82,7 +82,7 @@ If you specify `true`, the plugin will insert compiled CSS into `<head/>` tag.
 
 + Type: `Function` _(default: null)_
 
-If you specify a function as processor, the plugin will invoke it with compiled css.
+If you specify a function as processor which will be called with compiled css before generate phase.
 
 ```js
 sass({
