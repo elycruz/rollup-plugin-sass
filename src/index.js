@@ -8,12 +8,25 @@ import { insertStyle } from './style.js'
 export default function plugin(options = {}) {
     const filter = createFilter(options.include || [ '**/*.sass', '**/*.scss' ], options.exclude || 'node_modules/**');
     const insertFnName = '___$insertStyle';
+    const styles = [];
+    let dest = '';
+
+    options.output = options.output || false;
+    options.insert = options.insert || false;
+    options.processor = options.processor || null;
+    options.options = options.options || null;
 
     return {
+        name: 'sass',
+
         intro() {
             if (options.insert) {
                 return insertStyle.toString().replace(/insertStyle/, insertFnName);
             }
+        },
+
+        options(opts) {
+            dest = opts.dest || opts.entry;
         },
 
         async transform(code, id) {
@@ -31,30 +44,49 @@ export default function plugin(options = {}) {
             try {
                 let css = renderSync(sassConfig).css.toString();
 
-                if (isString(options.output)) {
-                    writeFileSync(options.output, css);
-
-                    code = 'export default "";';
-                } else {
-                    if (isFunction(options.output)) {
-                        css = await options.output(css, id);
+                if (css.trim()) {
+                    if (isFunction(options.processor)) {
+                        css = await options.processor(css, id);
                     }
 
-                    css = JSON.stringify(css);
+                    styles.push({
+                        id: id,
+                        content: css
+                    });
 
                     if (options.insert) {
                         css = `${insertFnName}(${css})`;
                     }
-
-                    code = `export default ${css};`;
                 }
 
                 return {
-                    code: code,
+                    code: `export default ${options.output === false ? JSON.stringify(css) : '\'\''};`,
                     map: { mappings: '' }
                 };
             } catch (error) {
                 throw error;
+            }
+        },
+
+        async ongenerate(opts) {
+            if (!styles.length || options.output === false) {
+                return;
+            }
+
+            const css = styles.map((style) => {
+                return style.content;
+            }).join('');
+
+            if (isString(options.output)) {
+                return writeFileSync(options.output, css);
+            } else if (isFunction(options.output)) {
+                return options.output(css, styles);
+            } else if (dest) {
+                if (dest.endsWith('.js')) {
+                    dest = dest.slice(0, -3);
+                }
+
+                return writeFileSync(`${dest}.css`, css);
             }
         }
     };
