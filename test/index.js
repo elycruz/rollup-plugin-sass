@@ -154,6 +154,7 @@ test('should insert CSS into head tag', t => {
         const code = bundle.generate().code;
         const style1 = readFileSync('fixtures/insert/style1.scss').toString();
         const style2 = readFileSync('fixtures/insert/style2.scss').toString();
+        let count = 0;
 
         global.window = {};
         global.document = {
@@ -161,7 +162,14 @@ test('should insert CSS into head tag', t => {
             head: {
                 appendChild(mockNode) {
                     t.true(mockNode.hasOwnProperty('setAttribute'));
-                    t.is(mockNode.innerHTML.trim(), `${style1}${style2}`);
+
+                    if (count === 0) {
+                        t.is(mockNode.innerHTML.trim(), `${style1}`.trim());
+                    } else if (count === 1) {
+                        t.is(mockNode.innerHTML.trim(), `${style2}`.trim());
+                    }
+
+                    count++;
                 }
             },
             createElement() {

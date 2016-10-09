@@ -61,7 +61,8 @@ function plugin() {
             var _this = this;
 
             return _asyncToGenerator(_regeneratorRuntime.mark(function _callee() {
-                var paths, sassConfig, css;
+                var paths, sassConfig, css, _code;
+
                 return _regeneratorRuntime.wrap(function _callee$(_context) {
                     while (1) {
                         switch (_context.prev = _context.next) {
@@ -82,54 +83,60 @@ function plugin() {
 
                                 _context.prev = 5;
                                 css = renderSync(sassConfig).css.toString();
+                                _code = '';
 
                                 if (!css.trim()) {
-                                    _context.next = 14;
+                                    _context.next = 16;
                                     break;
                                 }
 
                                 if (!isFunction(options.processor)) {
-                                    _context.next = 12;
+                                    _context.next = 13;
                                     break;
                                 }
 
-                                _context.next = 11;
+                                _context.next = 12;
                                 return options.processor(css, id);
 
-                            case 11:
+                            case 12:
                                 css = _context.sent;
 
-                            case 12:
+                            case 13:
 
                                 styles.push({
                                     id: id,
                                     content: css
                                 });
+                                css = _JSON$stringify(css);
 
-                                if (options.insert) {
-                                    css = insertFnName + '(' + css + ')';
+                                if (options.insert === true) {
+                                    _code = insertFnName + '(' + css + ');';
+                                } else if (options.output === false) {
+                                    _code = css;
+                                } else {
+                                    _code = '"";';
                                 }
 
-                            case 14:
+                            case 16:
                                 return _context.abrupt('return', {
-                                    code: 'export default ' + (options.output === false ? _JSON$stringify(css) : '\'\'') + ';',
+                                    code: 'export default ' + _code + ';',
                                     map: { mappings: '' }
                                 });
 
-                            case 17:
-                                _context.prev = 17;
+                            case 19:
+                                _context.prev = 19;
                                 _context.t0 = _context['catch'](5);
                                 throw _context.t0;
 
-                            case 20:
+                            case 22:
                             case 'end':
                                 return _context.stop();
                         }
                     }
-                }, _callee, _this, [[5, 17]]);
+                }, _callee, _this, [[5, 19]]);
             }))();
         },
-        ongenerate: function ongenerate(opts) {
+        ongenerate: function ongenerate(opts, result) {
             var _this2 = this;
 
             return _asyncToGenerator(_regeneratorRuntime.mark(function _callee2() {
@@ -138,7 +145,7 @@ function plugin() {
                     while (1) {
                         switch (_context2.prev = _context2.next) {
                             case 0:
-                                if (!(!styles.length || options.output === false)) {
+                                if (!(!options.insert && (!styles.length || options.output === false))) {
                                     _context2.next = 2;
                                     break;
                                 }
@@ -166,7 +173,7 @@ function plugin() {
                                 return _context2.abrupt('return', options.output(css, styles));
 
                             case 11:
-                                if (!dest) {
+                                if (!(!options.insert && dest)) {
                                     _context2.next = 14;
                                     break;
                                 }

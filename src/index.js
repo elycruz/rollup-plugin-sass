@@ -43,6 +43,7 @@ export default function plugin(options = {}) {
 
             try {
                 let css = renderSync(sassConfig).css.toString();
+                let code = '';
 
                 if (css.trim()) {
                     if (isFunction(options.processor)) {
@@ -53,14 +54,19 @@ export default function plugin(options = {}) {
                         id: id,
                         content: css
                     });
+                    css = JSON.stringify(css);
 
-                    if (options.insert) {
-                        css = `${insertFnName}(${css})`;
+                    if (options.insert === true) {
+                        code = `${insertFnName}(${css});`
+                    } else if (options.output === false) {
+                        code = css;
+                    } else {
+                        code = `"";`;
                     }
                 }
 
                 return {
-                    code: `export default ${options.output === false ? JSON.stringify(css) : '\'\''};`,
+                    code: `export default ${code};`,
                     map: { mappings: '' }
                 };
             } catch (error) {
@@ -68,8 +74,8 @@ export default function plugin(options = {}) {
             }
         },
 
-        async ongenerate(opts) {
-            if (!styles.length || options.output === false) {
+        async ongenerate(opts, result) {
+            if (!options.insert && (!styles.length || options.output === false)) {
                 return;
             }
 
@@ -81,7 +87,7 @@ export default function plugin(options = {}) {
                 return writeFileSync(options.output, css);
             } else if (isFunction(options.output)) {
                 return options.output(css, styles);
-            } else if (dest) {
+            } else if (!options.insert && dest) {
                 if (dest.endsWith('.js')) {
                     dest = dest.slice(0, -3);
                 }
