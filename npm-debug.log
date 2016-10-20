@@ -1,0 +1,56 @@
+0 info it worked if it ends with ok
+1 verbose cli [ '/home/toni/.nvm/versions/node/v5.10.1/bin/node',
+1 verbose cli   '/home/toni/.nvm/versions/node/v5.10.1/bin/npm',
+1 verbose cli   'run',
+1 verbose cli   'test',
+1 verbose cli   '--',
+1 verbose cli   '-m',
+1 verbose cli   'should support output as *path' ]
+2 info using npm@3.8.6
+3 info using node@v5.10.1
+4 verbose run-script [ 'pretest', 'test', 'posttest' ]
+5 info lifecycle rollup-plugin-sass@0.4.2~pretest: rollup-plugin-sass@0.4.2
+6 verbose lifecycle rollup-plugin-sass@0.4.2~pretest: unsafe-perm in lifecycle true
+7 verbose lifecycle rollup-plugin-sass@0.4.2~pretest: PATH: /home/toni/.nvm/versions/node/v5.10.1/lib/node_modules/npm/bin/node-gyp-bin:/home/toni/projects/osing/rollup-plugin-sass/node_modules/.bin:/home/toni/.nvm/versions/node/v5.10.1/bin:/home/toni/.nvm/versions/node/v5.10.1/bin:/home/toni/.rbenv/shims:/home/toni/.rbenv/bin:/home/toni/dotvim/voom:/usr/local/heroku/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/home/toni/.rvm/bin
+8 verbose lifecycle rollup-plugin-sass@0.4.2~pretest: CWD: /home/toni/projects/osing/rollup-plugin-sass
+9 silly lifecycle rollup-plugin-sass@0.4.2~pretest: Args: [ '-c', 'npm run build' ]
+10 silly lifecycle rollup-plugin-sass@0.4.2~pretest: Returned: code: 0  signal: null
+11 info lifecycle rollup-plugin-sass@0.4.2~test: rollup-plugin-sass@0.4.2
+12 verbose lifecycle rollup-plugin-sass@0.4.2~test: unsafe-perm in lifecycle true
+13 verbose lifecycle rollup-plugin-sass@0.4.2~test: PATH: /home/toni/.nvm/versions/node/v5.10.1/lib/node_modules/npm/bin/node-gyp-bin:/home/toni/projects/osing/rollup-plugin-sass/node_modules/.bin:/home/toni/.nvm/versions/node/v5.10.1/bin:/home/toni/.nvm/versions/node/v5.10.1/bin:/home/toni/.rbenv/shims:/home/toni/.rbenv/bin:/home/toni/dotvim/voom:/usr/local/heroku/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/home/toni/.rvm/bin
+14 verbose lifecycle rollup-plugin-sass@0.4.2~test: CWD: /home/toni/projects/osing/rollup-plugin-sass
+15 silly lifecycle rollup-plugin-sass@0.4.2~test: Args: [ '-c',
+15 silly lifecycle   'ava test/index.js -s "-m" "should support output as *path"' ]
+16 silly lifecycle rollup-plugin-sass@0.4.2~test: Returned: code: 1  signal: null
+17 info lifecycle rollup-plugin-sass@0.4.2~test: Failed to exec test script
+18 verbose stack Error: rollup-plugin-sass@0.4.2 test: `ava test/index.js -s "-m" "should support output as *path"`
+18 verbose stack Exit status 1
+18 verbose stack     at EventEmitter.<anonymous> (/home/toni/.nvm/versions/node/v5.10.1/lib/node_modules/npm/lib/utils/lifecycle.js:239:16)
+18 verbose stack     at emitTwo (events.js:100:13)
+18 verbose stack     at EventEmitter.emit (events.js:185:7)
+18 verbose stack     at ChildProcess.<anonymous> (/home/toni/.nvm/versions/node/v5.10.1/lib/node_modules/npm/lib/utils/spawn.js:24:14)
+18 verbose stack     at emitTwo (events.js:100:13)
+18 verbose stack     at ChildProcess.emit (events.js:185:7)
+18 verbose stack     at maybeClose (internal/child_process.js:850:16)
+18 verbose stack     at Process.ChildProcess._handle.onexit (internal/child_process.js:215:5)
+19 verbose pkgid rollup-plugin-sass@0.4.2
+20 verbose cwd /home/toni/projects/osing/rollup-plugin-sass
+21 error Linux 4.5.0-040500-generic
+22 error argv "/home/toni/.nvm/versions/node/v5.10.1/bin/node" "/home/toni/.nvm/versions/node/v5.10.1/bin/npm" "run" "test" "--" "-m" "should support output as *path"
+23 error node v5.10.1
+24 error npm  v3.8.6
+25 error code ELIFECYCLE
+26 error rollup-plugin-sass@0.4.2 test: `ava test/index.js -s "-m" "should support output as *path"`
+26 error Exit status 1
+27 error Failed at the rollup-plugin-sass@0.4.2 test script 'ava test/index.js -s "-m" "should support output as *path"'.
+27 error Make sure you have the latest version of node.js and npm installed.
+27 error If you do, this is most likely a problem with the rollup-plugin-sass package,
+27 error not with npm itself.
+27 error Tell the author that this fails on your system:
+27 error     ava test/index.js -s "-m" "should support output as *path"
+27 error You can get information on how to open an issue for this project with:
+27 error     npm bugs rollup-plugin-sass
+27 error Or if that isn't available, you can get their info via:
+27 error     npm owner ls rollup-plugin-sass
+27 error There is likely additional logging output above.
+28 verbose exit [ 1, true ]
