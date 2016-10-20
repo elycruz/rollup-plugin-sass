@@ -7,6 +7,7 @@ import { writeFileSync } from 'fs';
 import { renderSync } from 'node-sass';
 import { isFunction, isString } from 'util';
 import { createFilter } from 'rollup-pluginutils';
+import { ensureFileSync } from 'fs-extra';
 
 /*
  * Create a style tag and append to head tag
@@ -158,23 +159,26 @@ function plugin() {
                                 }).join('');
 
                                 if (!isString(options.output)) {
-                                    _context2.next = 7;
+                                    _context2.next = 8;
                                     break;
                                 }
 
+                                ensureFileSync(options.output, function (err) {
+                                    if (err) throw err;
+                                });
                                 return _context2.abrupt('return', writeFileSync(options.output, css));
 
-                            case 7:
+                            case 8:
                                 if (!isFunction(options.output)) {
-                                    _context2.next = 11;
+                                    _context2.next = 12;
                                     break;
                                 }
 
                                 return _context2.abrupt('return', options.output(css, styles));
 
-                            case 11:
+                            case 12:
                                 if (!(!options.insert && dest)) {
-                                    _context2.next = 14;
+                                    _context2.next = 15;
                                     break;
                                 }
 
@@ -184,7 +188,7 @@ function plugin() {
 
                                 return _context2.abrupt('return', writeFileSync(dest + '.css', css));
 
-                            case 14:
+                            case 15:
                             case 'end':
                                 return _context2.stop();
                         }

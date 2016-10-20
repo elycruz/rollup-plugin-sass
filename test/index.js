@@ -76,7 +76,6 @@ test('should processor support promise', t => {
 test('should support output as (non-previously existent)-path', t => {
     let testpath = 'fixtures/output-path'
     let fullfile = testpath+'build/styles/mystyles.css'
-    //writeFileSync('fixtures/output-path/output.css', '');
 
     return rollup({
         entry: 'fixtures/output-path/index.js',
@@ -90,11 +89,8 @@ test('should support output as (non-previously existent)-path', t => {
         const code = bundle.generate().code;
         const style1 = readFileSync('fixtures/output-path/style1.scss').toString();
         const style2 = readFileSync('fixtures/output-path/style2.scss').toString();
-        //const output = readFileSync('fixtures/output-path/output.css').toString();
         const output = readFileSync(fullfile).toString();
 
-        console.log('codetrim ', code.trim())
-        console.log('outputtrim ', output.trim())
         t.is(code.trim(), '');
         t.is(output.trim(), `${style1}${style2}`.trim());
     });
