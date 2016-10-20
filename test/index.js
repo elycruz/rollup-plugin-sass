@@ -16,23 +16,23 @@ test('should import *.scss and *.sass files', t => {
             })
         ]
     }).then(bundle => {
-        const code = bundle.generate().code;
+        const code = bundle.generate().code.trim();
         const style1 = readFileSync('fixtures/basic/style1.scss').toString();
         const style2 = readFileSync('fixtures/basic/style2.sass').toString();
 
-        t.true(code.indexOf(style1) > -1);
-        t.true(code.indexOf(style2) > -1);
+        t.true(code.indexOf(style1.trim()) > -1);
+        t.true(code.indexOf(style2.trim()) > -1);
     });
 });
 
-test('should process code with output function', t => {
+test('should process code with processor', t => {
     let outputCode = '';
 
     return rollup({
-        entry: 'fixtures/output-function/index.js',
+        entry: 'fixtures/processor/index.js',
         plugins: [
             sass({
-                output(code) {
+                processor(code) {
                     return outputCode = code;
                 },
                 options: sassOptions
@@ -40,42 +40,21 @@ test('should process code with output function', t => {
         ]
     }).then(bundle => {
         const code = bundle.generate().code;
-        const style = readFileSync('fixtures/output-function/style.scss').toString();
+        const style = readFileSync('fixtures/processor/style.scss').toString();
 
         t.truthy(outputCode);
-        t.is(outputCode.trim(), `${style}`);
+        t.is(outputCode.trim(), `${style.trim()}`);
     })
 });
 
-test('should process code with output path', t => {
-    writeFileSync('fixtures/output-string/output.css', '');
-
-    return rollup({
-        entry: 'fixtures/output-string/index.js',
-        plugins: [
-            sass({
-                output: 'fixtures/output-string/output.css',
-                options: sassOptions
-            })
-        ]
-    }).then(bundle => {
-        const code = bundle.generate().code;
-        const style = readFileSync('fixtures/output-string/style.scss').toString();
-        const output = readFileSync('fixtures/output-string/output.css').toString();
-
-        t.is(output.trim(), `${style}`);
-    })
-});
-
-
-test('should process support promise', t => {
+test('should processor support promise', t => {
     let outputCode = '';
 
     return rollup({
-        entry: 'fixtures/output-promise/index.js',
+        entry: 'fixtures/processor-promise/index.js',
         plugins: [
             sass({
-                output(code) {
+                processor(code) {
                     return new Promise((resolve) => {
                         setTimeout(() => {
                             resolve(outputCode = code)
@@ -87,16 +66,84 @@ test('should process support promise', t => {
         ]
     }).then(bundle => {
         const code = bundle.generate().code;
-        const style = readFileSync('fixtures/output-promise/style.scss').toString();
+        const style = readFileSync('fixtures/processor-promise/style.scss').toString();
 
         t.truthy(outputCode);
-        t.is(outputCode.trim(), `${style}`);
+        t.is(outputCode.trim(), `${style.trim()}`);
+    });
+});
+
+test('should support output as path', t => {
+    writeFileSync('fixtures/output-path/output.css', '');
+
+    return rollup({
+        entry: 'fixtures/output-path/index.js',
+        plugins: [
+            sass({
+                output: 'fixtures/output-path/output.css',
+                options: sassOptions
+            })
+        ]
+    }).then(bundle => {
+        const code = bundle.generate().code;
+        const style1 = readFileSync('fixtures/output-path/style1.scss').toString();
+        const style2 = readFileSync('fixtures/output-path/style2.scss').toString();
+        const output = readFileSync('fixtures/output-path/output.css').toString();
+
+        t.is(code.trim(), '');
+        t.is(output.trim(), `${style1}${style2}`.trim());
+    });
+});
+
+test('should support output as function', t => {
+    let outputCode = '';
+
+    return rollup({
+        entry: 'fixtures/output-function/index.js',
+        plugins: [
+            sass({
+                output(style) {
+                    outputCode = style;
+                },
+                options: sassOptions
+            })
+        ]
+    }).then(bundle => {
+        const code = bundle.generate().code;
+        const style1 = readFileSync('fixtures/output-function/style1.scss').toString();
+        const style2 = readFileSync('fixtures/output-function/style2.scss').toString();
+
+        t.is(code.trim(), '');
+        t.is(outputCode.trim(), `${style1}${style2}`.trim());
+    });
+});
+
+test('should support output as true', t => {
+    writeFileSync('fixtures/output-true/output.css', '');
+
+    return rollup({
+        entry: 'fixtures/output-true/index.js',
+        dest: 'fixtures/output-true/output.js',
+        plugins: [
+            sass({
+                output: true,
+                options: sassOptions
+            })
+        ]
+    }).then(bundle => {
+        const code = bundle.generate().code;
+        const style1 = readFileSync('fixtures/output-true/style1.scss').toString();
+        const style2 = readFileSync('fixtures/output-true/style2.scss').toString();
+        const output = readFileSync('fixtures/output-true/output.css').toString();
+
+        t.is(code.trim(), '');
+        t.is(output.trim(), `${style1}${style2}`.trim());
     });
 });
 
 test('should insert CSS into head tag', t => {
     return rollup({
-        entry: 'fixtures/insert-css/index.js',
+        entry: 'fixtures/insert/index.js',
         plugins: [
             sass({
                 insert: true,
@@ -105,7 +152,9 @@ test('should insert CSS into head tag', t => {
         ]
     }).then(bundle => {
         const code = bundle.generate().code;
-        const style = readFileSync('fixtures/insert-css/style.scss').toString();
+        const style1 = readFileSync('fixtures/insert/style1.scss').toString();
+        const style2 = readFileSync('fixtures/insert/style2.scss').toString();
+        let count = 0;
 
         global.window = {};
         global.document = {
@@ -113,7 +162,14 @@ test('should insert CSS into head tag', t => {
             head: {
                 appendChild(mockNode) {
                     t.true(mockNode.hasOwnProperty('setAttribute'));
-                    t.is(mockNode.innerHTML.trim(), `${style}`);
+
+                    if (count === 0) {
+                        t.is(mockNode.innerHTML.trim(), `${style1}`.trim());
+                    } else if (count === 1) {
+                        t.is(mockNode.innerHTML.trim(), `${style2}`.trim());
+                    }
+
+                    count++;
                 }
             },
             createElement() {
