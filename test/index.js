@@ -75,7 +75,9 @@ test('should processor support promise', t => {
 
 test('should support output as (non-previously existent)-path', t => {
     let testpath = 'fixtures/output-path'
-    let fullfile = testpath+'build/styles/mystyles.css'
+    //This would be the value of 'output:' option
+    let relative_file = 'build/styles/mystyles.css'
+    let fullfile = [testpath,relative_file].join('/')
 
     return rollup({
         entry: 'fixtures/output-path/index.js',
