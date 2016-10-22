@@ -1,5 +1,6 @@
 import test from 'ava';
 import { readFileSync, writeFileSync } from 'fs';
+import { removeSync } from 'fs-extra';
 import { rollup } from 'rollup';
 import sass from '..';
 
@@ -74,10 +75,8 @@ test('should processor support promise', t => {
 });
 
 test('should support output as (non-previously existent)-path', t => {
-    let testpath = 'fixtures/output-path'
-    //This would be the value of 'output:' option
-    let relative_file = 'build/styles/mystyles.css'
-    let fullfile = [testpath,relative_file].join('/')
+    let testPath = 'fixtures/output-path/build/';
+    let fullfile = `${testPath}styles/style.css`;
 
     return rollup({
         entry: 'fixtures/output-path/index.js',
@@ -93,6 +92,7 @@ test('should support output as (non-previously existent)-path', t => {
         const style2 = readFileSync('fixtures/output-path/style2.scss').toString();
         const output = readFileSync(fullfile).toString();
 
+        removeSync(testPath);
         t.is(code.trim(), '');
         t.is(output.trim(), `${style1}${style2}`.trim());
     });
