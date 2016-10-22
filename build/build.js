@@ -12,7 +12,8 @@ rollup({
         'util',
         'path',
         'node-sass',
-        'rollup-pluginutils'
+        'rollup-pluginutils',
+        'fs-extra'
     ],
     plugins: [
         babel({
