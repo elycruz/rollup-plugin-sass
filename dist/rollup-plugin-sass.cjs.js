@@ -11,6 +11,7 @@ var fs = require('fs');
 var nodeSass = require('node-sass');
 var util = require('util');
 var rollupPluginutils = require('rollup-pluginutils');
+var fsExtra = require('fs-extra');
 
 /*
  * Create a style tag and append to head tag
@@ -162,23 +163,26 @@ function plugin() {
                                 }).join('');
 
                                 if (!util.isString(options.output)) {
-                                    _context2.next = 7;
+                                    _context2.next = 8;
                                     break;
                                 }
 
+                                fsExtra.ensureFileSync(options.output, function (err) {
+                                    if (err) throw err;
+                                });
                                 return _context2.abrupt('return', fs.writeFileSync(options.output, css));
 
-                            case 7:
+                            case 8:
                                 if (!util.isFunction(options.output)) {
-                                    _context2.next = 11;
+                                    _context2.next = 12;
                                     break;
                                 }
 
                                 return _context2.abrupt('return', options.output(css, styles));
 
-                            case 11:
+                            case 12:
                                 if (!(!options.insert && dest)) {
-                                    _context2.next = 14;
+                                    _context2.next = 15;
                                     break;
                                 }
 
@@ -188,7 +192,7 @@ function plugin() {
 
                                 return _context2.abrupt('return', fs.writeFileSync(dest + '.css', css));
 
-                            case 14:
+                            case 15:
                             case 'end':
                                 return _context2.stop();
                         }

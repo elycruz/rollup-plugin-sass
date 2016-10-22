@@ -4,6 +4,7 @@ import { renderSync } from 'node-sass'
 import { isString, isFunction } from 'util';
 import { createFilter } from 'rollup-pluginutils';
 import { insertStyle } from './style.js'
+import { ensureFileSync } from 'fs-extra'
 
 export default function plugin(options = {}) {
     const filter = createFilter(options.include || [ '**/*.sass', '**/*.scss' ], options.exclude || 'node_modules/**');
@@ -84,7 +85,10 @@ export default function plugin(options = {}) {
             }).join('');
 
             if (isString(options.output)) {
-                return writeFileSync(options.output, css);
+              ensureFileSync(options.output,function(err){
+                if(err) throw err
+              })
+              return writeFileSync(options.output, css);
             } else if (isFunction(options.output)) {
                 return options.output(css, styles);
             } else if (!options.insert && dest) {

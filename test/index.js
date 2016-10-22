@@ -73,14 +73,17 @@ test('should processor support promise', t => {
     });
 });
 
-test('should support output as path', t => {
-    writeFileSync('fixtures/output-path/output.css', '');
+test('should support output as (non-previously existent)-path', t => {
+    let testpath = 'fixtures/output-path'
+    //This would be the value of 'output:' option
+    let relative_file = 'build/styles/mystyles.css'
+    let fullfile = [testpath,relative_file].join('/')
 
     return rollup({
         entry: 'fixtures/output-path/index.js',
         plugins: [
             sass({
-                output: 'fixtures/output-path/output.css',
+                output: fullfile,
                 options: sassOptions
             })
         ]
@@ -88,7 +91,7 @@ test('should support output as path', t => {
         const code = bundle.generate().code;
         const style1 = readFileSync('fixtures/output-path/style1.scss').toString();
         const style2 = readFileSync('fixtures/output-path/style2.scss').toString();
-        const output = readFileSync('fixtures/output-path/output.css').toString();
+        const output = readFileSync(fullfile).toString();
 
         t.is(code.trim(), '');
         t.is(output.trim(), `${style1}${style2}`.trim());
