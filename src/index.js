@@ -85,9 +85,9 @@ export default function plugin(options = {}) {
             }).join('');
 
             if (isString(options.output)) {
-              ensureFileSync(options.output,function(err){
+              ensureFileSync(options.output, (err) => {
                 if(err) throw err
-              })
+              });
               return writeFileSync(options.output, css);
             } else if (isFunction(options.output)) {
                 return options.output(css, styles);
