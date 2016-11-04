@@ -1,3 +1,3 @@
 import style from './style.scss'
 
-export default style;
+export default style
