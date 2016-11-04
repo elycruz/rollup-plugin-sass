@@ -10,7 +10,7 @@ export default function plugin(options = {}) {
     const filter = createFilter(options.include || [ '**/*.sass', '**/*.scss' ], options.exclude || 'node_modules/**');
     const insertFnName = '___$insertStyle';
     const styles = [];
-    const styleMaps = {}
+    const styleMaps = {};
     let dest = '';
 
     options.output = options.output || false;
@@ -52,9 +52,8 @@ export default function plugin(options = {}) {
                         css = await options.processor(css, id);
                     }
                     if (styleMaps[id]) {
-                        styleMaps[id].content = css
-                    }
-                    else {
+                        styleMaps[id].content = css;
+                    } else {
                         styles.push(styleMaps[id] = {
                             id: id,
                             content: css
