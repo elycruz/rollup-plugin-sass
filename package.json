@@ -1,6 +1,6 @@
 {
   "name": "rollup-plugin-sass",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "Rollup .sass files.",
   "main": "dist/rollup-plugin-sass.cjs.js",
   "jsnext:main": "dist/rollup-plugin-sass.es.js",
@@ -9,6 +9,12 @@
     "pretest": "npm run build",
     "build": "node build/build.js",
     "test": "ava test/index.js -s"
+  },
+  "standard": {
+    "ignore": [
+      "dist/",
+      "test/fixtures/"
+    ]
   },
   "repository": {
     "type": "git",
