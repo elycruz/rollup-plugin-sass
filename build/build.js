@@ -22,11 +22,7 @@ rollup({
   ]
 }).then(function (bundle) {
   bundle.write({
-    dest: 'dist/rollup-plugin-sass.cjs.js',
+    dest: 'dist/rollup-plugin-sass.js',
     format: 'cjs'
-  })
-  bundle.write({
-    dest: 'dist/rollup-plugin-sass.es.js',
-    format: 'es'
   })
 }).catch(console.error)

@@ -2,8 +2,7 @@
   "name": "rollup-plugin-sass",
   "version": "0.4.6",
   "description": "Rollup .sass files.",
-  "main": "dist/rollup-plugin-sass.cjs.js",
-  "jsnext:main": "dist/rollup-plugin-sass.es.js",
+  "main": "dist/rollup-plugin-sass.js",
   "scripts": {
     "prepublish": "npm run test",
     "pretest": "npm run build",
