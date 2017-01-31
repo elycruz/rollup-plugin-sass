@@ -184,17 +184,20 @@ function plugin() {
 
               case 12:
                 if (!(!options.insert && dest)) {
-                  _context2.next = 15;
+                  _context2.next = 17;
                   break;
                 }
 
                 if (dest.endsWith('.js')) {
                   dest = dest.slice(0, -3);
                 }
+                dest = dest + '.css';
+                fsExtra.ensureFileSync(dest, function (err) {
+                  if (err) throw err;
+                });
+                return _context2.abrupt('return', fs.writeFileSync(dest, css));
 
-                return _context2.abrupt('return', fs.writeFileSync(dest + '.css', css));
-
-              case 15:
+              case 17:
               case 'end':
                 return _context2.stop();
             }
