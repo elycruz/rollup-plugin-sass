@@ -90,6 +90,9 @@ import autoprefixer from 'autoprefixer'
 import postcss from 'postcss'
 
 sass({
+    // Processor will be called with two arguments:
+    // - style: the compiled css
+    // - id: import id
     processor: css => postcss([autoprefixer])
         .process(css)
         .then(result => result.css)
