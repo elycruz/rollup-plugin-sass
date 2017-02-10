@@ -85,17 +85,17 @@ If you specify `true`, the plugin will insert compiled CSS into `<head/>` tag.
 If you specify a function as processor which will be called with compiled css before generate phase.
 
 ```js
+import sass from 'rollup-plugin-sass'
+import autoprefixer from 'autoprefixer'
+import postcss from 'postcss'
+
 sass({
     // Processor will be called with two arguments:
     // - style: the compiled css
     // - id: import id
-    processor(style, id) {
-        return postcss([ require('autoprefixer') ])
-            .process(css)
-            .then((result) {
-                return result.css;
-            });
-    }
+    processor: css => postcss([autoprefixer])
+        .process(css)
+        .then(result => result.css)
 });
 ```
 
