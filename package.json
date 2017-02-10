@@ -1,12 +1,12 @@
 {
   "name": "rollup-plugin-sass",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "description": "Rollup .sass files.",
   "main": "dist/rollup-plugin-sass.js",
   "scripts": {
     "prepublish": "npm run test",
     "pretest": "npm run build",
-    "build": "node build/build.js",
+    "build": "rollup -c",
     "test": "ava test/index.js -s"
   },
   "standard": {
@@ -39,8 +39,9 @@
   },
   "devDependencies": {
     "ava": "^0.16.0",
+    "babel-plugin-external-helpers": "^6.22.0",
     "babel-plugin-transform-async-to-generator": "^6.8.0",
-    "babel-preset-es2015-rollup": "^1.1.1",
+    "babel-preset-es2015": "^6.22.0",
     "rollup": ">= 0.26.3",
     "rollup-plugin-babel": "^2.4.0"
   }

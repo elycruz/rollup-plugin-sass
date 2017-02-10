@@ -1,8 +1,9 @@
-const rollup = require('rollup').rollup
-const babel = require('rollup-plugin-babel')
+import babel from 'rollup-plugin-babel'
 
-rollup({
+export default {
   entry: './src/index.js',
+  format: 'cjs',
+  dest: 'dist/rollup-plugin-sass.js',
   external: [
     'babel-runtime/core-js/json/stringify',
     'babel-runtime/core-js/object/assign',
@@ -20,9 +21,4 @@ rollup({
       runtimeHelpers: true
     })
   ]
-}).then(function (bundle) {
-  bundle.write({
-    dest: 'dist/rollup-plugin-sass.js',
-    format: 'cjs'
-  })
-}).catch(console.error)
+}

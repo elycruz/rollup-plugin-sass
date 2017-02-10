@@ -1,9 +1,15 @@
 {
     "plugins": [
+        "external-helpers",
         "transform-async-to-generator",
         "transform-runtime"
     ],
     "presets": [
-        "es2015-rollup"
+        [
+            "es2015",
+            {
+                "modules": false
+            }
+        ]
     ]
 }

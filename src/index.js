@@ -99,8 +99,11 @@ export default function plugin (options = {}) {
         if (dest.endsWith('.js')) {
           dest = dest.slice(0, -3)
         }
-
-        return writeFileSync(`${dest}.css`, css)
+        dest = `${dest}.css`
+        ensureFileSync(dest, (err) => {
+          if (err) throw err
+        })
+        return writeFileSync(dest, css)
       }
     }
   }
