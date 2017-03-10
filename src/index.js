@@ -44,7 +44,8 @@ export default function plugin (options = {}) {
             : paths
 
       try {
-        let css = renderSync(sassConfig).css.toString()
+        let rtn = renderSync(sassConfig)
+        let css = rtn.css.toString()
         let code = ''
 
         if (css.trim()) {
@@ -72,7 +73,8 @@ export default function plugin (options = {}) {
 
         return {
           code: `export default ${code};`,
-          map: { mappings: '' }
+          map: { mappings: '' },
+          dependencies: rtn.stats.includedFiles
         }
       } catch (error) {
         throw error
