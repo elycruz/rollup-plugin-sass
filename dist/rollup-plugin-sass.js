@@ -65,7 +65,7 @@ function plugin() {
       var _this = this;
 
       return _asyncToGenerator(_regeneratorRuntime.mark(function _callee() {
-        var paths, sassConfig, css, _code;
+        var paths, sassConfig, rtn, css, _code;
 
         return _regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
@@ -86,26 +86,27 @@ function plugin() {
                 sassConfig.includePaths = sassConfig.includePaths ? sassConfig.includePaths.concat(paths) : paths;
 
                 _context.prev = 5;
-                css = nodeSass.renderSync(sassConfig).css.toString();
+                rtn = nodeSass.renderSync(sassConfig);
+                css = rtn.css.toString();
                 _code = '';
 
                 if (!css.trim()) {
-                  _context.next = 16;
+                  _context.next = 17;
                   break;
                 }
 
                 if (!util.isFunction(options.processor)) {
-                  _context.next = 13;
+                  _context.next = 14;
                   break;
                 }
 
-                _context.next = 12;
+                _context.next = 13;
                 return options.processor(css, id);
 
-              case 12:
+              case 13:
                 css = _context.sent;
 
-              case 13:
+              case 14:
                 if (styleMaps[id]) {
                   styleMaps[id].content = css;
                 } else {
@@ -124,23 +125,24 @@ function plugin() {
                   _code = '"";';
                 }
 
-              case 16:
+              case 17:
                 return _context.abrupt('return', {
                   code: 'export default ' + _code + ';',
-                  map: { mappings: '' }
+                  map: { mappings: '' },
+                  dependencies: rtn.stats.includedFiles
                 });
 
-              case 19:
-                _context.prev = 19;
+              case 20:
+                _context.prev = 20;
                 _context.t0 = _context['catch'](5);
                 throw _context.t0;
 
-              case 22:
+              case 23:
               case 'end':
                 return _context.stop();
             }
           }
-        }, _callee, _this, [[5, 19]]);
+        }, _callee, _this, [[5, 20]]);
       }))();
     },
     ongenerate: function ongenerate(opts, result) {
