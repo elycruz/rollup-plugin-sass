@@ -1,4 +1,5 @@
 import test from 'ava'
+import { resolve } from 'path'
 import { readFileSync, writeFileSync } from 'fs'
 import { removeSync } from 'fs-extra'
 import { rollup } from 'rollup'
@@ -189,5 +190,24 @@ test('should insert CSS into head tag', t => {
     }
 
     new Function(code)() // eslint-disable-line
+  })
+})
+
+test('should flatten stylesheets dependencies in return object', t => {
+  return rollup({
+    entry: 'fixtures/dependencies/index.js',
+    plugins: [
+      sass({
+        options: sassOptions
+      })
+    ]
+  }).then(bundle => {
+    const pathOfStyle1 = resolve('fixtures/dependencies/style1.scss')
+    const pathOfStyle2 = resolve('fixtures/dependencies/style2.scss')
+    const pathOfStyle3 = resolve('fixtures/dependencies/style3.scss')
+    const styleModule = bundle.modules.find(m => m.id === pathOfStyle1)
+
+    t.true(styleModule.dependencies.indexOf(pathOfStyle2) > -1)
+    t.true(styleModule.dependencies.indexOf(pathOfStyle3) > -1)
   })
 })
