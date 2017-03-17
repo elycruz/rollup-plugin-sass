@@ -12,6 +12,10 @@ function squash(str) {
   return str.trim().replace(/\r/, '')
 }
 
+function compress(str) {
+  return str.trim().replace(/[\n\r\s]/g, '').replace(/;}$/, '}');
+}
+
 test('should import *.scss and *.sass files', t => {
   return rollup({
     entry: 'fixtures/basic/index.js',
@@ -189,5 +193,31 @@ test('should insert CSS into head tag', t => {
     }
 
     new Function(code)() // eslint-disable-line
+  })
+})
+
+test('should compress the dest CSS', t => {
+  let testPath = 'fixtures/compress/build/';
+  let fullfile = `${testPath}styles/style.css`;
+
+  return rollup({
+    entry: 'fixtures/compress/index.js',
+    plugins: [
+      sass({
+        output: fullfile,
+        options: {
+          outputStyle: 'compressed',
+          sourceMap: false
+        }
+      })
+    ]
+  }).then(bundle => {
+    const code = bundle.generate().code
+    const style = readFileSync('fixtures/compress/style.scss').toString()
+    const output = readFileSync(fullfile).toString()
+
+    removeSync(testPath)
+    t.is(squash(code), '')
+    t.is(squash(output), compress(`${style}`))
   })
 })
