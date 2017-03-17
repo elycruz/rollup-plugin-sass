@@ -8,8 +8,12 @@ const sassOptions = {
   outputStyle: 'compressed'
 }
 
-function squareWhitespace (str) {
+function sqrush(str) {
   return str.trim().replace(/\r/, '')
+}
+
+function compress(str) {
+  return str.trim().replace(/[\n\r\s]/g, '').replace(/;}$/, '}');
 }
 
 test('should import *.scss and *.sass files', t => {
@@ -21,12 +25,12 @@ test('should import *.scss and *.sass files', t => {
       })
     ]
   }).then(bundle => {
-    const code = squareWhitespace(bundle.generate().code)
+    const code = sqrush(bundle.generate().code)
     const style1 = readFileSync('fixtures/basic/style1.scss').toString()
     const style2 = readFileSync('fixtures/basic/style2.sass').toString()
 
-    t.true(code.indexOf(squareWhitespace(style1)) > -1)
-    t.true(code.indexOf(squareWhitespace(style2)) > -1)
+    t.true(code.indexOf(sqrush(style1)) > -1)
+    t.true(code.indexOf(sqrush(style2)) > -1)
   })
 })
 
@@ -47,7 +51,7 @@ test('should process code with processor', t => {
     const style = readFileSync('fixtures/processor/style.scss').toString()
 
     t.truthy(outputCode)
-    t.is(squareWhitespace(outputCode), `${squareWhitespace(style)}`)
+    t.is(sqrush(outputCode), `${sqrush(style)}`)
   })
 })
 
@@ -72,7 +76,7 @@ test('should processor support promise', t => {
     const style = readFileSync('fixtures/processor-promise/style.scss').toString()
 
     t.truthy(outputCode)
-    t.is(squareWhitespace(outputCode), `${squareWhitespace(style)}`)
+    t.is(sqrush(outputCode), `${sqrush(style)}`)
   })
 })
 
@@ -95,8 +99,8 @@ test('should support output as (non-previously existent)-path', t => {
     const output = readFileSync(fullfile).toString()
 
     removeSync(testPath)
-    t.is(squareWhitespace(code), '')
-    t.is(squareWhitespace(output), squareWhitespace(`${style1}${style2}`))
+    t.is(sqrush(code), '')
+    t.is(sqrush(output), sqrush(`${style1}${style2}`))
   })
 })
 
@@ -118,8 +122,8 @@ test('should support output as function', t => {
     const style1 = readFileSync('fixtures/output-function/style1.scss').toString()
     const style2 = readFileSync('fixtures/output-function/style2.scss').toString()
 
-    t.is(squareWhitespace(code), '')
-    t.is(squareWhitespace(outputCode), squareWhitespace(`${style1}${style2}`))
+    t.is(sqrush(code), '')
+    t.is(sqrush(outputCode), sqrush(`${style1}${style2}`))
   })
 })
 
@@ -141,8 +145,8 @@ test('should support output as true', t => {
     const style2 = readFileSync('fixtures/output-true/style2.scss').toString()
     const output = readFileSync('fixtures/output-true/output.css').toString()
 
-    t.is(squareWhitespace(code), '')
-    t.is(squareWhitespace(output), squareWhitespace(`${style1}${style2}`))
+    t.is(sqrush(code), '')
+    t.is(sqrush(output), sqrush(`${style1}${style2}`))
   })
 })
 
@@ -169,9 +173,9 @@ test('should insert CSS into head tag', t => {
           t.true(mockNode.hasOwnProperty('setAttribute'))
 
           if (count === 0) {
-            t.is(squareWhitespace(mockNode.innerHTML), squareWhitespace(`${style1}`))
+            t.is(sqrush(mockNode.innerHTML), sqrush(`${style1}`))
           } else if (count === 1) {
-            t.is(squareWhitespace(mockNode.innerHTML), squareWhitespace(`${style2}`))
+            t.is(sqrush(mockNode.innerHTML), sqrush(`${style2}`))
           }
 
           count++
@@ -189,5 +193,31 @@ test('should insert CSS into head tag', t => {
     }
 
     new Function(code)() // eslint-disable-line
+  })
+})
+
+test('should compress the dest CSS', t => {
+  let testPath = 'fixtures/compress/build/';
+  let fullfile = `${testPath}styles/style.css`;
+
+  return rollup({
+    entry: 'fixtures/compress/index.js',
+    plugins: [
+      sass({
+        output: fullfile,
+        options: {
+          outputStyle: 'compressed',
+          sourceMap: false
+        }
+      })
+    ]
+  }).then(bundle => {
+    const code = bundle.generate().code
+    const style = readFileSync('fixtures/compress/style.scss').toString()
+    const output = readFileSync(fullfile).toString()
+
+    removeSync(testPath)
+    t.is(sqrush(code), '')
+    t.is(sqrush(output), compress(`${style}`))
   })
 })
