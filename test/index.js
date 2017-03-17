@@ -8,7 +8,7 @@ const sassOptions = {
   outputStyle: 'compressed'
 }
 
-function sqrush(str) {
+function squash(str) {
   return str.trim().replace(/\r/, '')
 }
 
@@ -25,12 +25,12 @@ test('should import *.scss and *.sass files', t => {
       })
     ]
   }).then(bundle => {
-    const code = sqrush(bundle.generate().code)
+    const code = squash(bundle.generate().code)
     const style1 = readFileSync('fixtures/basic/style1.scss').toString()
     const style2 = readFileSync('fixtures/basic/style2.sass').toString()
 
-    t.true(code.indexOf(sqrush(style1)) > -1)
-    t.true(code.indexOf(sqrush(style2)) > -1)
+    t.true(code.indexOf(squash(style1)) > -1)
+    t.true(code.indexOf(squash(style2)) > -1)
   })
 })
 
@@ -51,7 +51,7 @@ test('should process code with processor', t => {
     const style = readFileSync('fixtures/processor/style.scss').toString()
 
     t.truthy(outputCode)
-    t.is(sqrush(outputCode), `${sqrush(style)}`)
+    t.is(squash(outputCode), `${squash(style)}`)
   })
 })
 
@@ -76,7 +76,7 @@ test('should processor support promise', t => {
     const style = readFileSync('fixtures/processor-promise/style.scss').toString()
 
     t.truthy(outputCode)
-    t.is(sqrush(outputCode), `${sqrush(style)}`)
+    t.is(squash(outputCode), `${squash(style)}`)
   })
 })
 
@@ -99,8 +99,8 @@ test('should support output as (non-previously existent)-path', t => {
     const output = readFileSync(fullfile).toString()
 
     removeSync(testPath)
-    t.is(sqrush(code), '')
-    t.is(sqrush(output), sqrush(`${style1}${style2}`))
+    t.is(squash(code), '')
+    t.is(squash(output), squash(`${style1}${style2}`))
   })
 })
 
@@ -122,8 +122,8 @@ test('should support output as function', t => {
     const style1 = readFileSync('fixtures/output-function/style1.scss').toString()
     const style2 = readFileSync('fixtures/output-function/style2.scss').toString()
 
-    t.is(sqrush(code), '')
-    t.is(sqrush(outputCode), sqrush(`${style1}${style2}`))
+    t.is(squash(code), '')
+    t.is(squash(outputCode), squash(`${style1}${style2}`))
   })
 })
 
@@ -145,8 +145,8 @@ test('should support output as true', t => {
     const style2 = readFileSync('fixtures/output-true/style2.scss').toString()
     const output = readFileSync('fixtures/output-true/output.css').toString()
 
-    t.is(sqrush(code), '')
-    t.is(sqrush(output), sqrush(`${style1}${style2}`))
+    t.is(squash(code), '')
+    t.is(squash(output), squash(`${style1}${style2}`))
   })
 })
 
@@ -173,9 +173,9 @@ test('should insert CSS into head tag', t => {
           t.true(mockNode.hasOwnProperty('setAttribute'))
 
           if (count === 0) {
-            t.is(sqrush(mockNode.innerHTML), sqrush(`${style1}`))
+            t.is(squash(mockNode.innerHTML), squash(`${style1}`))
           } else if (count === 1) {
-            t.is(sqrush(mockNode.innerHTML), sqrush(`${style2}`))
+            t.is(squash(mockNode.innerHTML), squash(`${style2}`))
           }
 
           count++
@@ -217,7 +217,7 @@ test('should compress the dest CSS', t => {
     const output = readFileSync(fullfile).toString()
 
     removeSync(testPath)
-    t.is(sqrush(code), '')
-    t.is(sqrush(output), compress(`${style}`))
+    t.is(squash(code), '')
+    t.is(squash(output), compress(`${style}`))
   })
 })
