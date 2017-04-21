@@ -1,0 +1,11 @@
+{
+  "plugins": [
+    "external-helpers",
+    "transform-runtime"
+  ],
+  "presets": [
+    ["env", {
+      "modules": false
+    }]
+  ]
+}
