@@ -61,10 +61,8 @@ function plugin() {
     options: function options(opts) {
       dest = opts.dest || opts.entry;
     },
-    transform: function transform(code, id) {
-      var _this = this;
-
-      return _asyncToGenerator(_regeneratorRuntime.mark(function _callee() {
+    transform: function () {
+      var _ref = _asyncToGenerator(_regeneratorRuntime.mark(function _callee(code, id) {
         var paths, sassConfig, css, _code;
 
         return _regeneratorRuntime.wrap(function _callee$(_context) {
@@ -140,13 +138,17 @@ function plugin() {
                 return _context.stop();
             }
           }
-        }, _callee, _this, [[5, 19]]);
-      }))();
-    },
-    ongenerate: function ongenerate(opts, result) {
-      var _this2 = this;
+        }, _callee, this, [[5, 19]]);
+      }));
 
-      return _asyncToGenerator(_regeneratorRuntime.mark(function _callee2() {
+      function transform(_x2, _x3) {
+        return _ref.apply(this, arguments);
+      }
+
+      return transform;
+    }(),
+    ongenerate: function () {
+      var _ref2 = _asyncToGenerator(_regeneratorRuntime.mark(function _callee2(opts, result) {
         var css;
         return _regeneratorRuntime.wrap(function _callee2$(_context2) {
           while (1) {
@@ -202,9 +204,15 @@ function plugin() {
                 return _context2.stop();
             }
           }
-        }, _callee2, _this2);
-      }))();
-    }
+        }, _callee2, this);
+      }));
+
+      function ongenerate(_x4, _x5) {
+        return _ref2.apply(this, arguments);
+      }
+
+      return ongenerate;
+    }()
   };
 }
 
