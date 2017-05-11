@@ -37,8 +37,11 @@ export default function plugin (options = {}) {
       }
 
       const paths = [dirname(id), process.cwd()]
-      const optionsData = (options.options && options.options.data) ? options.options.data : ''
-      const sassConfig = Object.assign({ data: optionsData + code }, options.options)
+      if (options.options && options.options.data) {
+        code = options.options.data + code
+        delete options.options.data
+      }
+      const sassConfig = Object.assign({ data: code }, options.options)
 
       sassConfig.includePaths = sassConfig.includePaths
             ? sassConfig.includePaths.concat(paths)
