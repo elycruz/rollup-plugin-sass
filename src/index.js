@@ -12,11 +12,17 @@ export default function plugin (options = {}) {
   const styles = []
   const styleMaps = {}
   let dest = ''
+  let prependSass = ''
 
   options.output = options.output || false
   options.insert = options.insert || false
   options.processor = options.processor || null
   options.options = options.options || null
+  
+  if (options.options && options.options.data) {
+    prependSass = options.options.data
+    delete options.options.data
+  }
 
   return {
     name: 'sass',
@@ -37,7 +43,7 @@ export default function plugin (options = {}) {
       }
 
       const paths = [dirname(id), process.cwd()]
-      const sassConfig = Object.assign({ data: code }, options.options)
+      const sassConfig = Object.assign({ data: prependSass + code }, options.options)
 
       sassConfig.includePaths = sassConfig.includePaths
             ? sassConfig.includePaths.concat(paths)
