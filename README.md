@@ -32,10 +32,10 @@ import { rollup } from 'rollup';
 import sass from 'rollup-plugin-sass';
 
 rollup({
-    entry: 'main.js',
-    plugins: [
-        sass()
-    ]
+  entry: 'main.js',
+  plugins: [
+    sass()
+  ]
 }).then(...)
 ```
 
@@ -47,25 +47,25 @@ rollup({
 
 ```js
 sass({
-    // Default behaviour disable output
-    output: false,
+  // Default behaviour disable output
+  output: false,
 
-    // Write all styles to the bundle destination where .js is replaced by .css
-    output: true,
+  // Write all styles to the bundle destination where .js is replaced by .css
+  output: true,
 
-    // Filename to write all styles
-    output: 'bundle.css',
+  // Filename to write all styles
+  output: 'bundle.css',
 
-    // Callback that will be called ongenerate with two arguments:
-    // - styles: the concatentated styles in order of imported
-    // - styleNodes: an array of style objects:
-    //   [
-    //     { id: './style1.scss', content: 'body { color: red };' },
-    //     { id: './style2.scss', content: 'body { color: green };' }
-    //   ]
-    output(styles, styleNodes) {
-        writeFileSync('bundle.css', styles);
-    }
+  // Callback that will be called ongenerate with two arguments:
+  // - styles: the concatentated styles in order of imported
+  // - styleNodes: an array of style objects:
+  //  [
+  //    { id: './style1.scss', content: 'body { color: red };' },
+  //    { id: './style2.scss', content: 'body { color: green };' }
+  //  ]
+  output(styles, styleNodes) {
+    writeFileSync('bundle.css', styles);
+  }
 });
 ```
 
@@ -87,12 +87,12 @@ import autoprefixer from 'autoprefixer'
 import postcss from 'postcss'
 
 sass({
-    // Processor will be called with two arguments:
-    // - style: the compiled css
-    // - id: import id
-    processor: css => postcss([autoprefixer])
-        .process(css)
-        .then(result => result.css)
+  // Processor will be called with two arguments:
+  // - style: the compiled css
+  // - id: import id
+  processor: css => postcss([autoprefixer])
+    .process(css)
+    .then(result => result.css)
 });
 ```
 
@@ -105,9 +105,9 @@ Since you can inject variables during sass compilation with node.
 
 ```js
 sass({
-    options: {
-        data: '$color: #000;'
-    }
+  options: {
+    data: '$color: #000;'
+  }
 })
 ```
 
