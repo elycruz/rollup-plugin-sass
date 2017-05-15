@@ -221,3 +221,27 @@ test('should compress the dest CSS', t => {
     t.is(squash(output), compress(`${style}`))
   })
 })
+
+test('should support options.data', t => {
+  const preDefined = {
+    'fore-color': '#000',
+    'bg-color': '#fff'
+  }
+
+  return rollup({
+    entry: 'fixtures/data/index.js',
+    plugins: [
+      sass({
+        options: Object.assign({
+          data: Object.keys(preDefined).reduce((prev, cur) => {
+            return prev += `\$${cur}:${preDefined[cur]};`
+          }, '')
+        }, sassOptions)
+      })
+    ]
+  }).then(bundle => {
+    const code = squash(bundle.generate().code)
+
+    t.true(squash(code).indexOf('body{color:#000;background-color:#fff}') > -1)
+  })
+})
