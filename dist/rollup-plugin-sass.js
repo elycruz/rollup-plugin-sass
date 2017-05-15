@@ -44,11 +44,17 @@ function plugin() {
   var styles = [];
   var styleMaps = {};
   var dest = '';
+  var prependSass = '';
 
   options.output = options.output || false;
   options.insert = options.insert || false;
   options.processor = options.processor || null;
   options.options = options.options || null;
+
+  if (options.options && options.options.data) {
+    prependSass = options.options.data;
+    delete options.options.data;
+  }
 
   return {
     name: 'sass',
@@ -78,7 +84,7 @@ function plugin() {
 
               case 2:
                 paths = [path.dirname(id), process.cwd()];
-                sassConfig = _Object$assign({ data: code }, options.options);
+                sassConfig = _Object$assign({ data: '' + prependSass + code }, options.options);
 
 
                 sassConfig.includePaths = sassConfig.includePaths ? sassConfig.includePaths.concat(paths) : paths;
