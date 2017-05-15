@@ -18,7 +18,7 @@ export default function plugin (options = {}) {
   options.insert = options.insert || false
   options.processor = options.processor || null
   options.options = options.options || null
-  
+
   if (options.options && options.options.data) {
     prependSass = options.options.data
     delete options.options.data
@@ -43,7 +43,7 @@ export default function plugin (options = {}) {
       }
 
       const paths = [dirname(id), process.cwd()]
-      const sassConfig = Object.assign({ data: prependSass + code }, options.options)
+      const sassConfig = Object.assign({ data: `${prependSass}${code}` }, options.options)
 
       sassConfig.includePaths = sassConfig.includePaths
             ? sassConfig.includePaths.concat(paths)
