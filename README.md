@@ -100,6 +100,8 @@ sass({
 
 + Type: `Object` _(default: null)_
 
+Options for [node-sass](https://github.com/sass/node-sass#options).
+
 If you specfiy `data`, the plugin will treat as prepend sass string.
 Since you can inject variables during sass compilation with node.
 
@@ -110,8 +112,6 @@ sass({
   }
 })
 ```
-
-Options for [node-sass](https://github.com/sass/node-sass#options).
 
 ## License
 
