@@ -1,1 +1,3 @@
-import style from './style.scss'
+import actualD from '../../assets/actual_d.scss'
+
+export default actualD

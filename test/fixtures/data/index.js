@@ -1,3 +1,3 @@
-import style from './style.scss'
+import actualE from '../../assets/actual_e.scss'
 
-export default style
+export default actualE

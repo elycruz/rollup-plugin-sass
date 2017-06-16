@@ -1,19 +1,19 @@
 import test from 'ava'
 import { readFileSync, writeFileSync } from 'fs'
+import { resolve as resolvePath } from 'path'
 import { removeSync } from 'fs-extra'
 import { rollup } from 'rollup'
 import sass from '..'
 
-const sassOptions = {
-  outputStyle: 'compressed'
-}
+const sassOptions = { outputStyle: 'compressed' }
+const expectA = readFileSync('test/assets/expect_a.css').toString()
+const expectB = readFileSync('test/assets/expect_b.css').toString()
+const expectC = readFileSync('test/assets/expect_c.css').toString()
+const expectD = readFileSync('test/assets/expect_d.css').toString()
+const expectE = readFileSync('test/assets/expect_e.css').toString()
 
 function squash(str) {
   return str.trim().replace(/\r/, '')
-}
-
-function compress(str) {
-  return str.trim().replace(/[\n\r\s]/g, '').replace(/;}$/, '}');
 }
 
 test('should import *.scss and *.sass files', t => {
@@ -26,127 +26,49 @@ test('should import *.scss and *.sass files', t => {
     ]
   }).then(bundle => {
     const code = squash(bundle.generate().code)
-    const style1 = readFileSync('test/fixtures/basic/style1.scss').toString()
-    const style2 = readFileSync('test/fixtures/basic/style2.sass').toString()
 
-    t.true(code.indexOf(squash(style1)) > -1)
-    t.true(code.indexOf(squash(style2)) > -1)
+    t.true(code.indexOf(squash(expectA)) > -1)
+    t.true(code.indexOf(squash(expectB)) > -1)
+    t.true(code.indexOf(squash(expectC)) > -1)
   })
 })
 
-test('should process code with processor', t => {
-  let outputCode = ''
-
+test('should compress the dest CSS', t => {
   return rollup({
-    entry: 'test/fixtures/processor/index.js',
+    entry: 'test/fixtures/compress/index.js',
     plugins: [
       sass({
-        processor (code) {
-          return (outputCode = code)
-        },
-        options: sassOptions
-      })
-    ]
-  }).then(bundle => {
-    const style = readFileSync('test/fixtures/processor/style.scss').toString()
-
-    t.truthy(outputCode)
-    t.is(squash(outputCode), `${squash(style)}`)
-  })
-})
-
-test('should processor support promise', t => {
-  let outputCode = ''
-
-  return rollup({
-    entry: 'test/fixtures/processor-promise/index.js',
-    plugins: [
-      sass({
-        processor (code) {
-          return new Promise((resolve) => {
-            setTimeout(() => {
-              resolve(outputCode = code)
-            }, 100)
-          })
-        },
-        options: sassOptions
-      })
-    ]
-  }).then(bundle => {
-    const style = readFileSync('test/fixtures/processor-promise/style.scss').toString()
-
-    t.truthy(outputCode)
-    t.is(squash(outputCode), `${squash(style)}`)
-  })
-})
-
-test('should support output as (non-previously existent)-path', t => {
-  let testPath = 'test/fixtures/output-path/build/'
-  let fullfile = `${testPath}styles/style.css`
-
-  return rollup({
-    entry: 'test/fixtures/output-path/index.js',
-    plugins: [
-      sass({
-        output: fullfile,
         options: sassOptions
       })
     ]
   }).then(bundle => {
     const code = bundle.generate().code
-    const style1 = readFileSync('test/fixtures/output-path/style1.scss').toString()
-    const style2 = readFileSync('test/fixtures/output-path/style2.scss').toString()
-    const output = readFileSync(fullfile).toString()
 
-    removeSync(testPath)
-    t.is(squash(code), '')
-    t.is(squash(output), squash(`${style1}${style2}`))
+    t.true(code.indexOf(squash(expectD)) > -1)
   })
 })
 
-test('should support output as function', t => {
-  let outputCode = ''
+test('should support options.data', t => {
+  const jsVars = {
+    'color_red': 'red'
+  }
+  const scssVars = Object.keys(jsVars).reduce((prev, key) => {
+    return prev + `\$${key}:${jsVars[key]};`
+  }, '')
 
   return rollup({
-    entry: 'test/fixtures/output-function/index.js',
+    entry: 'test/fixtures/data/index.js',
     plugins: [
       sass({
-        output (style) {
-          outputCode = style
-        },
-        options: sassOptions
+        options: Object.assign({
+          data: scssVars
+        }, sassOptions)
       })
     ]
   }).then(bundle => {
-    const code = bundle.generate().code
-    const style1 = readFileSync('test/fixtures/output-function/style1.scss').toString()
-    const style2 = readFileSync('test/fixtures/output-function/style2.scss').toString()
+    const code = squash(bundle.generate().code)
 
-    t.is(squash(code), '')
-    t.is(squash(outputCode), squash(`${style1}${style2}`))
-  })
-})
-
-test('should support output as true', t => {
-  writeFileSync('test/fixtures/output-true/output.css', '')
-
-  return rollup({
-    entry: 'test/fixtures/output-true/index.js',
-    dest: 'test/fixtures/output-true/output.js',
-    plugins: [
-      sass({
-        output: true,
-        options: sassOptions
-      })
-    ]
-  }).then(bundle => {
-    const code = bundle.generate().code
-    const style1 = readFileSync('test/fixtures/output-true/style1.scss').toString()
-    const style2 = readFileSync('test/fixtures/output-true/style2.scss').toString()
-    const output = readFileSync('test/fixtures/output-true/output.css').toString()
-
-    t.is(squash(code), '')
-    t.is(squash(output), squash(`${style1}${style2}`))
+    t.true(code.indexOf(squash(expectE)) > -1)
   })
 })
 
@@ -161,8 +83,6 @@ test('should insert CSS into head tag', t => {
     ]
   }).then(bundle => {
     const code = bundle.generate().code
-    const style1 = readFileSync('test/fixtures/insert/style1.scss').toString()
-    const style2 = readFileSync('test/fixtures/insert/style2.scss').toString()
     let count = 0
 
     global.window = {}
@@ -173,9 +93,9 @@ test('should insert CSS into head tag', t => {
           t.true(mockNode.hasOwnProperty('setAttribute'))
 
           if (count === 0) {
-            t.is(squash(mockNode.innerHTML), squash(`${style1}`))
+            t.is(squash(mockNode.innerHTML), squash(`${expectA}`))
           } else if (count === 1) {
-            t.is(squash(mockNode.innerHTML), squash(`${style2}`))
+            t.is(squash(mockNode.innerHTML), squash(`${expectB}`))
           }
 
           count++
@@ -196,52 +116,107 @@ test('should insert CSS into head tag', t => {
   })
 })
 
-test('should compress the dest CSS', t => {
-  let testPath = 'test/fixtures/compress/build/';
-  let fullfile = `${testPath}styles/style.css`;
+test('should support output as function', t => {
+  let outputCode = ''
 
   return rollup({
-    entry: 'test/fixtures/compress/index.js',
+    entry: 'test/fixtures/output-function/index.js',
     plugins: [
       sass({
-        output: fullfile,
-        options: {
-          outputStyle: 'compressed',
-          sourceMap: false
-        }
+        output(style) {
+          outputCode = style
+        },
+        options: sassOptions
       })
     ]
   }).then(bundle => {
     const code = bundle.generate().code
-    const style = readFileSync('test/fixtures/compress/style.scss').toString()
-    const output = readFileSync(fullfile).toString()
 
-    removeSync(testPath)
     t.is(squash(code), '')
-    t.is(squash(output), compress(`${style}`))
+    t.is(squash(outputCode), squash(`${expectA}${expectB}`))
   })
 })
 
-test('should support options.data', t => {
-  const preDefined = {
-    'fore-color': '#000',
-    'bg-color': '#fff'
-  }
+test('should support output as (non-previously existent)-path', t => {
+  let fullfile = 'test/fixtures/output-path/style.css'
 
   return rollup({
-    entry: 'test/fixtures/data/index.js',
+    entry: 'test/fixtures/output-path/index.js',
     plugins: [
       sass({
-        options: Object.assign({
-          data: Object.keys(preDefined).reduce((prev, cur) => {
-            return prev += `\$${cur}:${preDefined[cur]};`
-          }, '')
-        }, sassOptions)
+        output: fullfile,
+        options: sassOptions
       })
     ]
   }).then(bundle => {
-    const code = squash(bundle.generate().code)
+    const code = bundle.generate().code
+    const output = readFileSync(fullfile).toString()
 
-    t.true(squash(code).indexOf('body{color:#000;background-color:#fff}') > -1)
+    removeSync(fullfile)
+    t.is(squash(code), '')
+    t.is(squash(output), squash(`${expectA}${expectB}`))
+  })
+})
+
+test('should support output as true', t => {
+  let fullfile = 'test/fixtures/output-true/index.css'
+
+  return rollup({
+    entry: 'test/fixtures/output-true/index.js',
+    plugins: [
+      sass({
+        output: true,
+        options: sassOptions
+      })
+    ]
+  }).then(bundle => {
+    const code = bundle.generate().code
+    const output = readFileSync(fullfile).toString()
+
+    removeSync(fullfile)
+    t.is(squash(code), '')
+    t.is(squash(output), squash(`${expectA}${expectB}`))
+  })
+})
+
+test('should process code with processor', t => {
+  let outputCode = []
+
+  return rollup({
+    entry: 'test/fixtures/processor/index.js',
+    plugins: [
+      sass({
+        processor (code) {
+          outputCode.push(code)
+          return code
+        },
+        options: sassOptions
+      })
+    ]
+  }).then(bundle => {
+    t.is(squash(outputCode.join('')), squash(`${expectA}${expectB}`))
+  })
+})
+
+test('should processor support promise', t => {
+  let outputCode = []
+
+  return rollup({
+    entry: 'test/fixtures/processor-promise/index.js',
+    plugins: [
+      sass({
+        processor (code) {
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              outputCode.push(code)
+              resolve(code)
+            }, 100)
+          })
+        },
+        options: sassOptions
+      })
+    ]
+  }).then(bundle => {
+    t.is(squash(outputCode.join('')), squash(`${expectA}${expectB}`))
   })
 })

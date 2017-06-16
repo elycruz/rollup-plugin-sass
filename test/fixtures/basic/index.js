@@ -1,4 +1,5 @@
-import style1 from './style1.scss'
-import style2 from './style2.sass'
+import atualA from '../../assets/actual_a.scss'
+import atualB from '../../assets/actual_b.scss'
+import atualC from '../../assets/actual_c.sass'
 
-export default style1 + style2
+export default atualA + atualB + atualC
