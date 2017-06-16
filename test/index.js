@@ -3,7 +3,6 @@ import { readFileSync, writeFileSync } from 'fs'
 import { resolve as resolvePath } from 'path'
 import { removeSync } from 'fs-extra'
 import { rollup } from 'rollup'
-import typescript from 'rollup-plugin-typescript'
 import sass from '..'
 
 const sassOptions = { outputStyle: 'compressed' }
