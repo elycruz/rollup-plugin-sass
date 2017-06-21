@@ -196,7 +196,7 @@ function plugin() {
                   break;
                 }
 
-                if (dest.endsWith('.js')) {
+                if (dest.endsWith('.js') || dest.endsWith('.ts')) {
                   dest = dest.slice(0, -3);
                 }
                 dest = dest + '.css';
