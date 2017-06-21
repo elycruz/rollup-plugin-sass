@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync } from 'fs'
 import { resolve as resolvePath } from 'path'
 import { removeSync } from 'fs-extra'
 import { rollup } from 'rollup'
+import typescript from 'rollup-plugin-typescript'
 import sass from '..'
 
 const sassOptions = { outputStyle: 'compressed' }
@@ -23,7 +24,7 @@ test('should import *.scss and *.sass files', t => {
       sass({
         options: sassOptions
       })
-    ]
+    ],
   }).then(bundle => {
     const code = squash(bundle.generate().code)
 
@@ -40,7 +41,7 @@ test('should compress the dest CSS', t => {
       sass({
         options: sassOptions
       })
-    ]
+    ],
   }).then(bundle => {
     const code = bundle.generate().code
 
@@ -64,7 +65,7 @@ test('should support options.data', t => {
           data: scssVars
         }, sassOptions)
       })
-    ]
+    ],
   }).then(bundle => {
     const code = squash(bundle.generate().code)
 
@@ -80,7 +81,7 @@ test('should insert CSS into head tag', t => {
         insert: true,
         options: sassOptions
       })
-    ]
+    ],
   }).then(bundle => {
     const code = bundle.generate().code
     let count = 0
@@ -128,7 +129,7 @@ test('should support output as function', t => {
         },
         options: sassOptions
       })
-    ]
+    ],
   }).then(bundle => {
     const code = bundle.generate().code
 
@@ -147,7 +148,7 @@ test('should support output as (non-previously existent)-path', t => {
         output: fullfile,
         options: sassOptions
       })
-    ]
+    ],
   }).then(bundle => {
     const code = bundle.generate().code
     const output = readFileSync(fullfile).toString()
@@ -168,7 +169,7 @@ test('should support output as true', t => {
         output: true,
         options: sassOptions
       })
-    ]
+    ],
   }).then(bundle => {
     const code = bundle.generate().code
     const output = readFileSync(fullfile).toString()
@@ -192,7 +193,7 @@ test('should process code with processor', t => {
         },
         options: sassOptions
       })
-    ]
+    ],
   }).then(bundle => {
     t.is(squash(outputCode.join('')), squash(`${expectA}${expectB}`))
   })
@@ -215,8 +216,100 @@ test('should processor support promise', t => {
         },
         options: sassOptions
       })
-    ]
+    ],
   }).then(bundle => {
     t.is(squash(outputCode.join('')), squash(`${expectA}${expectB}`))
+  })
+})
+
+test('should import *.scss and *.sass files in typescript', t => {
+  return rollup({
+    entry: 'test/fixtures/ts-basic/index.ts',
+    plugins: [
+      sass({
+        options: sassOptions,
+      }),
+      typescript({
+        module: 'es2015',
+      }),
+    ],
+  }).then(bundle => {
+    const code = squash(bundle.generate().code)
+
+    t.true(code.indexOf(squash(expectA)) > -1)
+    t.true(code.indexOf(squash(expectB)) > -1)
+    t.true(code.indexOf(squash(expectC)) > -1)
+  })
+})
+
+test('should support output as function', t => {
+  let outputCode = ''
+
+  return rollup({
+    entry: 'test/fixtures/ts-output-function/index.ts',
+    plugins: [
+      sass({
+        output(style) {
+          outputCode = style
+        },
+        options: sassOptions
+      }),
+      typescript({
+        module: 'es2015',
+      }),
+    ],
+  }).then(bundle => {
+    const code = bundle.generate().code
+
+    t.is(squash(code), '')
+    t.is(squash(outputCode), squash(`${expectA}${expectB}`))
+  })
+})
+
+test('should support output as (non-previously existent)-path in typescript', t => {
+  let fullfile = 'test/fixtures/ts-output-path/style.css'
+
+  return rollup({
+    entry: 'test/fixtures/ts-output-path/index.ts',
+    plugins: [
+      sass({
+        output: fullfile,
+        options: sassOptions
+      }),
+      typescript({
+        module: 'es2015'
+      }),
+    ],
+  }).then(bundle => {
+    const code = bundle.generate().code
+    const output = readFileSync(fullfile).toString()
+
+    removeSync(fullfile)
+    t.is(squash(code), '')
+    t.is(squash(output), squash(`${expectA}${expectB}`))
+  })
+})
+
+test('should support output as true in typescript', t => {
+  let fullfile = 'test/fixtures/ts-output-true/index.css'
+
+  return rollup({
+    entry: 'test/fixtures/ts-output-true/index.ts',
+    plugins: [
+      sass({
+        output: true,
+        options: sassOptions
+      }),
+      typescript({
+        module: 'es2015',
+      }),
+    ],
+  }).then(bundle => {
+    const code = bundle.generate().code
+    const output = readFileSync(fullfile).toString()
+
+    removeSync(fullfile)
+    t.is(squash(code), '')
+    t.is(squash(output), squash(`${expectA}${expectB}`))
   })
 })
