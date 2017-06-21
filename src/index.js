@@ -102,7 +102,7 @@ export default function plugin (options = {}) {
       } else if (isFunction(options.output)) {
         return options.output(css, styles)
       } else if (!options.insert && dest) {
-        if (dest.endsWith('.js')) {
+        if (dest.endsWith('.js') || dest.endsWith('.ts')) {
           dest = dest.slice(0, -3)
         }
         dest = `${dest}.css`
