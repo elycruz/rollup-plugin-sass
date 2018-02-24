@@ -28,15 +28,19 @@ npm install rollup-plugin-sass -D
 ## Usage
 
 ```js
-import { rollup } from 'rollup';
+// rollup.config.js
 import sass from 'rollup-plugin-sass';
 
-rollup({
-  entry: 'main.js',
+export default {
+  input: 'index.js',
+  output: {
+    file: 'bundle.js',
+    format: 'cjs',
+  },
   plugins: [
     sass()
   ]
-}).then(...)
+})
 ```
 
 ## Options
@@ -66,7 +70,7 @@ sass({
   output(styles, styleNodes) {
     writeFileSync('bundle.css', styles);
   }
-});
+})
 ```
 
 ### `insert`
@@ -75,6 +79,12 @@ sass({
 
 If you specify `true`, the plugin will insert compiled CSS into `<head/>` tag.
 
+```js
+sass({
+  insert: true
+})
+```
+
 ### `processor`
 
 + Type: `Function` _(default: null)_
@@ -82,9 +92,8 @@ If you specify `true`, the plugin will insert compiled CSS into `<head/>` tag.
 If you specify a function as processor which will be called with compiled css before generate phase.
 
 ```js
-import sass from 'rollup-plugin-sass'
-import autoprefixer from 'autoprefixer'
-import postcss from 'postcss'
+import autoprefixer from 'autoprefixer';
+import postcss from 'postcss';
 
 sass({
   // Processor will be called with two arguments:
@@ -93,7 +102,7 @@ sass({
   processor: css => postcss([autoprefixer])
     .process(css)
     .then(result => result.css)
-});
+})
 ```
 
 ### `options`
