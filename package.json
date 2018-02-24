@@ -42,7 +42,6 @@
     "babel-plugin-transform-runtime": "^6.23.0",
     "babel-preset-env": "^1.4.0",
     "rollup": "^0.56.2",
-    "rollup-plugin-babel": "^2.7.1",
-    "rollup-plugin-typescript": "^0.8.1"
+    "rollup-plugin-babel": "^2.7.1"
   }
 }
