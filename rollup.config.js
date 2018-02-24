@@ -1,9 +1,11 @@
 import babel from 'rollup-plugin-babel'
 
 export default {
-  entry: './src/index.js',
-  format: 'cjs',
-  dest: 'dist/rollup-plugin-sass.js',
+  input: './src/index.js',
+  output: {
+    format: 'cjs',
+    file: 'dist/rollup-plugin-sass.js'
+  },
   external: [
     'babel-runtime/regenerator',
     'babel-runtime/core-js/json/stringify',
