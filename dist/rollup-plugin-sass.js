@@ -43,7 +43,6 @@ function plugin() {
   var insertFnName = '___$insertStyle';
   var styles = [];
   var styleMaps = {};
-  var dest = '';
   var prependSass = '';
 
   options.output = options.output || false;
@@ -64,11 +63,8 @@ function plugin() {
         return insertStyle.toString().replace(/insertStyle/, insertFnName);
       }
     },
-    options: function options(opts) {
-      dest = opts.dest || opts.entry;
-    },
     transform: function () {
-      var _ref = _asyncToGenerator(_regeneratorRuntime.mark(function _callee(code, id) {
+      var _ref = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee(code, id) {
         var paths, sassConfig, css, _code;
 
         return _regeneratorRuntime.wrap(function _callee$(_context) {
@@ -119,7 +115,6 @@ function plugin() {
                   });
                 }
                 css = _JSON$stringify(css);
-
                 if (options.insert === true) {
                   _code = insertFnName + '(' + css + ');';
                 } else if (options.output === false) {
@@ -154,8 +149,8 @@ function plugin() {
       return transform;
     }(),
     ongenerate: function () {
-      var _ref2 = _asyncToGenerator(_regeneratorRuntime.mark(function _callee2(opts, result) {
-        var css;
+      var _ref2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee2(opts) {
+        var css, dest;
         return _regeneratorRuntime.wrap(function _callee2$(_context2) {
           while (1) {
             switch (_context2.prev = _context2.next) {
@@ -171,28 +166,31 @@ function plugin() {
                 css = styles.map(function (style) {
                   return style.content;
                 }).join('');
+                dest = opts.file;
 
                 if (!util.isString(options.output)) {
-                  _context2.next = 8;
+                  _context2.next = 9;
                   break;
                 }
 
                 fsExtra.ensureFileSync(options.output, function (err) {
-                  if (err) throw err;
+                  if (err) {
+                    throw err;
+                  }
                 });
                 return _context2.abrupt('return', fs.writeFileSync(options.output, css));
 
-              case 8:
+              case 9:
                 if (!util.isFunction(options.output)) {
-                  _context2.next = 12;
+                  _context2.next = 13;
                   break;
                 }
 
                 return _context2.abrupt('return', options.output(css, styles));
 
-              case 12:
+              case 13:
                 if (!(!options.insert && dest)) {
-                  _context2.next = 17;
+                  _context2.next = 18;
                   break;
                 }
 
@@ -201,11 +199,13 @@ function plugin() {
                 }
                 dest = dest + '.css';
                 fsExtra.ensureFileSync(dest, function (err) {
-                  if (err) throw err;
+                  if (err) {
+                    throw err;
+                  }
                 });
                 return _context2.abrupt('return', fs.writeFileSync(dest, css));
 
-              case 17:
+              case 18:
               case 'end':
                 return _context2.stop();
             }
@@ -213,7 +213,7 @@ function plugin() {
         }, _callee2, this);
       }));
 
-      function ongenerate(_x4, _x5) {
+      function ongenerate(_x4) {
         return _ref2.apply(this, arguments);
       }
 
