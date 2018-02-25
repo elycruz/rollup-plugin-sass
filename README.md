@@ -8,9 +8,6 @@ rollup-plugin-sass
     <a href="https://github.com/differui/rollup-plugin-sass/issues">
         <img src="https://img.shields.io/github/issues/differui/rollup-plugin-sass.svg" alt="Issues" />
     </a>
-    <a href="http://standardjs.com/">
-        <img src="https://img.shields.io/badge/code%20style-standard-brightgreen.svg" alt="JavaScript Style Guide" />
-    </a>
     <a href="https://npmjs.org/package/rollup-plugin-sass">
         <img src="https://img.shields.io/npm/v/rollup-plugin-sass.svg?style=flat-squar" alt="NPM" />
     </a>
