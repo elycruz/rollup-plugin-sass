@@ -65,7 +65,7 @@ function plugin() {
     },
     transform: function () {
       var _ref = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee(code, id) {
-        var paths, sassConfig, css, _code;
+        var paths, baseConfig, sassConfig, css, _code;
 
         return _regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
@@ -80,32 +80,33 @@ function plugin() {
 
               case 2:
                 paths = [path.dirname(id), process.cwd()];
-                sassConfig = _Object$assign({ data: '' + prependSass + code }, options.options);
+                baseConfig = prependSass ? { data: '' + prependSass + code } : { file: id };
+                sassConfig = _Object$assign(baseConfig, options.options);
 
 
                 sassConfig.includePaths = sassConfig.includePaths ? sassConfig.includePaths.concat(paths) : paths;
 
-                _context.prev = 5;
+                _context.prev = 6;
                 css = nodeSass.renderSync(sassConfig).css.toString();
                 _code = '';
 
                 if (!css.trim()) {
-                  _context.next = 16;
+                  _context.next = 17;
                   break;
                 }
 
                 if (!util.isFunction(options.processor)) {
-                  _context.next = 13;
+                  _context.next = 14;
                   break;
                 }
 
-                _context.next = 12;
+                _context.next = 13;
                 return options.processor(css, id);
 
-              case 12:
+              case 13:
                 css = _context.sent;
 
-              case 13:
+              case 14:
                 if (styleMaps[id]) {
                   styleMaps[id].content = css;
                 } else {
@@ -123,23 +124,23 @@ function plugin() {
                   _code = '"";';
                 }
 
-              case 16:
+              case 17:
                 return _context.abrupt('return', {
                   code: 'export default ' + _code + ';',
                   map: { mappings: '' }
                 });
 
-              case 19:
-                _context.prev = 19;
-                _context.t0 = _context['catch'](5);
+              case 20:
+                _context.prev = 20;
+                _context.t0 = _context['catch'](6);
                 throw _context.t0;
 
-              case 22:
+              case 23:
               case 'end':
                 return _context.stop();
             }
           }
-        }, _callee, this, [[5, 19]]);
+        }, _callee, this, [[6, 20]]);
       }));
 
       function transform(_x2, _x3) {
