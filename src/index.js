@@ -41,17 +41,24 @@ export default function plugin (options = {}) {
       const baseConfig = prependSass
         ? { data: `${prependSass}${code}` }
         : { file: id };
-
       const sassConfig = Object.assign(baseConfig, options.options);
 
       sassConfig.includePaths = sassConfig.includePaths
         ? sassConfig.includePaths.concat(paths)
         : paths;
-
       try {
-        let css = renderSync(sassConfig).css.toString();
+        const result = renderSync(sassConfig);
         let code = '';
+        let {
+          css,
+          map,
+        } = result;
 
+        console.log(sassConfig);
+        console.log(result);
+
+        css = css.toString();
+        map = map && map.toString();
         if (css.trim()) {
           if (isFunction(options.processor)) {
             css = await options.processor(css, id);
