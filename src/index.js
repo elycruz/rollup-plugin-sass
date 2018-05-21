@@ -17,6 +17,7 @@ export default function plugin (options = {}) {
   options.insert = options.insert || false;
   options.processor = options.processor || null;
   options.options = options.options || null;
+  options.modulesVariable = options.modulesVariable || 'names';
 
   if (options.options && options.options.data) {
     prependSass = options.options.data;
@@ -51,10 +52,15 @@ export default function plugin (options = {}) {
       try {
         let css = renderSync(sassConfig).css.toString();
         let code = '';
+        let names = '';
 
         if (css.trim()) {
           if (isFunction(options.processor)) {
             css = await options.processor(css, id);
+            if (typeof css !== 'string' && css[options.modulesVariable]) {
+              names = css[options.modulesVariable];
+              css = css.css;
+            }
           }
           if (styleMaps[id]) {
             styleMaps[id].content = css;
@@ -65,16 +71,27 @@ export default function plugin (options = {}) {
             });
           }
           css = JSON.stringify(css);
+          if (names) {
+            names = JSON.stringify(names);
+          }
+
           if (options.insert === true) {
-            code = `${insertFnName}(${css});`;
+            const namesParam = names || 'null';
+            code = `${insertFnName}(${css}, ${namesParam});`;
           } else if (options.output === false) {
             code = css;
           } else {
             code = `"";`;
           }
         }
+
+        code = `export default ${code};`;
+        if (names && !options.insert) {
+          code = `${code}\nexport const ${options.modulesVariable} = ${names};`;
+        }
+
         return {
-          code: `export default ${code};`,
+          code,
           map: { mappings: '' },
         };
       } catch (error) {

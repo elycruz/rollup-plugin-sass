@@ -16,10 +16,11 @@ var fsExtra = require('fs-extra');
 /*
  * Create a style tag and append to head tag
  *
- * @param {String} css style
+ * @param {String} css     style
+ * @param {Object} [names] The modules names
  * @return {String} css style
  */
-function insertStyle(css) {
+function insertStyle(css, names) {
   if (!css) {
     return;
   }
@@ -33,7 +34,7 @@ function insertStyle(css) {
   style.innerHTML = css;
   document.head.appendChild(style);
 
-  return css;
+  return names || css;
 }
 
 function plugin() {
@@ -49,6 +50,7 @@ function plugin() {
   options.insert = options.insert || false;
   options.processor = options.processor || null;
   options.options = options.options || null;
+  options.modulesVariable = options.modulesVariable || 'names';
 
   if (options.options && options.options.data) {
     prependSass = options.options.data;
@@ -65,7 +67,7 @@ function plugin() {
     },
     transform: function () {
       var _ref = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee(code, id) {
-        var paths, baseConfig, sassConfig, css, _code;
+        var paths, baseConfig, sassConfig, css, _code, names, namesParam;
 
         return _regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
@@ -89,24 +91,30 @@ function plugin() {
                 _context.prev = 6;
                 css = nodeSass.renderSync(sassConfig).css.toString();
                 _code = '';
+                names = '';
 
                 if (!css.trim()) {
-                  _context.next = 17;
+                  _context.next = 20;
                   break;
                 }
 
                 if (!util.isFunction(options.processor)) {
-                  _context.next = 14;
+                  _context.next = 16;
                   break;
                 }
 
-                _context.next = 13;
+                _context.next = 14;
                 return options.processor(css, id);
 
-              case 13:
+              case 14:
                 css = _context.sent;
 
-              case 14:
+                if (typeof css !== 'string' && css[options.modulesVariable]) {
+                  names = css[options.modulesVariable];
+                  css = css.css;
+                }
+
+              case 16:
                 if (styleMaps[id]) {
                   styleMaps[id].content = css;
                 } else {
@@ -116,31 +124,43 @@ function plugin() {
                   });
                 }
                 css = _JSON$stringify(css);
+                if (names) {
+                  names = _JSON$stringify(names);
+                }
+
                 if (options.insert === true) {
-                  _code = insertFnName + '(' + css + ');';
+                  namesParam = names || 'null';
+
+                  _code = insertFnName + '(' + css + ', ' + namesParam + ');';
                 } else if (options.output === false) {
                   _code = css;
                 } else {
                   _code = '"";';
                 }
 
-              case 17:
+              case 20:
+
+                _code = 'export default ' + _code + ';';
+                if (names) {
+                  _code = _code + '\nexport const ' + options.modulesVariable + ' = ' + names + ';';
+                }
+
                 return _context.abrupt('return', {
-                  code: 'export default ' + _code + ';',
+                  code: _code,
                   map: { mappings: '' }
                 });
 
-              case 20:
-                _context.prev = 20;
+              case 25:
+                _context.prev = 25;
                 _context.t0 = _context['catch'](6);
                 throw _context.t0;
 
-              case 23:
+              case 28:
               case 'end':
                 return _context.stop();
             }
           }
-        }, _callee, this, [[6, 20]]);
+        }, _callee, this, [[6, 25]]);
       }));
 
       function transform(_x2, _x3) {
