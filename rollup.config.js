@@ -10,6 +10,7 @@ export default {
     'babel-runtime/regenerator',
     'babel-runtime/core-js/json/stringify',
     'babel-runtime/core-js/object/assign',
+    'babel-runtime/core-js/object/keys',
     'babel-runtime/helpers/asyncToGenerator',
     'path',
     'fs',

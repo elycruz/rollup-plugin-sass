@@ -51,10 +51,20 @@ export default function plugin (options = {}) {
       try {
         let css = renderSync(sassConfig).css.toString();
         let code = '';
+        let rest;
 
         if (css.trim()) {
           if (isFunction(options.processor)) {
             css = await options.processor(css, id);
+            if (typeof css !== 'string') {
+              if (typeof css.css !== 'string') {
+                throw new Error('You need to return the styles using the `css` property');
+              }
+
+              rest = css;
+              delete rest.css;
+              css = rest.css;
+            }
           }
           if (styleMaps[id]) {
             styleMaps[id].content = css;
@@ -64,7 +74,9 @@ export default function plugin (options = {}) {
               content: css,
             });
           }
+
           css = JSON.stringify(css);
+
           if (options.insert === true) {
             code = `${insertFnName}(${css});`;
           } else if (options.output === false) {
@@ -73,8 +85,21 @@ export default function plugin (options = {}) {
             code = `"";`;
           }
         }
+
+        code = `export default ${code};`;
+        if (rest) {
+          const restCode = Object.keys(rest)
+          .map((name) => {
+            const value = JSON.stringify(rest[name]);
+            return `export const ${name} = ${value};`
+          })
+          .join('\n');
+
+          code = `${code}\n${restCode}`;
+        }
+
         return {
-          code: `export default ${code};`,
+          code,
           map: { mappings: '' },
         };
       } catch (error) {

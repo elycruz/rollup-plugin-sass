@@ -3,6 +3,7 @@
 function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
 var _regeneratorRuntime = _interopDefault(require('babel-runtime/regenerator'));
+var _Object$keys = _interopDefault(require('babel-runtime/core-js/object/keys'));
 var _JSON$stringify = _interopDefault(require('babel-runtime/core-js/json/stringify'));
 var _Object$assign = _interopDefault(require('babel-runtime/core-js/object/assign'));
 var _asyncToGenerator = _interopDefault(require('babel-runtime/helpers/asyncToGenerator'));
@@ -65,7 +66,7 @@ function plugin() {
     },
     transform: function () {
       var _ref = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee(code, id) {
-        var paths, baseConfig, sassConfig, css, _code;
+        var paths, baseConfig, sassConfig, css, _code, rest, restCode;
 
         return _regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
@@ -89,24 +90,43 @@ function plugin() {
                 _context.prev = 6;
                 css = nodeSass.renderSync(sassConfig).css.toString();
                 _code = '';
+                rest = void 0;
 
                 if (!css.trim()) {
-                  _context.next = 17;
+                  _context.next = 24;
                   break;
                 }
 
                 if (!util.isFunction(options.processor)) {
-                  _context.next = 14;
+                  _context.next = 21;
                   break;
                 }
 
-                _context.next = 13;
+                _context.next = 14;
                 return options.processor(css, id);
 
-              case 13:
+              case 14:
                 css = _context.sent;
 
-              case 14:
+                if (!(typeof css !== 'string')) {
+                  _context.next = 21;
+                  break;
+                }
+
+                if (!(typeof css.css !== 'string')) {
+                  _context.next = 18;
+                  break;
+                }
+
+                throw new Error('You need to return the styles using the `css` property');
+
+              case 18:
+
+                rest = css;
+                delete rest.css;
+                css = rest.css;
+
+              case 21:
                 if (styleMaps[id]) {
                   styleMaps[id].content = css;
                 } else {
@@ -115,7 +135,9 @@ function plugin() {
                     content: css
                   });
                 }
+
                 css = _JSON$stringify(css);
+
                 if (options.insert === true) {
                   _code = insertFnName + '(' + css + ');';
                 } else if (options.output === false) {
@@ -124,23 +146,35 @@ function plugin() {
                   _code = '"";';
                 }
 
-              case 17:
+              case 24:
+
+                _code = 'export default ' + _code + ';';
+                if (rest && !options.insert) {
+                  restCode = _Object$keys(rest).map(function (name) {
+                    var value = _JSON$stringify(rest[name]);
+                    return 'export const ' + name + ' = ' + value + ';';
+                  }).join('\n');
+
+
+                  _code = _code + '\n' + restCode;
+                }
+
                 return _context.abrupt('return', {
-                  code: 'export default ' + _code + ';',
+                  code: _code,
                   map: { mappings: '' }
                 });
 
-              case 20:
-                _context.prev = 20;
+              case 29:
+                _context.prev = 29;
                 _context.t0 = _context['catch'](6);
                 throw _context.t0;
 
-              case 23:
+              case 32:
               case 'end':
                 return _context.stop();
             }
           }
-        }, _callee, this, [[6, 20]]);
+        }, _callee, this, [[6, 29]]);
       }));
 
       function transform(_x2, _x3) {
