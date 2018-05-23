@@ -1,11 +1,10 @@
 /*
  * Create a style tag and append to head tag
  *
- * @param {String} css     style
- * @param {Object} [names] The modules names
+ * @param {String} css style
  * @return {String} css style
  */
-function insertStyle (css, names) {
+function insertStyle (css) {
   if (!css) {
     return
   }
@@ -19,9 +18,9 @@ function insertStyle (css, names) {
   style.innerHTML = css
   document.head.appendChild(style)
 
-  return names || css
+  return css
 }
 
 export {
-  insertStyle
+    insertStyle
 }

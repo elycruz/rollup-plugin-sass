@@ -3,6 +3,7 @@
 function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
 var _regeneratorRuntime = _interopDefault(require('babel-runtime/regenerator'));
+var _Object$keys = _interopDefault(require('babel-runtime/core-js/object/keys'));
 var _JSON$stringify = _interopDefault(require('babel-runtime/core-js/json/stringify'));
 var _Object$assign = _interopDefault(require('babel-runtime/core-js/object/assign'));
 var _asyncToGenerator = _interopDefault(require('babel-runtime/helpers/asyncToGenerator'));
@@ -16,11 +17,10 @@ var fsExtra = require('fs-extra');
 /*
  * Create a style tag and append to head tag
  *
- * @param {String} css     style
- * @param {Object} [names] The modules names
+ * @param {String} css style
  * @return {String} css style
  */
-function insertStyle(css, names) {
+function insertStyle(css) {
   if (!css) {
     return;
   }
@@ -34,7 +34,7 @@ function insertStyle(css, names) {
   style.innerHTML = css;
   document.head.appendChild(style);
 
-  return names || css;
+  return css;
 }
 
 function plugin() {
@@ -50,7 +50,6 @@ function plugin() {
   options.insert = options.insert || false;
   options.processor = options.processor || null;
   options.options = options.options || null;
-  options.modulesVariable = options.modulesVariable || 'names';
 
   if (options.options && options.options.data) {
     prependSass = options.options.data;
@@ -67,7 +66,7 @@ function plugin() {
     },
     transform: function () {
       var _ref = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee(code, id) {
-        var paths, baseConfig, sassConfig, css, _code, names, namesParam;
+        var paths, baseConfig, sassConfig, css, _code, rest, restCode;
 
         return _regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
@@ -91,15 +90,15 @@ function plugin() {
                 _context.prev = 6;
                 css = nodeSass.renderSync(sassConfig).css.toString();
                 _code = '';
-                names = '';
+                rest = void 0;
 
                 if (!css.trim()) {
-                  _context.next = 20;
+                  _context.next = 24;
                   break;
                 }
 
                 if (!util.isFunction(options.processor)) {
-                  _context.next = 16;
+                  _context.next = 21;
                   break;
                 }
 
@@ -109,12 +108,25 @@ function plugin() {
               case 14:
                 css = _context.sent;
 
-                if (typeof css !== 'string' && css[options.modulesVariable]) {
-                  names = css[options.modulesVariable];
-                  css = css.css;
+                if (!(typeof css !== 'string')) {
+                  _context.next = 21;
+                  break;
                 }
 
-              case 16:
+                if (!(typeof css.css !== 'string')) {
+                  _context.next = 18;
+                  break;
+                }
+
+                throw new Error('You need to return the styles using the `css` property');
+
+              case 18:
+
+                rest = css;
+                delete rest.css;
+                css = rest.css;
+
+              case 21:
                 if (styleMaps[id]) {
                   styleMaps[id].content = css;
                 } else {
@@ -123,26 +135,28 @@ function plugin() {
                     content: css
                   });
                 }
+
                 css = _JSON$stringify(css);
-                if (names) {
-                  names = _JSON$stringify(names);
-                }
 
                 if (options.insert === true) {
-                  namesParam = names || 'null';
-
-                  _code = insertFnName + '(' + css + ', ' + namesParam + ');';
+                  _code = insertFnName + '(' + css + ');';
                 } else if (options.output === false) {
                   _code = css;
                 } else {
                   _code = '"";';
                 }
 
-              case 20:
+              case 24:
 
                 _code = 'export default ' + _code + ';';
-                if (names) {
-                  _code = _code + '\nexport const ' + options.modulesVariable + ' = ' + names + ';';
+                if (rest && !options.insert) {
+                  restCode = _Object$keys(rest).map(function (name) {
+                    var value = _JSON$stringify(rest[name]);
+                    return 'export const ' + name + ' = ' + value + ';';
+                  }).join('\n');
+
+
+                  _code = _code + '\n' + restCode;
                 }
 
                 return _context.abrupt('return', {
@@ -150,17 +164,17 @@ function plugin() {
                   map: { mappings: '' }
                 });
 
-              case 25:
-                _context.prev = 25;
+              case 29:
+                _context.prev = 29;
                 _context.t0 = _context['catch'](6);
                 throw _context.t0;
 
-              case 28:
+              case 32:
               case 'end':
                 return _context.stop();
             }
           }
-        }, _callee, this, [[6, 25]]);
+        }, _callee, this, [[6, 29]]);
       }));
 
       function transform(_x2, _x3) {

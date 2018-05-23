@@ -17,7 +17,6 @@ export default function plugin (options = {}) {
   options.insert = options.insert || false;
   options.processor = options.processor || null;
   options.options = options.options || null;
-  options.modulesVariable = options.modulesVariable || 'names';
 
   if (options.options && options.options.data) {
     prependSass = options.options.data;
@@ -52,14 +51,19 @@ export default function plugin (options = {}) {
       try {
         let css = renderSync(sassConfig).css.toString();
         let code = '';
-        let names = '';
+        let rest;
 
         if (css.trim()) {
           if (isFunction(options.processor)) {
             css = await options.processor(css, id);
-            if (typeof css !== 'string' && css[options.modulesVariable]) {
-              names = css[options.modulesVariable];
-              css = css.css;
+            if (typeof css !== 'string') {
+              if (typeof css.css !== 'string') {
+                throw new Error('You need to return the styles using the `css` property');
+              }
+
+              rest = css;
+              delete rest.css;
+              css = rest.css;
             }
           }
           if (styleMaps[id]) {
@@ -70,14 +74,11 @@ export default function plugin (options = {}) {
               content: css,
             });
           }
+
           css = JSON.stringify(css);
-          if (names) {
-            names = JSON.stringify(names);
-          }
 
           if (options.insert === true) {
-            const namesParam = names || 'null';
-            code = `${insertFnName}(${css}, ${namesParam});`;
+            code = `${insertFnName}(${css});`;
           } else if (options.output === false) {
             code = css;
           } else {
@@ -86,8 +87,15 @@ export default function plugin (options = {}) {
         }
 
         code = `export default ${code};`;
-        if (names && !options.insert) {
-          code = `${code}\nexport const ${options.modulesVariable} = ${names};`;
+        if (rest) {
+          const restCode = Object.keys(rest)
+          .map((name) => {
+            const value = JSON.stringify(rest[name]);
+            return `export const ${name} = ${value};`
+          })
+          .join('\n');
+
+          code = `${code}\n${restCode}`;
         }
 
         return {
