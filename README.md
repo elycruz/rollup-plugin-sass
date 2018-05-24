@@ -119,7 +119,7 @@ sass({
 Otherwise, you could do:
 
 ```js
-import style, { foo, bar } from 'stylesheet’;
+import style, { foo, bar } from 'stylesheet';
 ```
 
 ### `options`
