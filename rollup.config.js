@@ -12,6 +12,8 @@ export default {
     'babel-runtime/core-js/object/assign',
     'babel-runtime/core-js/object/keys',
     'babel-runtime/helpers/asyncToGenerator',
+    'babel-runtime/helpers/toConsumableArray',
+    'babel-runtime/helpers/typeof',
     'path',
     'fs',
     'node-sass',

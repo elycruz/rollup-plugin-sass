@@ -58,7 +58,7 @@ sass({
   output: 'bundle.css',
 
   // Callback that will be called ongenerate with two arguments:
-  // - styles: the concatentated styles in order of imported
+  // - styles: the concatenated styles in order of imported
   // - styleNodes: an array of style objects:
   //  [
   //    { id: './style1.scss', content: 'body { color: red };' },
@@ -84,7 +84,7 @@ sass({
 
 ### `processor`
 
-+ Type: `Function` _(default: null)_
++ Type: `Function`
 
 If you specify a function as processor which will be called with compiled css before generate phase.
 
@@ -102,13 +102,33 @@ sass({
 })
 ```
 
+The `processor` also support object result. Reverse `css` filed for stylesheet, the rest properties can be customized.
+
+```js
+sass({
+  processor(code) {
+    return {
+       css: '.body {}',
+       foo: 'foo',
+       bar: 'bar',
+    };
+  },
+})
+```
+
+Otherwise, you could do:
+
+```js
+import style, { foo, bar } from 'stylesheet’;
+```
+
 ### `options`
 
-+ Type: `Object` _(default: null)_
++ Type: `Object`
 
 Options for [node-sass](https://github.com/sass/node-sass#options).
 
-If you specfiy `data`, the plugin will treat as prepend sass string.
+If you specify `data`, the plugin will treat as prepend sass string.
 Since you can inject variables during sass compilation with node.
 
 ```js

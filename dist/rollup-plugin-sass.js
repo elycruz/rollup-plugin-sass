@@ -3,8 +3,10 @@
 function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
 var _regeneratorRuntime = _interopDefault(require('babel-runtime/regenerator'));
-var _Object$keys = _interopDefault(require('babel-runtime/core-js/object/keys'));
+var _toConsumableArray = _interopDefault(require('babel-runtime/helpers/toConsumableArray'));
 var _JSON$stringify = _interopDefault(require('babel-runtime/core-js/json/stringify'));
+var _Object$keys = _interopDefault(require('babel-runtime/core-js/object/keys'));
+var _typeof = _interopDefault(require('babel-runtime/helpers/typeof'));
 var _Object$assign = _interopDefault(require('babel-runtime/core-js/object/assign'));
 var _asyncToGenerator = _interopDefault(require('babel-runtime/helpers/asyncToGenerator'));
 var path = require('path');
@@ -33,7 +35,6 @@ function insertStyle(css) {
   style.setAttribute('type', 'text/css');
   style.innerHTML = css;
   document.head.appendChild(style);
-
   return css;
 }
 
@@ -48,8 +49,6 @@ function plugin() {
 
   options.output = options.output || false;
   options.insert = options.insert || false;
-  options.processor = options.processor || null;
-  options.options = options.options || null;
 
   if (options.options && options.options.data) {
     prependSass = options.options.data;
@@ -66,7 +65,7 @@ function plugin() {
     },
     transform: function () {
       var _ref = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee(code, id) {
-        var paths, baseConfig, sassConfig, css, _code, rest, restCode;
+        var paths, baseSassOptions, sassOptions, css, _code, restExports, processResult;
 
         return _regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
@@ -77,28 +76,28 @@ function plugin() {
                   break;
                 }
 
-                return _context.abrupt('return', null);
+                return _context.abrupt('return');
 
               case 2:
                 paths = [path.dirname(id), process.cwd()];
-                baseConfig = prependSass ? { data: '' + prependSass + code } : { file: id };
-                sassConfig = _Object$assign(baseConfig, options.options);
+                baseSassOptions = prependSass ? { data: '' + prependSass + code } : { file: id };
+                sassOptions = _Object$assign(baseSassOptions, options.options);
 
 
-                sassConfig.includePaths = sassConfig.includePaths ? sassConfig.includePaths.concat(paths) : paths;
+                sassOptions.includePaths = sassOptions.includePaths ? sassOptions.includePaths.concat(paths) : paths;
 
                 _context.prev = 6;
-                css = nodeSass.renderSync(sassConfig).css.toString();
+                css = nodeSass.renderSync(sassOptions).css.toString().trim();
                 _code = '';
-                rest = void 0;
+                restExports = void 0;
 
-                if (!css.trim()) {
-                  _context.next = 24;
+                if (!css) {
+                  _context.next = 26;
                   break;
                 }
 
                 if (!util.isFunction(options.processor)) {
-                  _context.next = 21;
+                  _context.next = 24;
                   break;
                 }
 
@@ -106,27 +105,35 @@ function plugin() {
                 return options.processor(css, id);
 
               case 14:
-                css = _context.sent;
+                processResult = _context.sent;
 
-                if (!(typeof css !== 'string')) {
-                  _context.next = 21;
+                if (!((typeof processResult === 'undefined' ? 'undefined' : _typeof(processResult)) === 'object')) {
+                  _context.next = 23;
                   break;
                 }
 
-                if (!(typeof css.css !== 'string')) {
+                if (!(typeof processResult.css !== 'string')) {
                   _context.next = 18;
                   break;
                 }
 
-                throw new Error('You need to return the styles using the `css` property');
+                throw new Error('You need to return the styles using the `css` property. See https://github.com/differui/rollup-plugin-sass#processor');
 
               case 18:
+                css = processResult.css;
+                delete processResult.css;
+                restExports = _Object$keys(processResult).map(function (name) {
+                  return 'export const ' + name + ' = ' + _JSON$stringify(processResult[name]) + ';';
+                });
+                _context.next = 24;
+                break;
 
-                rest = css;
-                delete rest.css;
-                css = rest.css;
+              case 23:
+                if (typeof processResult === 'string') {
+                  css = processResult;
+                }
 
-              case 21:
+              case 24:
                 if (styleMaps[id]) {
                   styleMaps[id].content = css;
                 } else {
@@ -135,32 +142,17 @@ function plugin() {
                     content: css
                   });
                 }
-
-                css = _JSON$stringify(css);
-
                 if (options.insert === true) {
-                  _code = insertFnName + '(' + css + ');';
+                  _code = insertFnName + '(' + _JSON$stringify(css) + ');';
                 } else if (options.output === false) {
-                  _code = css;
+                  _code = _JSON$stringify(css);
                 } else {
                   _code = '"";';
                 }
 
-              case 24:
-
-                _code = 'export default ' + _code + ';';
-                if (rest && !options.insert) {
-                  restCode = _Object$keys(rest).map(function (name) {
-                    var value = _JSON$stringify(rest[name]);
-                    return 'export const ' + name + ' = ' + value + ';';
-                  }).join('\n');
-
-
-                  _code = _code + '\n' + restCode;
-                }
-
+              case 26:
                 return _context.abrupt('return', {
-                  code: _code,
+                  code: ['export default ' + _code + ';'].concat(_toConsumableArray(restExports || [])).join('\n'),
                   map: { mappings: '' }
                 });
 
@@ -184,7 +176,7 @@ function plugin() {
       return transform;
     }(),
     ongenerate: function () {
-      var _ref2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee2(opts) {
+      var _ref2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee2(generateOptions) {
         var css, dest;
         return _regeneratorRuntime.wrap(function _callee2$(_context2) {
           while (1) {
@@ -201,10 +193,9 @@ function plugin() {
                 css = styles.map(function (style) {
                   return style.content;
                 }).join('');
-                dest = opts.file;
 
                 if (!util.isString(options.output)) {
-                  _context2.next = 9;
+                  _context2.next = 8;
                   break;
                 }
 
@@ -215,19 +206,22 @@ function plugin() {
                 });
                 return _context2.abrupt('return', fs.writeFileSync(options.output, css));
 
-              case 9:
+              case 8:
                 if (!util.isFunction(options.output)) {
-                  _context2.next = 13;
+                  _context2.next = 12;
                   break;
                 }
 
                 return _context2.abrupt('return', options.output(css, styles));
 
-              case 13:
-                if (!(!options.insert && dest)) {
+              case 12:
+                if (!(!options.insert && generateOptions.file)) {
                   _context2.next = 18;
                   break;
                 }
+
+                dest = generateOptions.file;
+
 
                 if (dest.endsWith('.js') || dest.endsWith('.ts')) {
                   dest = dest.slice(0, -3);
