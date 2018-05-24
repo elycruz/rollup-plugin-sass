@@ -24,7 +24,11 @@ const expectD = readFileSync('test/assets/expect_d.css').toString();
 const expectE = readFileSync('test/assets/expect_e.css').toString();
 
 function squash(str) {
-  return str.trim().replace(/\r/, '');
+  return str.trim().replace(/[\n\r]/, '');
+}
+
+function reverse(str) {
+  return str.split('').reverse().join('');
 }
 
 test('should import *.scss and *.sass files', async t => {
@@ -171,35 +175,55 @@ test('should support output as true', async t => {
   t.is(squash(output), squash(`${expectA}${expectB}`));
 });
 
-test('should process code with processor', async t => {
-  const outputCode = [];
+test('should processor return as string', async t => {
   const bundle = await rollup({
-    input: 'test/fixtures/processor/index.js',
+    input: 'test/fixtures/processor-string/index.js',
     plugins: [
       sass({
-        processor (code) {
-          outputCode.push(code);
-          return code;
+        processor: css => reverse(css),
+        options: sassOptions,
+      }),
+    ],
+  });
+  const { code } = await bundle.generate(outputOptions);
+
+  t.true(squash(code).indexOf(reverse(squash(expectA))) > -1);
+  t.true(squash(code).indexOf(reverse(squash(expectB))) > -1);
+});
+
+test('should processor return as object', async t => {
+  const bundle = await rollup({
+    input: 'test/fixtures/processor-object/index.js',
+    plugins: [
+      sass({
+        processor(css) {
+          return {
+            css,
+            foo: 'foo',
+            bar: 'bar',
+          };
         },
         options: sassOptions,
       }),
     ],
   });
+  const { code } = await bundle.generate(outputOptions);
 
-  t.is(squash(outputCode.join('')), squash(`${expectA}${expectB}`));
+  t.true(squash(code).indexOf(squash(expectA)) > -1);
+  t.true(squash(code).indexOf(squash(expectB)) > -1);
+  t.true(squash(code).indexOf('foo') > -1);
+  t.true(squash(code).indexOf('bar') > -1);
 });
 
-test('should processor support promise', async t => {
-  const outputCode = [];
+test('should processor return as promise', async t => {
   const bundle = await rollup({
     input: 'test/fixtures/processor-promise/index.js',
     plugins: [
       sass({
-        processor (code) {
-          return new Promise((resolve) => {
+        processor(css) {
+          return new Promise(resolve => {
             setTimeout(() => {
-              outputCode.push(code);
-              resolve(code);
+              resolve(css);
             }, 100);
           });
         },
@@ -207,6 +231,24 @@ test('should processor support promise', async t => {
       }),
     ],
   });
+  const { code } = await bundle.generate(outputOptions);
 
-  t.is(squash(outputCode.join('')), squash(`${expectA}${expectB}`));
+  t.true(squash(code).indexOf(squash(expectA)) > -1);
+  t.true(squash(code).indexOf(squash(expectB)) > -1);
+});
+
+test('should processor throw error', async t => {
+  await t.throws(async () => {
+    await rollup({
+      input: 'test/fixtures/processor-error/index.js',
+      plugins: [
+        sass({
+          processor: code => ({}),
+          options: sassOptions,
+        })
+      ],
+    });
+  }, {
+    message: 'You need to return the styles using the `css` property. See https://github.com/differui/rollup-plugin-sass#processor',
+  });
 });
