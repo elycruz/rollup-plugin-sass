@@ -6,7 +6,7 @@ import { createFilter } from 'rollup-pluginutils';
 import { insertStyle } from './style.js';
 import { ensureFileSync } from 'fs-extra';
 
-export default function plugin (options = {}) {
+export default function plugin(options = {}) {
   const filter = createFilter(options.include || [ '**/*.sass', '**/*.scss' ], options.exclude || 'node_modules/**');
   const insertFnName = '___$insertStyle';
   const styles = [];
@@ -15,8 +15,6 @@ export default function plugin (options = {}) {
 
   options.output = options.output || false;
   options.insert = options.insert || false;
-  options.processor = options.processor || null;
-  options.options = options.options || null;
 
   if (options.options && options.options.data) {
     prependSass = options.options.data;
@@ -26,44 +24,45 @@ export default function plugin (options = {}) {
   return {
     name: 'sass',
 
-    intro () {
+    intro() {
       if (options.insert) {
         return insertStyle.toString().replace(/insertStyle/, insertFnName);
       }
     },
 
-    async transform (code, id) {
+    async transform(code, id) {
       if (!filter(id)) {
-        return null;
+        return;
       }
 
       const paths = [dirname(id), process.cwd()];
-      const baseConfig = prependSass
+      const baseSassOptions = prependSass
         ? { data: `${prependSass}${code}` }
         : { file: id };
+      const sassOptions = Object.assign(baseSassOptions, options.options);
 
-      const sassConfig = Object.assign(baseConfig, options.options);
-
-      sassConfig.includePaths = sassConfig.includePaths
-        ? sassConfig.includePaths.concat(paths)
+      sassOptions.includePaths = sassOptions.includePaths
+        ? sassOptions.includePaths.concat(paths)
         : paths;
 
       try {
-        let css = renderSync(sassConfig).css.toString();
+        let css = renderSync(sassOptions).css.toString().trim();
         let code = '';
-        let rest;
+        let restExports;
 
-        if (css.trim()) {
+        if (css) {
           if (isFunction(options.processor)) {
-            css = await options.processor(css, id);
-            if (typeof css !== 'string') {
-              if (typeof css.css !== 'string') {
-                throw new Error('You need to return the styles using the `css` property');
-              }
+            const processResult = await options.processor(css, id);
 
-              rest = css;
-              delete rest.css;
-              css = rest.css;
+            if (typeof processResult === 'object') {
+              if (typeof processResult.css !== 'string') {
+                throw new Error('You need to return the styles using the `css` property. See https://github.com/differui/rollup-plugin-sass#processor');
+              }
+              css = processResult.css;
+              delete processResult.css;
+              restExports = Object.keys(processResult).map(name => `export const ${name} = ${JSON.stringify(processResult[name])};`);
+            } else if (typeof processResult === 'string') {
+              css = processResult;
             }
           }
           if (styleMaps[id]) {
@@ -74,32 +73,19 @@ export default function plugin (options = {}) {
               content: css,
             });
           }
-
-          css = JSON.stringify(css);
-
           if (options.insert === true) {
-            code = `${insertFnName}(${css});`;
+            code = `${insertFnName}(${JSON.stringify(css)});`;
           } else if (options.output === false) {
-            code = css;
+            code = JSON.stringify(css);
           } else {
             code = `"";`;
           }
         }
-
-        code = `export default ${code};`;
-        if (rest) {
-          const restCode = Object.keys(rest)
-          .map((name) => {
-            const value = JSON.stringify(rest[name]);
-            return `export const ${name} = ${value};`
-          })
-          .join('\n');
-
-          code = `${code}\n${restCode}`;
-        }
-
         return {
-          code,
+          code: [
+            `export default ${code};`,
+            ...(restExports || []),
+          ].join('\n'),
           map: { mappings: '' },
         };
       } catch (error) {
@@ -107,13 +93,12 @@ export default function plugin (options = {}) {
       }
     },
 
-    async ongenerate (opts) {
+    async ongenerate(generateOptions) {
       if (!options.insert && (!styles.length || options.output === false)) {
         return;
       }
 
       const css = styles.map(style => style.content).join('');
-      let dest = opts.file;
 
       if (isString(options.output)) {
         ensureFileSync(options.output, (err) => {
@@ -124,7 +109,9 @@ export default function plugin (options = {}) {
         return writeFileSync(options.output, css);
       } else if (isFunction(options.output)) {
         return options.output(css, styles);
-      } else if (!options.insert && dest) {
+      } else if (!options.insert && generateOptions.file) {
+        let dest = generateOptions.file;
+
         if (dest.endsWith('.js') || dest.endsWith('.ts')) {
           dest = dest.slice(0, -3);
         }

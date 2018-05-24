@@ -4,23 +4,22 @@
  * @param {String} css style
  * @return {String} css style
  */
-function insertStyle (css) {
+function insertStyle(css) {
   if (!css) {
-    return
+    return;
   }
   if (typeof window === 'undefined') {
-    return
+    return;
   }
 
-  let style = document.createElement('style')
+  const style = document.createElement('style');
 
-  style.setAttribute('type', 'text/css')
-  style.innerHTML = css
-  document.head.appendChild(style)
-
-  return css
+  style.setAttribute('type', 'text/css');
+  style.innerHTML = css;
+  document.head.appendChild(style);
+  return css;
 }
 
 export {
-    insertStyle
+  insertStyle,
 }
