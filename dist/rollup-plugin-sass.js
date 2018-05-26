@@ -9,9 +9,11 @@ var _Object$keys = _interopDefault(require('babel-runtime/core-js/object/keys'))
 var _typeof = _interopDefault(require('babel-runtime/helpers/typeof'));
 var _Object$assign = _interopDefault(require('babel-runtime/core-js/object/assign'));
 var _asyncToGenerator = _interopDefault(require('babel-runtime/helpers/asyncToGenerator'));
+var pify = _interopDefault(require('pify'));
+var resolve = _interopDefault(require('resolve'));
+var nodeSass = _interopDefault(require('node-sass'));
 var path = require('path');
 var fs = require('fs');
-var nodeSass = require('node-sass');
 var util = require('util');
 var rollupPluginutils = require('rollup-pluginutils');
 var fsExtra = require('fs-extra');
@@ -38,6 +40,9 @@ function insertStyle(css) {
   return css;
 }
 
+var MATHC_SASS_FILENAME_RE = /\.sass$/;
+var MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i;
+
 function plugin() {
   var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
@@ -45,15 +50,9 @@ function plugin() {
   var insertFnName = '___$insertStyle';
   var styles = [];
   var styleMaps = {};
-  var prependSass = '';
 
   options.output = options.output || false;
   options.insert = options.insert || false;
-
-  if (options.options && options.options.data) {
-    prependSass = options.options.data;
-    delete options.options.data;
-  }
 
   return {
     name: 'sass',
@@ -65,8 +64,7 @@ function plugin() {
     },
     transform: function () {
       var _ref = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee(code, id) {
-        var paths, baseSassOptions, sassOptions, css, _code, restExports, processResult;
-
+        var paths, customizedSassOptions, res, css, defaultExport, restExports, processResult;
         return _regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
             switch (_context.prev = _context.next) {
@@ -79,61 +77,83 @@ function plugin() {
                 return _context.abrupt('return');
 
               case 2:
+                _context.prev = 2;
                 paths = [path.dirname(id), process.cwd()];
-                baseSassOptions = prependSass ? { data: '' + prependSass + code } : { file: id };
-                sassOptions = _Object$assign(baseSassOptions, options.options);
+                customizedSassOptions = options.options || {};
+                _context.next = 7;
+                return pify(nodeSass.render.bind(nodeSass))(_Object$assign({}, customizedSassOptions, {
+                  file: id,
+                  data: customizedSassOptions.data && '' + customizedSassOptions.data + code,
+                  indentedSyntax: MATHC_SASS_FILENAME_RE.test(id),
+                  includePaths: customizedSassOptions.includePaths ? customizedSassOptions.includePaths.concat(paths) : paths,
+                  importer: [function (url, importer, done) {
+                    if (!MATCH_NODE_MODULE_RE.test(url)) {
+                      return done({ file: url });
+                    }
 
+                    var moduleUrl = url.slice(1);
+                    var resolveOptions = {
+                      basedir: path.dirname(importer),
+                      extensions: ['.scss', '.sass']
+                    };
 
-                sassOptions.includePaths = sassOptions.includePaths ? sassOptions.includePaths.concat(paths) : paths;
+                    pify(resolve)(moduleUrl, resolveOptions).then(function (id) {
+                      return done({ file: id });
+                    }).catch(function () {
+                      return done({ file: url });
+                    });
+                  }].concat(customizedSassOptions.importer || [])
+                }));
 
-                _context.prev = 6;
-                css = nodeSass.renderSync(sassOptions).css.toString().trim();
-                _code = '';
+              case 7:
+                res = _context.sent;
+                css = res.css.toString().trim();
+                defaultExport = '';
                 restExports = void 0;
 
                 if (!css) {
-                  _context.next = 26;
+                  _context.next = 27;
                   break;
                 }
 
                 if (!util.isFunction(options.processor)) {
+                  _context.next = 25;
+                  break;
+                }
+
+                _context.next = 15;
+                return options.processor(css, id);
+
+              case 15:
+                processResult = _context.sent;
+
+                if (!((typeof processResult === 'undefined' ? 'undefined' : _typeof(processResult)) === 'object')) {
                   _context.next = 24;
                   break;
                 }
 
-                _context.next = 14;
-                return options.processor(css, id);
-
-              case 14:
-                processResult = _context.sent;
-
-                if (!((typeof processResult === 'undefined' ? 'undefined' : _typeof(processResult)) === 'object')) {
-                  _context.next = 23;
-                  break;
-                }
-
                 if (!(typeof processResult.css !== 'string')) {
-                  _context.next = 18;
+                  _context.next = 19;
                   break;
                 }
 
                 throw new Error('You need to return the styles using the `css` property. See https://github.com/differui/rollup-plugin-sass#processor');
 
-              case 18:
+              case 19:
                 css = processResult.css;
                 delete processResult.css;
                 restExports = _Object$keys(processResult).map(function (name) {
                   return 'export const ' + name + ' = ' + _JSON$stringify(processResult[name]) + ';';
                 });
-                _context.next = 24;
+                _context.next = 25;
                 break;
 
-              case 23:
+              case 24:
                 if (typeof processResult === 'string') {
                   css = processResult;
                 }
 
-              case 24:
+              case 25:
                 if (styleMaps[id]) {
                   styleMaps[id].content = css;
                 } else {
@@ -143,30 +163,32 @@ function plugin() {
                   });
                 }
                 if (options.insert === true) {
-                  _code = insertFnName + '(' + _JSON$stringify(css) + ');';
+                  defaultExport = insertFnName + '(' + _JSON$stringify(css) + ');';
                 } else if (options.output === false) {
-                  _code = _JSON$stringify(css);
+                  defaultExport = _JSON$stringify(css);
                 } else {
-                  _code = '"";';
+                  defaultExport = '"";';
                 }
 
-              case 26:
+              case 27:
                 return _context.abrupt('return', {
-                  code: ['export default ' + _code + ';'].concat(_toConsumableArray(restExports || [])).join('\n'),
-                  map: { mappings: '' }
+                  code: ['export default ' + defaultExport + ';'].concat(_toConsumableArray(restExports || [])).join('\n'),
+                  map: {
+                    mappings: res.map ? res.map.toString() : ''
+                  }
                 });
 
-              case 29:
-                _context.prev = 29;
-                _context.t0 = _context['catch'](6);
+              case 30:
+                _context.prev = 30;
+                _context.t0 = _context['catch'](2);
                 throw _context.t0;
 
-              case 32:
+              case 33:
               case 'end':
                 return _context.stop();
             }
           }
-        }, _callee, this, [[6, 29]]);
+        }, _callee, this, [[2, 30]]);
       }));
 
       function transform(_x2, _x3) {
