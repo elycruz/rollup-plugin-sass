@@ -267,4 +267,4 @@ test('should resolve ~ as node_modules', async t => {
   t.true(squash(code).indexOf(squash(expectA)) > -1);
   t.true(squash(code).indexOf(squash(expectB)) > -1);
   t.true(squash(code).indexOf(squash(expectC)) > -1);
-})
+});
