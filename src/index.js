@@ -1,6 +1,8 @@
+import pify from 'pify'
+import resolve from 'resolve';
+import nodeSass from 'node-sass';
 import { dirname } from 'path';
 import { writeFileSync } from 'fs';
-import { renderSync } from 'node-sass';
 import { isString, isFunction } from 'util';
 import { createFilter } from 'rollup-pluginutils';
 import { insertStyle } from './style.js';
@@ -35,13 +37,30 @@ export default function plugin(options = {}) {
       try {
         const paths = [dirname(id), process.cwd()];
         const customizedSassOptions = options.options || {};
-        const res = renderSync(Object.assign({}, customizedSassOptions, {
+        const res = await pify(nodeSass.render.bind(nodeSass))(Object.assign({}, customizedSassOptions, {
           file: id,
           data: customizedSassOptions.data && `${customizedSassOptions.data}${code}`,
           indentedSyntax: MATHC_SASS_FILENAME_RE.test(id),
           includePaths: customizedSassOptions.includePaths
             ? customizedSassOptions.includePaths.concat(paths)
             : paths,
+          importer: [
+            (url, importer, done) => {
+              if (!MATCH_NODE_MODULE_RE.test(url)) {
+                return done({ file: url });
+              }
+
+              const moduleUrl = url.slice(1);
+              const resolveOptions = {
+                basedir: dirname(importer),
+                extensions: ['.scss', '.sass'],
+              };
+
+              pify(resolve)(moduleUrl, resolveOptions)
+                .then(id => done({ file: id }))
+                .catch(() => done({ file: url }));
+            },
+          ].concat(customizedSassOptions.importer || []),
         }));
         let css = res.css.toString().trim();
         let defaultExport = '';
