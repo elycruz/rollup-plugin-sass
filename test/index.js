@@ -252,3 +252,19 @@ test('should processor throw error', async t => {
     message: 'You need to return the styles using the `css` property. See https://github.com/differui/rollup-plugin-sass#processor',
   });
 });
+
+test('should resolve ~ as node_modules', async t => {
+  const bundle = await rollup({
+    input: 'test/fixtures/import/index.js',
+    plugins: [
+      sass({
+        options: sassOptions,
+      }),
+    ],
+  });
+  const { code } = await bundle.generate(outputOptions);
+
+  t.true(squash(code).indexOf(squash(expectA)) > -1);
+  t.true(squash(code).indexOf(squash(expectB)) > -1);
+  t.true(squash(code).indexOf(squash(expectC)) > -1);
+});

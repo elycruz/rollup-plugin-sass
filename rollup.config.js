@@ -16,6 +16,8 @@ export default {
     'babel-runtime/helpers/typeof',
     'path',
     'fs',
+    'resolve',
+    'pify',
     'node-sass',
     'util',
     'rollup-pluginutils',

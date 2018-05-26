@@ -1,3 +1,3 @@
-import actualD from '../../assets/actual_d.scss'
+import actualD from '../../assets/actual_d.scss';
 
-export default actualD
+export default actualD;

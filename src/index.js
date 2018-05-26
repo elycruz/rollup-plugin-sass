@@ -1,25 +1,24 @@
+import pify from 'pify'
+import resolve from 'resolve';
+import nodeSass from 'node-sass';
 import { dirname } from 'path';
 import { writeFileSync } from 'fs';
-import { renderSync } from 'node-sass';
 import { isString, isFunction } from 'util';
 import { createFilter } from 'rollup-pluginutils';
 import { insertStyle } from './style.js';
 import { ensureFileSync } from 'fs-extra';
+
+const MATHC_SASS_FILENAME_RE = /\.sass$/;
+const MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i;
 
 export default function plugin(options = {}) {
   const filter = createFilter(options.include || [ '**/*.sass', '**/*.scss' ], options.exclude || 'node_modules/**');
   const insertFnName = '___$insertStyle';
   const styles = [];
   const styleMaps = {};
-  let prependSass = '';
 
   options.output = options.output || false;
   options.insert = options.insert || false;
-
-  if (options.options && options.options.data) {
-    prependSass = options.options.data;
-    delete options.options.data;
-  }
 
   return {
     name: 'sass',
@@ -35,19 +34,36 @@ export default function plugin(options = {}) {
         return;
       }
 
-      const paths = [dirname(id), process.cwd()];
-      const baseSassOptions = prependSass
-        ? { data: `${prependSass}${code}` }
-        : { file: id };
-      const sassOptions = Object.assign(baseSassOptions, options.options);
-
-      sassOptions.includePaths = sassOptions.includePaths
-        ? sassOptions.includePaths.concat(paths)
-        : paths;
-
       try {
-        let css = renderSync(sassOptions).css.toString().trim();
-        let code = '';
+        const paths = [dirname(id), process.cwd()];
+        const customizedSassOptions = options.options || {};
+        const res = await pify(nodeSass.render.bind(nodeSass))(Object.assign({}, customizedSassOptions, {
+          file: id,
+          data: customizedSassOptions.data && `${customizedSassOptions.data}${code}`,
+          indentedSyntax: MATHC_SASS_FILENAME_RE.test(id),
+          includePaths: customizedSassOptions.includePaths
+            ? customizedSassOptions.includePaths.concat(paths)
+            : paths,
+          importer: [
+            (url, importer, done) => {
+              if (!MATCH_NODE_MODULE_RE.test(url)) {
+                return done({ file: url });
+              }
+
+              const moduleUrl = url.slice(1);
+              const resolveOptions = {
+                basedir: dirname(importer),
+                extensions: ['.scss', '.sass'],
+              };
+
+              pify(resolve)(moduleUrl, resolveOptions)
+                .then(id => done({ file: id }))
+                .catch(() => done({ file: url }));
+            },
+          ].concat(customizedSassOptions.importer || []),
+        }));
+        let css = res.css.toString().trim();
+        let defaultExport = '';
         let restExports;
 
         if (css) {
@@ -74,19 +90,23 @@ export default function plugin(options = {}) {
             });
           }
           if (options.insert === true) {
-            code = `${insertFnName}(${JSON.stringify(css)});`;
+            defaultExport = `${insertFnName}(${JSON.stringify(css)});`;
           } else if (options.output === false) {
-            code = JSON.stringify(css);
+            defaultExport = JSON.stringify(css);
           } else {
-            code = `"";`;
+            defaultExport = `"";`;
           }
         }
         return {
           code: [
-            `export default ${code};`,
+            `export default ${defaultExport};`,
             ...(restExports || []),
           ].join('\n'),
-          map: { mappings: '' },
+          map: {
+            mappings: res.map
+              ? res.map.toString()
+              : '',
+          },
         };
       } catch (error) {
         throw error;
