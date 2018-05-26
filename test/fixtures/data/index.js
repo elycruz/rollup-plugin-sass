@@ -1,3 +1,3 @@
-import actualE from '../../assets/actual_e.scss'
+import actualE from '../../assets/actual_e.scss';
 
-export default actualE
+export default actualE;
