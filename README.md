@@ -122,6 +122,12 @@ Otherwise, you could do:
 import style, { foo, bar } from 'stylesheet';
 ```
 
+### `runtime`
+
++ Type: `Object` _(default: nodeSass)_
+
+If you specify an object, it will be used instead of `node-sass`. You can use this to pass a different sass processor (for example the `sass` npm package for a completely Javascript build).
+
 ### `options`
 
 + Type: `Object`
