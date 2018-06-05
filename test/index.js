@@ -2,6 +2,7 @@ import test from 'ava';
 import { readFileSync } from 'fs';
 import { removeSync } from 'fs-extra';
 import { rollup } from 'rollup';
+import sassJs from 'sass';
 import sass from '..';
 
 const sassOptions = {
@@ -258,6 +259,23 @@ test('should resolve ~ as node_modules', async t => {
     input: 'test/fixtures/import/index.js',
     plugins: [
       sass({
+        options: sassOptions,
+      }),
+    ],
+  });
+  const { code } = await bundle.generate(outputOptions);
+
+  t.true(squash(code).indexOf(squash(expectA)) > -1);
+  t.true(squash(code).indexOf(squash(expectB)) > -1);
+  t.true(squash(code).indexOf(squash(expectC)) > -1);
+});
+
+test('should support options.runtime', async t => {
+  const bundle = await rollup({
+    input: 'test/fixtures/runtime/index.js',
+    plugins: [
+      sass({
+        runtime: sassJs,
         options: sassOptions,
       }),
     ],
