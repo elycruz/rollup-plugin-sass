@@ -54,6 +54,8 @@ function plugin() {
   options.output = options.output || false;
   options.insert = options.insert || false;
 
+  var sassRuntime = options.runtime || nodeSass;
+
   return {
     name: 'sass',
 
@@ -81,7 +83,7 @@ function plugin() {
                 paths = [path.dirname(id), process.cwd()];
                 customizedSassOptions = options.options || {};
                 _context.next = 7;
-                return pify(nodeSass.render.bind(nodeSass))(_Object$assign({}, customizedSassOptions, {
+                return pify(sassRuntime.render.bind(sassRuntime))(_Object$assign({}, customizedSassOptions, {
                   file: id,
                   data: customizedSassOptions.data && '' + customizedSassOptions.data + code,
                   indentedSyntax: MATHC_SASS_FILENAME_RE.test(id),

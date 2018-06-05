@@ -20,6 +20,8 @@ export default function plugin(options = {}) {
   options.output = options.output || false;
   options.insert = options.insert || false;
 
+  const sassRuntime = options.runtime || nodeSass;
+
   return {
     name: 'sass',
 
@@ -37,7 +39,7 @@ export default function plugin(options = {}) {
       try {
         const paths = [dirname(id), process.cwd()];
         const customizedSassOptions = options.options || {};
-        const res = await pify(nodeSass.render.bind(nodeSass))(Object.assign({}, customizedSassOptions, {
+        const res = await pify(sassRuntime.render.bind(sassRuntime))(Object.assign({}, customizedSassOptions, {
           file: id,
           data: customizedSassOptions.data && `${customizedSassOptions.data}${code}`,
           indentedSyntax: MATHC_SASS_FILENAME_RE.test(id),
