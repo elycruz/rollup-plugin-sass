@@ -8,7 +8,7 @@ import { createFilter } from 'rollup-pluginutils';
 import { insertStyle } from './style.js';
 import { ensureFileSync } from 'fs-extra';
 
-const MATHC_SASS_FILENAME_RE = /\.sass$/;
+const MATCH_SASS_FILENAME_RE = /\.sass$/;
 const MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i;
 
 export default function plugin(options = {}) {
@@ -42,7 +42,7 @@ export default function plugin(options = {}) {
         const res = await pify(sassRuntime.render.bind(sassRuntime))(Object.assign({}, customizedSassOptions, {
           file: id,
           data: customizedSassOptions.data && `${customizedSassOptions.data}${code}`,
-          indentedSyntax: MATHC_SASS_FILENAME_RE.test(id),
+          indentedSyntax: MATCH_SASS_FILENAME_RE.test(id),
           includePaths: customizedSassOptions.includePaths
             ? customizedSassOptions.includePaths.concat(paths)
             : paths,
@@ -58,9 +58,15 @@ export default function plugin(options = {}) {
                 extensions: ['.scss', '.sass'],
               };
 
-              pify(resolve)(moduleUrl, resolveOptions)
-                .then(id => done({ file: id }))
-                .catch(() => done({ file: url }));
+              try {
+                done({
+                  file: resolve.sync(moduleUrl, resolveOptions),
+                });
+              } catch (err) {
+                done({
+                  file: url,
+                });
+              }
             },
           ].concat(customizedSassOptions.importer || []),
         }));
