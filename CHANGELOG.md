@@ -1,3 +1,9 @@
+## [0.8.1](https://github.com/differui/rollup-plugin-sass/releases/tag/0.8.1)
+
+Bug fixes
+
++ async `resolve` hangs in edge case #55
+
 ## [0.8.0](https://github.com/differui/rollup-plugin-sass/releases/tag/0.8.0)
 
 New Features
