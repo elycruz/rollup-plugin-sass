@@ -40,7 +40,7 @@ function insertStyle(css) {
   return css;
 }
 
-var MATHC_SASS_FILENAME_RE = /\.sass$/;
+var MATCH_SASS_FILENAME_RE = /\.sass$/;
 var MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i;
 
 function plugin() {
@@ -86,7 +86,7 @@ function plugin() {
                 return pify(sassRuntime.render.bind(sassRuntime))(_Object$assign({}, customizedSassOptions, {
                   file: id,
                   data: customizedSassOptions.data && '' + customizedSassOptions.data + code,
-                  indentedSyntax: MATHC_SASS_FILENAME_RE.test(id),
+                  indentedSyntax: MATCH_SASS_FILENAME_RE.test(id),
                   includePaths: customizedSassOptions.includePaths ? customizedSassOptions.includePaths.concat(paths) : paths,
                   importer: [function (url, importer, done) {
                     if (!MATCH_NODE_MODULE_RE.test(url)) {
@@ -99,11 +99,15 @@ function plugin() {
                       extensions: ['.scss', '.sass']
                     };
 
-                    pify(resolve)(moduleUrl, resolveOptions).then(function (id) {
-                      return done({ file: id });
-                    }).catch(function () {
-                      return done({ file: url });
-                    });
+                    try {
+                      done({
+                        file: resolve.sync(moduleUrl, resolveOptions)
+                      });
+                    } catch (err) {
+                      done({
+                        file: url
+                      });
+                    }
                   }].concat(customizedSassOptions.importer || [])
                 }));
 
