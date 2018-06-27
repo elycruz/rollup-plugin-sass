@@ -246,7 +246,7 @@ test('should processor throw error', async t => {
         sass({
           processor: code => ({}),
           options: sassOptions,
-        })
+        }),
       ],
     });
   }, {
