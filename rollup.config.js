@@ -18,6 +18,7 @@ export default {
     'fs',
     'resolve',
     'pify',
+    'sass',
     'node-sass',
     'util',
     'rollup-pluginutils',
