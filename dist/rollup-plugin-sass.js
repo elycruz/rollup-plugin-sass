@@ -11,7 +11,7 @@ var _Object$assign = _interopDefault(require('babel-runtime/core-js/object/assig
 var _asyncToGenerator = _interopDefault(require('babel-runtime/helpers/asyncToGenerator'));
 var pify = _interopDefault(require('pify'));
 var resolve = _interopDefault(require('resolve'));
-var nodeSass = _interopDefault(require('node-sass'));
+var sass = _interopDefault(require('sass'));
 var path = require('path');
 var fs = require('fs');
 var util = require('util');
@@ -54,7 +54,7 @@ function plugin() {
   options.output = options.output || false;
   options.insert = options.insert || false;
 
-  var sassRuntime = options.runtime || nodeSass;
+  var sassRuntime = options.runtime || sass;
 
   return {
     name: 'sass',
