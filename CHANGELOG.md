@@ -1,6 +1,12 @@
+## [0.9.0](https://github.com/differui/rollup-plugin-sass/releases/tag/0.9.0)
+
+New Features
+
++ switch default sass compiler to sass from node-sass ([#56](https://github.com/differui/rollup-plugin-sass/issues/56))
+
 ## [0.8.1](https://github.com/differui/rollup-plugin-sass/releases/tag/0.8.1)
 
-Bug fixes
+Bug Fixes
 
 + async `resolve` hangs in edge case #55
 
@@ -12,7 +18,7 @@ New Features
 
 ## [0.7.2](https://github.com/differui/rollup-plugin-sass/releases/tag/0.7.2)
 
-Bug fixes
+Bug Fixes
 
 + can not resolve file id start with `~` ([#38](https://github.com/differui/rollup-plugin-sass/issues/38))
 
