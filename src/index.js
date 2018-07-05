@@ -1,6 +1,6 @@
 import pify from 'pify'
 import resolve from 'resolve';
-import nodeSass from 'node-sass';
+import sass from 'sass';
 import { dirname } from 'path';
 import { writeFileSync } from 'fs';
 import { isString, isFunction } from 'util';
@@ -20,7 +20,7 @@ export default function plugin(options = {}) {
   options.output = options.output || false;
   options.insert = options.insert || false;
 
-  const sassRuntime = options.runtime || nodeSass;
+  const sassRuntime = options.runtime || sass;
 
   return {
     name: 'sass',
