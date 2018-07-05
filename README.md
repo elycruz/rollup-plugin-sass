@@ -124,15 +124,15 @@ import style, { foo, bar } from 'stylesheet';
 
 ### `runtime`
 
-+ Type: `Object` _(default: nodeSass)_
++ Type: `Object` _(default: sass)_
 
-If you specify an object, it will be used instead of `node-sass`. You can use this to pass a different sass processor (for example the `sass` npm package for a completely Javascript build).
+If you specify an object, it will be used instead of [sass](https://github.com/sass/dart-sass). You can use this to pass a different sass compiler (for example the `node-sass` npm package).
 
 ### `options`
 
 + Type: `Object`
 
-Options for [node-sass](https://github.com/sass/node-sass#options).
+Options for [sass](https://github.com/sass/dart-sass) or your own runtime sass compiler.
 
 If you specify `data`, the plugin will treat as prepend sass string.
 Since you can inject variables during sass compilation with node.
