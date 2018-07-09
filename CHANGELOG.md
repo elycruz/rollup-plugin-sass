@@ -1,3 +1,10 @@
+## [0.9.1](https://github.com/differui/rollup-plugin-sass/releases/tag/0.9.1)
+
+Bug Fixes
+
++ fix ci error
++ remove node-sass in `devDependencies`
+
 ## [0.9.0](https://github.com/differui/rollup-plugin-sass/releases/tag/0.9.0)
 
 New Features
