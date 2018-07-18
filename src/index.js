@@ -12,7 +12,11 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/;
 const MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i;
 
 export default function plugin(options = {}) {
-  const filter = createFilter(options.include || [ '**/*.sass', '**/*.scss' ], options.exclude || 'node_modules/**');
+  const {
+    include = [ '**/*.sass', '**/*.scss' ],
+    exclude = 'node_modules/**',
+  } = options;
+  const filter = createFilter(include, exclude);
   const insertFnName = '___$insertStyle';
   const styles = [];
   const styleMaps = {};
