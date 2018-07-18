@@ -1,3 +1,10 @@
+
+## [0.9.2](https://github.com/differui/rollup-plugin-sass/releases/tag/0.9.2)
+
+Bug Fixes
+
++ allow `options.exclude` to be empty string
+
 ## [0.9.1](https://github.com/differui/rollup-plugin-sass/releases/tag/0.9.1)
 
 Bug Fixes
