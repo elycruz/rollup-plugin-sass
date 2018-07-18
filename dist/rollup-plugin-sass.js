@@ -45,8 +45,12 @@ var MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i;
 
 function plugin() {
   var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  var _options$include = options.include,
+      include = _options$include === undefined ? ['**/*.sass', '**/*.scss'] : _options$include,
+      _options$exclude = options.exclude,
+      exclude = _options$exclude === undefined ? 'node_modules/**' : _options$exclude;
 
-  var filter = rollupPluginutils.createFilter(options.include || ['**/*.sass', '**/*.scss'], options.exclude || 'node_modules/**');
+  var filter = rollupPluginutils.createFilter(include, exclude);
   var insertFnName = '___$insertStyle';
   var styles = [];
   var styleMaps = {};
