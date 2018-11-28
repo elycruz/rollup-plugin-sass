@@ -94,7 +94,7 @@ function plugin() {
                   includePaths: customizedSassOptions.includePaths ? customizedSassOptions.includePaths.concat(paths) : paths,
                   importer: [function (url, importer, done) {
                     if (!MATCH_NODE_MODULE_RE.test(url)) {
-                      return done({ file: url });
+                      return null;
                     }
 
                     var moduleUrl = url.slice(1);
@@ -108,6 +108,9 @@ function plugin() {
                         file: resolve.sync(moduleUrl, resolveOptions)
                       });
                     } catch (err) {
+                      if (customizedSassOptions.importer && customizedSassOptions.importer.length) {
+                        return null;
+                      }
                       done({
                         file: url
                       });
