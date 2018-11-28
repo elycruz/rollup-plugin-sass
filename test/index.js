@@ -54,6 +54,29 @@ test('should compress the dest CSS', async t => {
   t.true(squash(code).indexOf(squash(expectD)) > -1);
 });
 
+test('should custom importer running', async t => {
+  const bundle = await rollup({
+    input: 'test/fixtures/custom-importer/index.js',
+    plugins: [
+      sass({
+        options: {
+          ...sassOptions,
+          importer: [
+            (url, prev, done) => {
+              done({
+                file: url.replace('${name}', 'actual_a'),
+              });
+            },
+          ],
+        }
+      }),
+    ]
+  });
+  const { code } = await bundle.generate(outputOptions);
+
+  t.true(squash(code).indexOf(squash(expectA)) > -1);
+});
+
 test('should support options.data', async t => {
   const jsVars = {
     'color_red': 'red',
