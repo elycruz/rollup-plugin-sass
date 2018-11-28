@@ -53,7 +53,7 @@ export default function plugin(options = {}) {
           importer: [
             (url, importer, done) => {
               if (!MATCH_NODE_MODULE_RE.test(url)) {
-                return done({ file: url });
+                return null;
               }
 
               const moduleUrl = url.slice(1);
@@ -67,6 +67,9 @@ export default function plugin(options = {}) {
                   file: resolve.sync(moduleUrl, resolveOptions),
                 });
               } catch (err) {
+                if (customizedSassOptions.importer && customizedSassOptions.importer.length) {
+                  return null;
+                }
                 done({
                   file: url,
                 });
