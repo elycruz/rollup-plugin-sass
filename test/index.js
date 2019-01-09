@@ -266,7 +266,7 @@ test('should processor return as promise', async t => {
 });
 
 test('should processor throw error', async t => {
-  await t.throws(async () => {
+  await t.throwsAsync(async () => {
     await rollup({
       input: 'test/fixtures/processor-error/index.js',
       plugins: [
