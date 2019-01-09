@@ -128,8 +128,11 @@ export default function plugin(options = {}) {
       }
     },
 
-    async ongenerate(generateOptions) {
+    async generateBundle(generateOptions, bundle, isWrite) {
       if (!options.insert && (!styles.length || options.output === false)) {
+        return;
+      }
+      if (isWrite) {
         return;
       }
 

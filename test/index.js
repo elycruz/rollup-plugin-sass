@@ -32,16 +32,20 @@ function reverse(str) {
   return str.split('').reverse().join('');
 }
 
+function unwrap(output) {
+  return output[0].code;
+}
+
 test('should import *.scss and *.sass files', async t => {
   const bundle = await rollup({
     ...inputOptions,
     input: 'test/fixtures/basic/index.js',
   });
-  const { code } = await bundle.generate(outputOptions);
+  const { output } = await bundle.generate(outputOptions);
 
-  t.true(squash(code).indexOf(squash(expectA)) > -1);
-  t.true(squash(code).indexOf(squash(expectB)) > -1);
-  t.true(squash(code).indexOf(squash(expectC)) > -1);
+  t.true(squash(unwrap(output)).indexOf(squash(expectA)) > -1);
+  t.true(squash(unwrap(output)).indexOf(squash(expectB)) > -1);
+  t.true(squash(unwrap(output)).indexOf(squash(expectC)) > -1);
 });
 
 test('should compress the dest CSS', async t => {
@@ -49,9 +53,9 @@ test('should compress the dest CSS', async t => {
     ...inputOptions,
     input: 'test/fixtures/compress/index.js',
   });
-  const { code } = await bundle.generate(outputOptions);
+  const { output } = await bundle.generate(outputOptions);
 
-  t.true(squash(code).indexOf(squash(expectD)) > -1);
+  t.true(squash(unwrap(output)).indexOf(squash(expectD)) > -1);
 });
 
 test('should custom importer running', async t => {
@@ -72,9 +76,9 @@ test('should custom importer running', async t => {
       }),
     ]
   });
-  const { code } = await bundle.generate(outputOptions);
+  const { output } = await bundle.generate(outputOptions);
 
-  t.true(squash(code).indexOf(squash(expectA)) > -1);
+  t.true(squash(unwrap(output)).indexOf(squash(expectA)) > -1);
 });
 
 test('should support options.data', async t => {
@@ -93,9 +97,9 @@ test('should support options.data', async t => {
       }),
     ],
   });
-  const { code } = await bundle.generate(outputOptions);
+  const { output } = await bundle.generate(outputOptions);
 
-  t.true(squash(code).indexOf(squash(expectE)) > -1);
+  t.true(squash(unwrap(output)).indexOf(squash(expectE)) > -1);
 });
 
 test('should insert CSS into head tag', async t => {
@@ -108,7 +112,7 @@ test('should insert CSS into head tag', async t => {
       }),
     ],
   });
-  const { code } = await bundle.generate(outputOptions);
+  const { output } = await bundle.generate(outputOptions);
   let count = 0;
 
   global.window = {};
@@ -136,7 +140,7 @@ test('should insert CSS into head tag', async t => {
       };
     },
   };
-  new Function(code)(); // eslint-disable-line
+  new Function(unwrap(output))(); // eslint-disable-line
 });
 
 test('should support output as function', async t => {
@@ -152,33 +156,33 @@ test('should support output as function', async t => {
       }),
     ],
   });
-  const { code } = await bundle.generate(outputOptions);
+  const { output } = await bundle.generate(outputOptions);
 
-  t.is(squash(code), '');
+  t.is(squash(unwrap(output)), '');
   t.is(squash(outputCode), squash(`${expectA}${expectB}`));
 });
 
 test('should support output as (non-previously existent) path', async t => {
-  const fullfile = 'test/fixtures/output-path/style.css';
+  const outputPath = 'test/fixtures/output-path/style.css';
   const bundle = await rollup({
     input: 'test/fixtures/output-path/index.js',
     plugins: [
       sass({
-        output: fullfile,
+        output: outputPath,
         options: sassOptions,
       }),
     ],
   });
-  const { code } = await bundle.generate(outputOptions);
-  const output = readFileSync(fullfile).toString();
+  const { output } = await bundle.generate(outputOptions);
+  const fsOutput = readFileSync(outputPath).toString();
 
-  removeSync(fullfile);
-  t.is(squash(code), '');
-  t.is(squash(output), squash(`${expectA}${expectB}`));
+  removeSync(outputPath);
+  t.is(squash(unwrap(output)), '');
+  t.is(squash(fsOutput), squash(`${expectA}${expectB}`));
 });
 
 test('should support output as true', async t => {
-  const fullfile = 'test/fixtures/output-true/bundle.js';
+  const outputPath = 'test/fixtures/output-true/bundle.js';
   const bundle = await rollup({
     input: 'test/fixtures/output-true/index.js',
     plugins: [
@@ -188,15 +192,15 @@ test('should support output as true', async t => {
       }),
     ],
   });
-  const { code } = await bundle.generate({
+  const { output } = await bundle.generate({
     ...outputOptions,
-    file: fullfile,
+    file: outputPath,
   });
-  const output = readFileSync(fullfile.replace('.js', '.css')).toString();
+  const fsOutput = readFileSync(outputPath.replace('.js', '.css')).toString();
 
-  removeSync(fullfile);
-  t.is(squash(code), '');
-  t.is(squash(output), squash(`${expectA}${expectB}`));
+  removeSync(outputPath);
+  t.is(squash(unwrap(output)), '');
+  t.is(squash(fsOutput), squash(`${expectA}${expectB}`));
 });
 
 test('should processor return as string', async t => {
@@ -209,10 +213,10 @@ test('should processor return as string', async t => {
       }),
     ],
   });
-  const { code } = await bundle.generate(outputOptions);
+  const { output } = await bundle.generate(outputOptions);
 
-  t.true(squash(code).indexOf(reverse(squash(expectA))) > -1);
-  t.true(squash(code).indexOf(reverse(squash(expectB))) > -1);
+  t.true(squash(unwrap(output)).indexOf(reverse(squash(expectA))) > -1);
+  t.true(squash(unwrap(output)).indexOf(reverse(squash(expectB))) > -1);
 });
 
 test('should processor return as object', async t => {
@@ -231,12 +235,12 @@ test('should processor return as object', async t => {
       }),
     ],
   });
-  const { code } = await bundle.generate(outputOptions);
+  const { output } = await bundle.generate(outputOptions);
 
-  t.true(squash(code).indexOf(squash(expectA)) > -1);
-  t.true(squash(code).indexOf(squash(expectB)) > -1);
-  t.true(squash(code).indexOf('foo') > -1);
-  t.true(squash(code).indexOf('bar') > -1);
+  t.true(squash(unwrap(output)).indexOf(squash(expectA)) > -1);
+  t.true(squash(unwrap(output)).indexOf(squash(expectB)) > -1);
+  t.true(squash(unwrap(output)).indexOf('foo') > -1);
+  t.true(squash(unwrap(output)).indexOf('bar') > -1);
 });
 
 test('should processor return as promise', async t => {
@@ -255,10 +259,10 @@ test('should processor return as promise', async t => {
       }),
     ],
   });
-  const { code } = await bundle.generate(outputOptions);
+  const { output } = await bundle.generate(outputOptions);
 
-  t.true(squash(code).indexOf(squash(expectA)) > -1);
-  t.true(squash(code).indexOf(squash(expectB)) > -1);
+  t.true(squash(unwrap(output)).indexOf(squash(expectA)) > -1);
+  t.true(squash(unwrap(output)).indexOf(squash(expectB)) > -1);
 });
 
 test('should processor throw error', async t => {
@@ -286,11 +290,11 @@ test('should resolve ~ as node_modules', async t => {
       }),
     ],
   });
-  const { code } = await bundle.generate(outputOptions);
+  const { output } = await bundle.generate(outputOptions);
 
-  t.true(squash(code).indexOf(squash(expectA)) > -1);
-  t.true(squash(code).indexOf(squash(expectB)) > -1);
-  t.true(squash(code).indexOf(squash(expectC)) > -1);
+  t.true(squash(unwrap(output)).indexOf(squash(expectA)) > -1);
+  t.true(squash(unwrap(output)).indexOf(squash(expectB)) > -1);
+  t.true(squash(unwrap(output)).indexOf(squash(expectC)) > -1);
 });
 
 test('should support options.runtime', async t => {
@@ -303,9 +307,9 @@ test('should support options.runtime', async t => {
       }),
     ],
   });
-  const { code } = await bundle.generate(outputOptions);
+  const { output } = await bundle.generate(outputOptions);
 
-  t.true(squash(code).indexOf(squash(expectA)) > -1);
-  t.true(squash(code).indexOf(squash(expectB)) > -1);
-  t.true(squash(code).indexOf(squash(expectC)) > -1);
+  t.true(squash(unwrap(output)).indexOf(squash(expectA)) > -1);
+  t.true(squash(unwrap(output)).indexOf(squash(expectB)) > -1);
+  t.true(squash(unwrap(output)).indexOf(squash(expectC)) > -1);
 });
