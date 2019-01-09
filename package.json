@@ -1,6 +1,6 @@
 {
   "name": "rollup-plugin-sass",
-  "version": "1.0.0-beta",
+  "version": "1.0.1",
   "description": "Rollup .sass files.",
   "main": "dist/rollup-plugin-sass.js",
   "scripts": {
