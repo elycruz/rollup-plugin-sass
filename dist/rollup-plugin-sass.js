@@ -210,8 +210,8 @@ function plugin() {
 
       return transform;
     }(),
-    ongenerate: function () {
-      var _ref2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee2(generateOptions) {
+    generateBundle: function () {
+      var _ref2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee2(generateOptions, bundle, isWrite) {
         var css, dest;
         return _regeneratorRuntime.wrap(function _callee2$(_context2) {
           while (1) {
@@ -225,12 +225,20 @@ function plugin() {
                 return _context2.abrupt('return');
 
               case 2:
+                if (!isWrite) {
+                  _context2.next = 4;
+                  break;
+                }
+
+                return _context2.abrupt('return');
+
+              case 4:
                 css = styles.map(function (style) {
                   return style.content;
                 }).join('');
 
                 if (!util.isString(options.output)) {
-                  _context2.next = 8;
+                  _context2.next = 10;
                   break;
                 }
 
@@ -241,17 +249,17 @@ function plugin() {
                 });
                 return _context2.abrupt('return', fs.writeFileSync(options.output, css));
 
-              case 8:
+              case 10:
                 if (!util.isFunction(options.output)) {
-                  _context2.next = 12;
+                  _context2.next = 14;
                   break;
                 }
 
                 return _context2.abrupt('return', options.output(css, styles));
 
-              case 12:
+              case 14:
                 if (!(!options.insert && generateOptions.file)) {
-                  _context2.next = 18;
+                  _context2.next = 20;
                   break;
                 }
 
@@ -269,7 +277,7 @@ function plugin() {
                 });
                 return _context2.abrupt('return', fs.writeFileSync(dest, css));
 
-              case 18:
+              case 20:
               case 'end':
                 return _context2.stop();
             }
@@ -277,11 +285,11 @@ function plugin() {
         }, _callee2, this);
       }));
 
-      function ongenerate(_x4) {
+      function generateBundle(_x4, _x5, _x6) {
         return _ref2.apply(this, arguments);
       }
 
-      return ongenerate;
+      return generateBundle;
     }()
   };
 }
