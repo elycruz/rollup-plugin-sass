@@ -20,7 +20,8 @@
     "url": "git+https://github.com/differui/rollup-plugin-sass.git"
   },
   "keywords": [
-    "rollup"
+    "rollup",
+    "rollup-plugin"
   ],
   "author": "BinRui.Guan <differui@gmail.com>",
   "license": "MIT",
