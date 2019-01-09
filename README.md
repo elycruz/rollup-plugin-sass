@@ -1,20 +1,5 @@
-rollup-plugin-sass
+rollup-plugin-sass [![CircleCI](https://img.shields.io/circleci/project/github/differui/rollup-plugin-sass/master.svg?style=flat-square)](https://circleci.com/gh/differui/rollup-plugin-sass) [![issues](https://img.shields.io/github/issues/differui/rollup-plugin-sass.svg?style=flat-square)](https://www.npmjs.com/package/rollup-plugin-sass) [![npm](https://img.shields.io/npm/v/rollup-plugin-sass.svg?style=flat-square)](https://www.npmjs.com/package/rollup-plugin-sass) [![mit](https://img.shields.io/npm/l/rollup-plugin-sass.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 =====
-
-<p>
-    <a href="LICENSE">
-        <img src="https://img.shields.io/badge/license-MIT-brightgreen.svg" alt="Software License" />
-    </a>
-    <a href="https://github.com/differui/rollup-plugin-sass/issues">
-        <img src="https://img.shields.io/github/issues/differui/rollup-plugin-sass.svg" alt="Issues" />
-    </a>
-    <a href="https://npmjs.org/package/rollup-plugin-sass">
-        <img src="https://img.shields.io/npm/v/rollup-plugin-sass.svg?style=flat-squar" alt="NPM" />
-    </a>
-    <a href="https://travis-ci.org/differui/rollup-plugin-sass">
-        <img src="https://travis-ci.org/differui/rollup-plugin-sass.svg?branch=master" />
-    </a>
-</p>
 
 ## Installation
 
