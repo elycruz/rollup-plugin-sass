@@ -225,7 +225,7 @@ function plugin() {
                 return _context2.abrupt('return');
 
               case 2:
-                if (!isWrite) {
+                if (isWrite) {
                   _context2.next = 4;
                   break;
                 }
@@ -258,7 +258,7 @@ function plugin() {
                 return _context2.abrupt('return', options.output(css, styles));
 
               case 14:
-                if (!(!options.insert && generateOptions.file)) {
+                if (!(!options.insert && generateOptions.file && options.output === true)) {
                   _context2.next = 20;
                   break;
                 }
