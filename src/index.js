@@ -132,7 +132,7 @@ export default function plugin(options = {}) {
       if (!options.insert && (!styles.length || options.output === false)) {
         return;
       }
-      if (isWrite) {
+      if (!isWrite) {
         return;
       }
 
