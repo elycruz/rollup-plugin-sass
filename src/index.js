@@ -147,7 +147,7 @@ export default function plugin(options = {}) {
         return writeFileSync(options.output, css);
       } else if (isFunction(options.output)) {
         return options.output(css, styles);
-      } else if (!options.insert && generateOptions.file) {
+      } else if (!options.insert && generateOptions.file && options.output === true) {
         let dest = generateOptions.file;
 
         if (dest.endsWith('.js') || dest.endsWith('.ts')) {
