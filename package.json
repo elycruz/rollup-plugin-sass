@@ -2,7 +2,7 @@
   "name": "rollup-plugin-sass",
   "version": "1.2.0",
   "description": "Rollup .sass files.",
-  "main": "instrument/dist/index.js",
+  "main": "dist/index.js",
   "scripts": {
     "prepublish": "npm run test",
     "pretest": "npm run build",
