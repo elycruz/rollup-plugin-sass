@@ -4,7 +4,7 @@ import { readFileSync } from 'fs';
 import { removeSync } from 'fs-extra';
 import { rollup } from 'rollup';
 import sassJs from 'sass';
-import sass from '../dist/index';
+import sass from '..';
 
 const sassOptions = {
   outputStyle: 'compressed',
