@@ -17,13 +17,13 @@ const base = {
     'sass',
     'util',
     'rollup-pluginutils',
-    'fs-extra'
+    'fs-extra',
   ],
   plugins: [
     babel({
       exclude: './node_modules/**',
-      runtimeHelpers: true
-    })
+      runtimeHelpers: true,
+    }),
   ],
 };
 
