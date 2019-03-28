@@ -1,10 +1,14 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
 /*
  * Create a style tag and append to head tag
  *
  * @param {String} css style
  * @return {String} css style
  */
-export function insertStyle(css) {
+function insertStyle(css) {
   if (!css) {
     return;
   }
@@ -12,10 +16,12 @@ export function insertStyle(css) {
     return;
   }
 
-  const style = document.createElement('style');
+  var style = document.createElement('style');
 
   style.setAttribute('type', 'text/css');
   style.innerHTML = css;
   document.head.appendChild(style);
   return css;
 }
+
+exports.insertStyle = insertStyle;

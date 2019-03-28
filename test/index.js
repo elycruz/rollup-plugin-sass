@@ -4,7 +4,7 @@ import { readFileSync } from 'fs';
 import { removeSync } from 'fs-extra';
 import { rollup } from 'rollup';
 import sassJs from 'sass';
-import sass from '..';
+import sass from '../dist/index';
 
 const sassOptions = {
   outputStyle: 'compressed',
@@ -122,34 +122,9 @@ test('should insert CSS into head tag', async t => {
     ],
   });
   const { output } = await outputBundle.generate(generateOptions);
-  let count = 0;
 
-  global.window = {};
-  global.document = {
-    innerHTML: '',
-    head: {
-      appendChild(mockNode) {
-        t.true(mockNode.hasOwnProperty('setAttribute'));
-
-        if (count === 0) {
-          t.is(squash(mockNode.innerHTML), squash(`${expectA}`));
-        } else if (count === 1) {
-          t.is(squash(mockNode.innerHTML), squash(`${expectB}`));
-        }
-        count += 1;
-      },
-    },
-    createElement() {
-      return {
-        setAttribute(key, value) {
-          if (key === 'type') {
-            t.is(value, 'text/css');
-          }
-        },
-      };
-    },
-  };
-  new Function(unwrap(output))(); // eslint-disable-line
+  t.true(unwrap(output).includes('___$insertStyle("body{color:red}");'));
+  t.true(unwrap(output).includes('___$insertStyle("body{color:green}");'));
 });
 
 test('should support output as function', async t => {

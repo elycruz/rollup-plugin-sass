@@ -16,29 +16,8 @@ var path = require('path');
 var fs = require('fs');
 var util = require('util');
 var rollupPluginutils = require('rollup-pluginutils');
+var style_js = require('./style.js');
 var fsExtra = require('fs-extra');
-
-/*
- * Create a style tag and append to head tag
- *
- * @param {String} css style
- * @return {String} css style
- */
-function insertStyle(css) {
-  if (!css) {
-    return;
-  }
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  var style = document.createElement('style');
-
-  style.setAttribute('type', 'text/css');
-  style.innerHTML = css;
-  document.head.appendChild(style);
-  return css;
-}
 
 var MATCH_SASS_FILENAME_RE = /\.sass$/;
 var MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i;
@@ -65,7 +44,7 @@ function plugin() {
 
     intro: function intro() {
       if (options.insert) {
-        return insertStyle.toString().replace(/insertStyle/, insertFnName);
+        return style_js.insertStyle.toString().replace(/insertStyle/, insertFnName);
       }
     },
     transform: function () {

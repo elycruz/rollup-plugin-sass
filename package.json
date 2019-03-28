@@ -1,13 +1,14 @@
 {
   "name": "rollup-plugin-sass",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Rollup .sass files.",
-  "main": "dist/rollup-plugin-sass.js",
+  "main": "instrument/dist/index.js",
   "scripts": {
     "prepublish": "npm run test",
     "pretest": "npm run build",
-    "build": "./node_modules/.bin/rollup -c",
-    "test": "./node_modules/.bin/ava test/index.js -s"
+    "build": "rollup -c",
+    "test": "nyc --reporter=html --reporter=text ava test/*.js -s",
+    "coverage": "nyc report --reporter=text-lcov | coveralls"
   },
   "standard": {
     "ignore": [
@@ -44,6 +45,8 @@
     "ava": "^1.0.1",
     "babel-plugin-transform-runtime": "^6.23.0",
     "babel-preset-env": "^1.4.0",
+    "coveralls": "^3.0.3",
+    "nyc": "^13.3.0",
     "rollup": "^1.0.2",
     "rollup-plugin-babel": "^2.7.1",
     "sinon": "^7.2.2"
