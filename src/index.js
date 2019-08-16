@@ -1,9 +1,8 @@
-import pify from 'pify'
 import resolve from 'resolve';
 import sass from 'sass';
 import { dirname } from 'path';
 import { writeFileSync } from 'fs';
-import { isString, isFunction } from 'util';
+import { isFunction, isString } from 'util';
 import { createFilter } from 'rollup-pluginutils';
 import { insertStyle } from './style.js';
 import { ensureFileSync } from 'fs-extra';
@@ -13,7 +12,7 @@ const MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i;
 
 export default function plugin(options = {}) {
   const {
-    include = [ '**/*.sass', '**/*.scss' ],
+    include = ['**/*.sass', '**/*.scss'],
     exclude = 'node_modules/**',
   } = options;
   const filter = createFilter(include, exclude);
@@ -43,7 +42,7 @@ export default function plugin(options = {}) {
       try {
         const paths = [dirname(id), process.cwd()];
         const customizedSassOptions = options.options || {};
-        const res = await pify(sassRuntime.render.bind(sassRuntime))(Object.assign({}, customizedSassOptions, {
+        let renderOption = Object.assign({}, customizedSassOptions, {
           file: id,
           data: customizedSassOptions.data && `${customizedSassOptions.data}${code}`,
           indentedSyntax: MATCH_SASS_FILENAME_RE.test(id),
@@ -51,7 +50,7 @@ export default function plugin(options = {}) {
             ? customizedSassOptions.includePaths.concat(paths)
             : paths,
           importer: [
-            (url, importer, done) => {
+            (url, importer) => {
               if (!MATCH_NODE_MODULE_RE.test(url)) {
                 return null;
               }
@@ -63,20 +62,21 @@ export default function plugin(options = {}) {
               };
 
               try {
-                done({
+                return {
                   file: resolve.sync(moduleUrl, resolveOptions),
-                });
+                };
               } catch (err) {
                 if (customizedSassOptions.importer && customizedSassOptions.importer.length) {
                   return null;
                 }
-                done({
+                return {
                   file: url,
-                });
+                };
               }
             },
           ].concat(customizedSassOptions.importer || []),
-        }));
+        });
+        const res = sassRuntime.renderSync(renderOption);
         let css = res.css.toString().trim();
         let defaultExport = '';
         let restExports;
@@ -109,7 +109,7 @@ export default function plugin(options = {}) {
           } else if (options.output === false) {
             defaultExport = JSON.stringify(css);
           } else {
-            defaultExport = `"";`;
+            defaultExport = `""`;
           }
         }
         return {
@@ -117,11 +117,7 @@ export default function plugin(options = {}) {
             `export default ${defaultExport};`,
             ...(restExports || []),
           ].join('\n'),
-          map: {
-            mappings: res.map
-              ? res.map.toString()
-              : '',
-          },
+          map: res.map,
         };
       } catch (error) {
         throw error;
