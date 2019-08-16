@@ -75,13 +75,13 @@ test('should custom importer works', async t => {
         options: {
           ...sassOptions,
           importer: [
-            (url, prev, done) => {
-              done({
+            (url, prev) => {
+              return {
                 file: url.replace('${name}', 'actual_a'),
-              });
+              };
             },
           ],
-        }
+        },
       }),
     ],
   });
