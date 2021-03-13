@@ -50,5 +50,8 @@
     "rollup": "^1.0.2",
     "rollup-plugin-babel": "^2.7.1",
     "sinon": "^7.2.2"
+  },
+  "engines": {
+    "node": ">=10.16"
   }
 }
