@@ -2,14 +2,14 @@ import pify from 'pify'
 import resolve from 'resolve';
 import sass from 'sass';
 import { dirname } from 'path';
-import { writeFileSync } from 'fs';
-import { isString, isFunction } from 'util';
+import fs from 'fs';
 import { createFilter } from 'rollup-pluginutils';
 import { insertStyle } from './style.js';
-import { ensureFileSync } from 'fs-extra';
 
 const MATCH_SASS_FILENAME_RE = /\.sass$/;
 const MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i;
+const isString = x => typeof x === 'string';
+const isFunction = x => typeof x === 'function';
 
 export default function plugin(options = {}) {
   const {
@@ -139,12 +139,8 @@ export default function plugin(options = {}) {
       const css = styles.map(style => style.content).join('');
 
       if (isString(options.output)) {
-        ensureFileSync(options.output, (err) => {
-          if (err) {
-            throw err;
-          }
-        });
-        return writeFileSync(options.output, css);
+        return fs.promises.mkdir(dirname(options.output), {recursive: true})
+          .then(() => fs.promises.writeFile(options.output, css));
       } else if (isFunction(options.output)) {
         return options.output(css, styles);
       } else if (!options.insert && generateOptions.file && options.output === true) {
@@ -154,12 +150,8 @@ export default function plugin(options = {}) {
           dest = dest.slice(0, -3);
         }
         dest = `${dest}.css`;
-        ensureFileSync(dest, (err) => {
-          if (err) {
-            throw err;
-          }
-        });
-        return writeFileSync(dest, css);
+        return fs.promises.mkdir(dirname(dest), {recursive: true})
+          .then(() => fs.promises.writeFile(dest, css));
       }
     },
   };

@@ -30,7 +30,7 @@ const expectD = readFileSync('test/assets/expect_d.css').toString();
 const expectE = readFileSync('test/assets/expect_e.css').toString();
 
 function squash(str) {
-  return str.trim().replace(/[\n\r]/, '');
+  return str.trim().replace(/[\n\r]/g, '');
 }
 
 function reverse(str) {
