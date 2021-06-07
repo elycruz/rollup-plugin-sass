@@ -13,14 +13,18 @@ var pify = _interopDefault(require('pify'));
 var resolve = _interopDefault(require('resolve'));
 var sass = _interopDefault(require('sass'));
 var path = require('path');
-var fs = require('fs');
-var util = require('util');
+var fs = _interopDefault(require('fs'));
 var rollupPluginutils = require('rollup-pluginutils');
 var style_js = require('./style.js');
-var fsExtra = require('fs-extra');
 
 var MATCH_SASS_FILENAME_RE = /\.sass$/;
 var MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i;
+var isString = function isString(x) {
+  return typeof x === 'string';
+};
+var isFunction = function isFunction(x) {
+  return typeof x === 'function';
+};
 
 function plugin() {
   var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
@@ -108,7 +112,7 @@ function plugin() {
                   break;
                 }
 
-                if (!util.isFunction(options.processor)) {
+                if (!isFunction(options.processor)) {
                   _context.next = 25;
                   break;
                 }
@@ -216,29 +220,26 @@ function plugin() {
                   return style.content;
                 }).join('');
 
-                if (!util.isString(options.output)) {
-                  _context2.next = 10;
+                if (!isString(options.output)) {
+                  _context2.next = 9;
                   break;
                 }
 
-                fsExtra.ensureFileSync(options.output, function (err) {
-                  if (err) {
-                    throw err;
-                  }
-                });
-                return _context2.abrupt('return', fs.writeFileSync(options.output, css));
+                return _context2.abrupt('return', fs.promises.mkdir(path.dirname(options.output), { recursive: true }).then(function () {
+                  return fs.promises.writeFile(options.output, css);
+                }));
 
-              case 10:
-                if (!util.isFunction(options.output)) {
-                  _context2.next = 14;
+              case 9:
+                if (!isFunction(options.output)) {
+                  _context2.next = 13;
                   break;
                 }
 
                 return _context2.abrupt('return', options.output(css, styles));
 
-              case 14:
+              case 13:
                 if (!(!options.insert && generateOptions.file && options.output === true)) {
-                  _context2.next = 20;
+                  _context2.next = 18;
                   break;
                 }
 
@@ -249,14 +250,11 @@ function plugin() {
                   dest = dest.slice(0, -3);
                 }
                 dest = dest + '.css';
-                fsExtra.ensureFileSync(dest, function (err) {
-                  if (err) {
-                    throw err;
-                  }
-                });
-                return _context2.abrupt('return', fs.writeFileSync(dest, css));
+                return _context2.abrupt('return', fs.promises.mkdir(path.dirname(dest), { recursive: true }).then(function () {
+                  return fs.promises.writeFile(dest, css);
+                }));
 
-              case 20:
+              case 18:
               case 'end':
                 return _context2.stop();
             }
