@@ -3,7 +3,7 @@ import resolve from 'resolve';
 import sass from 'sass';
 import { dirname } from 'path';
 import fs from 'fs';
-import { createFilter } from 'rollup-pluginutils';
+import { createFilter } from '@rollup/pluginutils';
 import { insertStyle } from './style.js';
 
 const MATCH_SASS_FILENAME_RE = /\.sass$/;
