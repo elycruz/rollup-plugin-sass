@@ -1,273 +1,193 @@
 'use strict';
 
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
-
-var _regeneratorRuntime = _interopDefault(require('babel-runtime/regenerator'));
-var _toConsumableArray = _interopDefault(require('babel-runtime/helpers/toConsumableArray'));
-var _JSON$stringify = _interopDefault(require('babel-runtime/core-js/json/stringify'));
-var _Object$keys = _interopDefault(require('babel-runtime/core-js/object/keys'));
-var _typeof = _interopDefault(require('babel-runtime/helpers/typeof'));
-var _Object$assign = _interopDefault(require('babel-runtime/core-js/object/assign'));
-var _asyncToGenerator = _interopDefault(require('babel-runtime/helpers/asyncToGenerator'));
-var pify = _interopDefault(require('pify'));
-var resolve = _interopDefault(require('resolve'));
-var sass = _interopDefault(require('sass'));
+var _bindInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/bind');
+var _Object$assign = require('@babel/runtime-corejs3/core-js-stable/object/assign');
+var _concatInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/concat');
+var _sliceInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/slice');
+var _trimInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/trim');
+var _mapInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/map');
+var _Object$keys = require('@babel/runtime-corejs3/core-js-stable/object/keys');
+var _JSON$stringify = require('@babel/runtime-corejs3/core-js-stable/json/stringify');
+var _endsWithInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/ends-with');
+var pify = require('pify');
+var resolve = require('resolve');
+var sass = require('sass');
 var path = require('path');
-var fs = _interopDefault(require('fs'));
-var rollupPluginutils = require('rollup-pluginutils');
-var style_js = require('./style.js');
+var fs = require('fs');
+var pluginutils = require('@rollup/pluginutils');
+var style = require('./style.js');
 
-var MATCH_SASS_FILENAME_RE = /\.sass$/;
-var MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i;
-var isString = function isString(x) {
-  return typeof x === 'string';
-};
-var isFunction = function isFunction(x) {
-  return typeof x === 'function';
-};
+function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
 
-function plugin() {
-  var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-  var _options$include = options.include,
-      include = _options$include === undefined ? ['**/*.sass', '**/*.scss'] : _options$include,
-      _options$exclude = options.exclude,
-      exclude = _options$exclude === undefined ? 'node_modules/**' : _options$exclude;
+var _bindInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_bindInstanceProperty);
+var _Object$assign__default = /*#__PURE__*/_interopDefaultLegacy(_Object$assign);
+var _concatInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_concatInstanceProperty);
+var _sliceInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_sliceInstanceProperty);
+var _trimInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_trimInstanceProperty);
+var _mapInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_mapInstanceProperty);
+var _Object$keys__default = /*#__PURE__*/_interopDefaultLegacy(_Object$keys);
+var _JSON$stringify__default = /*#__PURE__*/_interopDefaultLegacy(_JSON$stringify);
+var _endsWithInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_endsWithInstanceProperty);
+var pify__default = /*#__PURE__*/_interopDefaultLegacy(pify);
+var resolve__default = /*#__PURE__*/_interopDefaultLegacy(resolve);
+var sass__default = /*#__PURE__*/_interopDefaultLegacy(sass);
+var fs__default = /*#__PURE__*/_interopDefaultLegacy(fs);
 
-  var filter = rollupPluginutils.createFilter(include, exclude);
-  var insertFnName = '___$insertStyle';
-  var styles = [];
-  var styleMaps = {};
+const MATCH_SASS_FILENAME_RE = /\.sass$/;
+const MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i;
 
+const isString = x => typeof x === 'string';
+
+const isFunction = x => typeof x === 'function';
+
+function plugin(options = {}) {
+  const {
+    include = ['**/*.sass', '**/*.scss'],
+    exclude = 'node_modules/**'
+  } = options;
+  const filter = pluginutils.createFilter(include, exclude);
+  const insertFnName = '___$insertStyle';
+  const styles = [];
+  const styleMaps = {};
   options.output = options.output || false;
   options.insert = options.insert || false;
-
-  var sassRuntime = options.runtime || sass;
-
+  const sassRuntime = options.runtime || sass__default['default'];
   return {
     name: 'sass',
 
-    intro: function intro() {
+    intro() {
       if (options.insert) {
-        return style_js.insertStyle.toString().replace(/insertStyle/, insertFnName);
+        return style.insertStyle.toString().replace(/insertStyle/, insertFnName);
       }
     },
-    transform: function () {
-      var _ref = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee(code, id) {
-        var paths, customizedSassOptions, res, css, defaultExport, restExports, processResult;
-        return _regeneratorRuntime.wrap(function _callee$(_context) {
-          while (1) {
-            switch (_context.prev = _context.next) {
-              case 0:
-                if (filter(id)) {
-                  _context.next = 2;
-                  break;
-                }
 
-                return _context.abrupt('return');
+    async transform(code, id) {
+      if (!filter(id)) {
+        return;
+      }
 
-              case 2:
-                _context.prev = 2;
-                paths = [path.dirname(id), process.cwd()];
-                customizedSassOptions = options.options || {};
-                _context.next = 7;
-                return pify(sassRuntime.render.bind(sassRuntime))(_Object$assign({}, customizedSassOptions, {
-                  file: id,
-                  data: customizedSassOptions.data && '' + customizedSassOptions.data + code,
-                  indentedSyntax: MATCH_SASS_FILENAME_RE.test(id),
-                  includePaths: customizedSassOptions.includePaths ? customizedSassOptions.includePaths.concat(paths) : paths,
-                  importer: [function (url, importer, done) {
-                    if (!MATCH_NODE_MODULE_RE.test(url)) {
-                      return null;
-                    }
+      try {
+        var _context, _context2, _context3, _context4;
 
-                    var moduleUrl = url.slice(1);
-                    var resolveOptions = {
-                      basedir: path.dirname(importer),
-                      extensions: ['.scss', '.sass']
-                    };
+        const paths = [path.dirname(id), process.cwd()];
+        const customizedSassOptions = options.options || {};
+        const res = await pify__default['default'](_bindInstanceProperty__default['default'](_context = sassRuntime.render).call(_context, sassRuntime))(_Object$assign__default['default']({}, customizedSassOptions, {
+          file: id,
+          data: customizedSassOptions.data && `${customizedSassOptions.data}${code}`,
+          indentedSyntax: MATCH_SASS_FILENAME_RE.test(id),
+          includePaths: customizedSassOptions.includePaths ? _concatInstanceProperty__default['default'](_context2 = customizedSassOptions.includePaths).call(_context2, paths) : paths,
+          importer: _concatInstanceProperty__default['default'](_context3 = [(url, importer, done) => {
+            if (!MATCH_NODE_MODULE_RE.test(url)) {
+              return null;
+            }
 
-                    try {
-                      done({
-                        file: resolve.sync(moduleUrl, resolveOptions)
-                      });
-                    } catch (err) {
-                      if (customizedSassOptions.importer && customizedSassOptions.importer.length) {
-                        return null;
-                      }
-                      done({
-                        file: url
-                      });
-                    }
-                  }].concat(customizedSassOptions.importer || [])
-                }));
+            const moduleUrl = _sliceInstanceProperty__default['default'](url).call(url, 1);
 
-              case 7:
-                res = _context.sent;
-                css = res.css.toString().trim();
-                defaultExport = '';
-                restExports = void 0;
+            const resolveOptions = {
+              basedir: path.dirname(importer),
+              extensions: ['.scss', '.sass']
+            };
 
-                if (!css) {
-                  _context.next = 27;
-                  break;
-                }
+            try {
+              done({
+                file: resolve__default['default'].sync(moduleUrl, resolveOptions)
+              });
+            } catch (err) {
+              if (customizedSassOptions.importer && customizedSassOptions.importer.length) {
+                return null;
+              }
 
-                if (!isFunction(options.processor)) {
-                  _context.next = 25;
-                  break;
-                }
+              done({
+                file: url
+              });
+            }
+          }]).call(_context3, customizedSassOptions.importer || [])
+        }));
 
-                _context.next = 15;
-                return options.processor(css, id);
+        let css = _trimInstanceProperty__default['default'](_context4 = res.css.toString()).call(_context4);
 
-              case 15:
-                processResult = _context.sent;
+        let defaultExport = '';
+        let restExports;
 
-                if (!((typeof processResult === 'undefined' ? 'undefined' : _typeof(processResult)) === 'object')) {
-                  _context.next = 24;
-                  break;
-                }
+        if (css) {
+          if (isFunction(options.processor)) {
+            const processResult = await options.processor(css, id);
 
-                if (!(typeof processResult.css !== 'string')) {
-                  _context.next = 19;
-                  break;
-                }
+            if (typeof processResult === 'object') {
+              var _context5;
 
+              if (typeof processResult.css !== 'string') {
                 throw new Error('You need to return the styles using the `css` property. See https://github.com/differui/rollup-plugin-sass#processor');
+              }
 
-              case 19:
-                css = processResult.css;
-                delete processResult.css;
-                restExports = _Object$keys(processResult).map(function (name) {
-                  return 'export const ' + name + ' = ' + _JSON$stringify(processResult[name]) + ';';
-                });
-                _context.next = 25;
-                break;
-
-              case 24:
-                if (typeof processResult === 'string') {
-                  css = processResult;
-                }
-
-              case 25:
-                if (styleMaps[id]) {
-                  styleMaps[id].content = css;
-                } else {
-                  styles.push(styleMaps[id] = {
-                    id: id,
-                    content: css
-                  });
-                }
-                if (options.insert === true) {
-                  defaultExport = insertFnName + '(' + _JSON$stringify(css) + ');';
-                } else if (options.output === false) {
-                  defaultExport = _JSON$stringify(css);
-                } else {
-                  defaultExport = '"";';
-                }
-
-              case 27:
-                return _context.abrupt('return', {
-                  code: ['export default ' + defaultExport + ';'].concat(_toConsumableArray(restExports || [])).join('\n'),
-                  map: {
-                    mappings: res.map ? res.map.toString() : ''
-                  }
-                });
-
-              case 30:
-                _context.prev = 30;
-                _context.t0 = _context['catch'](2);
-                throw _context.t0;
-
-              case 33:
-              case 'end':
-                return _context.stop();
+              css = processResult.css;
+              delete processResult.css;
+              restExports = _mapInstanceProperty__default['default'](_context5 = _Object$keys__default['default'](processResult)).call(_context5, name => `export const ${name} = ${_JSON$stringify__default['default'](processResult[name])};`);
+            } else if (typeof processResult === 'string') {
+              css = processResult;
             }
           }
-        }, _callee, this, [[2, 30]]);
-      }));
 
-      function transform(_x2, _x3) {
-        return _ref.apply(this, arguments);
-      }
-
-      return transform;
-    }(),
-    generateBundle: function () {
-      var _ref2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee2(generateOptions, bundle, isWrite) {
-        var css, dest;
-        return _regeneratorRuntime.wrap(function _callee2$(_context2) {
-          while (1) {
-            switch (_context2.prev = _context2.next) {
-              case 0:
-                if (!(!options.insert && (!styles.length || options.output === false))) {
-                  _context2.next = 2;
-                  break;
-                }
-
-                return _context2.abrupt('return');
-
-              case 2:
-                if (isWrite) {
-                  _context2.next = 4;
-                  break;
-                }
-
-                return _context2.abrupt('return');
-
-              case 4:
-                css = styles.map(function (style) {
-                  return style.content;
-                }).join('');
-
-                if (!isString(options.output)) {
-                  _context2.next = 9;
-                  break;
-                }
-
-                return _context2.abrupt('return', fs.promises.mkdir(path.dirname(options.output), { recursive: true }).then(function () {
-                  return fs.promises.writeFile(options.output, css);
-                }));
-
-              case 9:
-                if (!isFunction(options.output)) {
-                  _context2.next = 13;
-                  break;
-                }
-
-                return _context2.abrupt('return', options.output(css, styles));
-
-              case 13:
-                if (!(!options.insert && generateOptions.file && options.output === true)) {
-                  _context2.next = 18;
-                  break;
-                }
-
-                dest = generateOptions.file;
-
-
-                if (dest.endsWith('.js') || dest.endsWith('.ts')) {
-                  dest = dest.slice(0, -3);
-                }
-                dest = dest + '.css';
-                return _context2.abrupt('return', fs.promises.mkdir(path.dirname(dest), { recursive: true }).then(function () {
-                  return fs.promises.writeFile(dest, css);
-                }));
-
-              case 18:
-              case 'end':
-                return _context2.stop();
-            }
+          if (styleMaps[id]) {
+            styleMaps[id].content = css;
+          } else {
+            styles.push(styleMaps[id] = {
+              id: id,
+              content: css
+            });
           }
-        }, _callee2, this);
-      }));
 
-      function generateBundle(_x4, _x5, _x6) {
-        return _ref2.apply(this, arguments);
+          if (options.insert === true) {
+            defaultExport = `${insertFnName}(${_JSON$stringify__default['default'](css)});`;
+          } else if (options.output === false) {
+            defaultExport = _JSON$stringify__default['default'](css);
+          } else {
+            defaultExport = `"";`;
+          }
+        }
+
+        return {
+          code: [`export default ${defaultExport};`, ...(restExports || [])].join('\n'),
+          map: {
+            mappings: _mapInstanceProperty__default['default'](res) ? _mapInstanceProperty__default['default'](res).toString() : ''
+          }
+        };
+      } catch (error) {
+        throw error;
+      }
+    },
+
+    async generateBundle(generateOptions, bundle, isWrite) {
+      if (!options.insert && (!styles.length || options.output === false)) {
+        return;
       }
 
-      return generateBundle;
-    }()
+      if (!isWrite) {
+        return;
+      }
+
+      const css = _mapInstanceProperty__default['default'](styles).call(styles, style => style.content).join('');
+
+      if (isString(options.output)) {
+        return fs__default['default'].promises.mkdir(path.dirname(options.output), {
+          recursive: true
+        }).then(() => fs__default['default'].promises.writeFile(options.output, css));
+      } else if (isFunction(options.output)) {
+        return options.output(css, styles);
+      } else if (!options.insert && generateOptions.file && options.output === true) {
+        let dest = generateOptions.file;
+
+        if (_endsWithInstanceProperty__default['default'](dest).call(dest, '.js') || _endsWithInstanceProperty__default['default'](dest).call(dest, '.ts')) {
+          dest = _sliceInstanceProperty__default['default'](dest).call(dest, 0, -3);
+        }
+
+        dest = `${dest}.css`;
+        return fs__default['default'].promises.mkdir(path.dirname(dest), {
+          recursive: true
+        }).then(() => fs__default['default'].promises.writeFile(dest, css));
+      }
+    }
+
   };
 }
 
