@@ -1,15 +1,17 @@
 import {promises as fs} from 'fs';
 import path from 'path';
-import test, {after, afterEach, before} from 'ava';
+import test, {after, before} from 'ava';
 import sinon from 'sinon';
-import { removeSync } from 'fs-extra';
-import { rollup } from 'rollup';
+import {rollup} from 'rollup';
 import sassJs from 'sass';
 import sass from '../dist/index';
 
 const repoRoot = path.join(__dirname, '../'),
 
   tmpDir = path.join(repoRoot, '.tests-output/'),
+
+  error = console.error.bind(console),
+  log = console.log.bind(console),
 
   sassOptions = {
     outputStyle: 'compressed',
@@ -43,29 +45,30 @@ let expectA, expectB, expectC, expectD, expectE;
 before(async () => {
   const mkDir = () => fs.mkdir(tmpDir);
 
-  await Promise.all([
-    fs.rmdir(tmpDir, {recursive: true})
-      .then(mkDir, mkDir),
-
-    Promise.all([
+  await fs.rmdir(tmpDir, {recursive: true})
+    .then(mkDir, mkDir)
+    .then(() => Promise.all([
         'test/assets/expect_a.css',
         'test/assets/expect_b.css',
         'test/assets/expect_c.css',
         'test/assets/expect_d.css',
         'test/assets/expect_e.css'
       ]
-        .map(xs => fs.readFile(xs))
-      // .concat([fs.mkdir()])
-    )
-      .then(rslts => rslts.map(xs => xs.toString()))
-      .then(([a, b, c, d, e]) => {
-        expectA = squash(a);
-        expectB = squash(b);
-        expectC = squash(c);
-        expectD = squash(d);
-        expectE = squash(e);
-      })
-  ]);
+        .map(xs => fs.readFile(xs).then(buff => buff.toString()))
+    ))
+    .then(([a, b, c, d, e]) => {
+      expectA = squash(a);
+      expectB = squash(b);
+      expectC = squash(c);
+      expectD = squash(d);
+      expectE = squash(e);
+    });
+});
+
+after(async () => {
+  return fs.rmdir(tmpDir, {recursive: true})
+    .then(() => log(`Test artifacts in '${tmpDir}' cleared out.`))
+    .catch(error);
 });
 
 test('should import *.scss and *.sass files', async t => {
