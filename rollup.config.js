@@ -9,7 +9,7 @@ export default {
     preserveModules: true,
     preserveModulesRoot: 'src',
   },
-  exclude: ['node_modules/'],
+  // exclude: ['node_modules/'],
   external: [
     '@rollup/pluginutils',
     '@babel/plugin-transform-runtime',

@@ -1,15 +1,17 @@
 'use strict';
 
-var _bindInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/bind');
-var _Object$assign = require('@babel/runtime-corejs3/core-js-stable/object/assign');
-var _concatInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/concat');
 var _sliceInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/slice');
-var _trimInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/trim');
-var _mapInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/map');
+var _concatInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/concat');
+var _Promise = require('@babel/runtime-corejs3/core-js-stable/promise');
+var _reduceInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/reduce');
 var _Object$keys = require('@babel/runtime-corejs3/core-js-stable/object/keys');
 var _JSON$stringify = require('@babel/runtime-corejs3/core-js-stable/json/stringify');
+var _Object$assign = require('@babel/runtime-corejs3/core-js-stable/object/assign');
+var _bindInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/bind');
+var _trimInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/trim');
+var _mapInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/map');
 var _endsWithInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/ends-with');
-var pify = require('pify');
+var util = require('util');
 var resolve = require('resolve');
 var sass = require('sass');
 var path = require('path');
@@ -19,39 +21,124 @@ var style = require('./style.js');
 
 function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
 
-var _bindInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_bindInstanceProperty);
-var _Object$assign__default = /*#__PURE__*/_interopDefaultLegacy(_Object$assign);
-var _concatInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_concatInstanceProperty);
 var _sliceInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_sliceInstanceProperty);
-var _trimInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_trimInstanceProperty);
-var _mapInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_mapInstanceProperty);
+var _concatInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_concatInstanceProperty);
+var _Promise__default = /*#__PURE__*/_interopDefaultLegacy(_Promise);
+var _reduceInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_reduceInstanceProperty);
 var _Object$keys__default = /*#__PURE__*/_interopDefaultLegacy(_Object$keys);
 var _JSON$stringify__default = /*#__PURE__*/_interopDefaultLegacy(_JSON$stringify);
+var _Object$assign__default = /*#__PURE__*/_interopDefaultLegacy(_Object$assign);
+var _bindInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_bindInstanceProperty);
+var _trimInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_trimInstanceProperty);
+var _mapInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_mapInstanceProperty);
 var _endsWithInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_endsWithInstanceProperty);
-var pify__default = /*#__PURE__*/_interopDefaultLegacy(pify);
 var resolve__default = /*#__PURE__*/_interopDefaultLegacy(resolve);
 var sass__default = /*#__PURE__*/_interopDefaultLegacy(sass);
 var fs__default = /*#__PURE__*/_interopDefaultLegacy(fs);
 
-const MATCH_SASS_FILENAME_RE = /\.sass$/;
-const MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i;
+const MATCH_SASS_FILENAME_RE = /\.sass$/,
+      MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i,
+      isString = x => typeof x === 'string',
+      isFunction = x => typeof x === 'function',
+      insertFnName = '___$insertStyle',
+      getImporterList = sassOptions => {
+  var _context;
 
-const isString = x => typeof x === 'string';
+  const importer1 = (url, importer, done) => {
+    if (!MATCH_NODE_MODULE_RE.test(url)) {
+      return null;
+    }
 
-const isFunction = x => typeof x === 'function';
+    const moduleUrl = _sliceInstanceProperty__default['default'](url).call(url, 1);
+
+    const resolveOptions = {
+      basedir: path.dirname(importer),
+      extensions: ['.scss', '.sass']
+    };
+
+    try {
+      done({
+        file: resolve__default['default'].sync(moduleUrl, resolveOptions)
+      });
+    } catch (err) {
+      if (sassOptions.importer && sassOptions.importer.length) {
+        return null;
+      }
+
+      done({
+        file: url
+      });
+    }
+  };
+
+  return _concatInstanceProperty__default['default'](_context = [importer1]).call(_context, sassOptions.importer || []);
+},
+      processRenderResponse = (sassOptions, paths, file, state, inCss) => {
+  if (!inCss) return;
+  const {
+    processor
+  } = sassOptions;
+  return _Promise__default['default'].resolve().then(() => !isFunction(processor) ? '' : processor(inCss, file)).then(result => {
+    if (typeof result === 'object') {
+      var _context2;
+
+      if (typeof result.css !== 'string') {
+        throw new Error('You need to return the styles using the `css` property. ' + 'See https://github.com/differui/rollup-plugin-sass#processor');
+      }
+
+      const outCss = result.css;
+
+      const restExports = _reduceInstanceProperty__default['default'](_context2 = _Object$keys__default['default'](result)).call(_context2, (agg, name) => {
+        if (name === 'css') return agg;
+        return agg + `export const ${name} = ${_JSON$stringify__default['default'](result[name])};\n`;
+      }, '');
+
+      return [outCss, restExports];
+    } else if (typeof result === 'string') {
+      return [result];
+    }
+  }).then(([resolvedCss, restExports]) => {
+    // @todo Break state changes into separate method
+    const {
+      styleMaps,
+      styles
+    } = state;
+
+    if (styleMaps[file]) {
+      styleMaps[file].content = resolvedCss;
+    } else {
+      const mapEntry = {
+        id: file,
+        content: resolvedCss
+      };
+      styleMaps[file] = mapEntry;
+      styles.push(mapEntry);
+    }
+
+    let defaultExport = `"";`;
+
+    if (sassOptions.insert === true) {
+      defaultExport = `${insertFnName}(${_JSON$stringify__default['default'](resolvedCss)});`;
+    } else if (sassOptions.output === false) {
+      defaultExport = _JSON$stringify__default['default'](resolvedCss);
+    }
+
+    return `export default ${defaultExport};\n${restExports || ''}`;
+  });
+};
 
 function plugin(options = {}) {
   const {
     include = ['**/*.sass', '**/*.scss'],
     exclude = 'node_modules/**'
-  } = options;
-  const filter = pluginutils.createFilter(include, exclude);
-  const insertFnName = '___$insertStyle';
-  const styles = [];
-  const styleMaps = {};
+  } = options,
+        filter = pluginutils.createFilter(include, exclude),
+        styles = [],
+        styleMaps = {},
+        sassRuntime = options.runtime || sass__default['default'];
   options.output = options.output || false;
   options.insert = options.insert || false;
-  const sassRuntime = options.runtime || sass__default['default'];
+  const incomingSassOptions = options.options || {};
   return {
     name: 'sass',
 
@@ -61,100 +148,35 @@ function plugin(options = {}) {
       }
     },
 
-    async transform(code, id) {
-      if (!filter(id)) {
-        return;
+    transform(code, file) {
+      var _context3, _context4;
+
+      if (!filter(file)) {
+        return _Promise__default['default'].resolve();
       }
 
-      try {
-        var _context, _context2, _context3, _context4;
+      const paths = [path.dirname(file), process.cwd()],
+            resolvedOptions = _Object$assign__default['default']({}, incomingSassOptions, {
+        file: file,
+        data: incomingSassOptions.data && `${incomingSassOptions.data}${code}`,
+        indentedSyntax: MATCH_SASS_FILENAME_RE.test(file),
+        includePaths: incomingSassOptions.includePaths ? _concatInstanceProperty__default['default'](_context3 = incomingSassOptions.includePaths).call(_context3, paths) : paths,
+        importer: getImporterList(incomingSassOptions)
+      });
 
-        const paths = [path.dirname(id), process.cwd()];
-        const customizedSassOptions = options.options || {};
-        const res = await pify__default['default'](_bindInstanceProperty__default['default'](_context = sassRuntime.render).call(_context, sassRuntime))(_Object$assign__default['default']({}, customizedSassOptions, {
-          file: id,
-          data: customizedSassOptions.data && `${customizedSassOptions.data}${code}`,
-          indentedSyntax: MATCH_SASS_FILENAME_RE.test(id),
-          includePaths: customizedSassOptions.includePaths ? _concatInstanceProperty__default['default'](_context2 = customizedSassOptions.includePaths).call(_context2, paths) : paths,
-          importer: _concatInstanceProperty__default['default'](_context3 = [(url, importer, done) => {
-            if (!MATCH_NODE_MODULE_RE.test(url)) {
-              return null;
-            }
+      return util.promisify(_bindInstanceProperty__default['default'](_context4 = sassRuntime.render).call(_context4, sassRuntime))(resolvedOptions).then(res => {
+        var _context5;
 
-            const moduleUrl = _sliceInstanceProperty__default['default'](url).call(url, 1);
-
-            const resolveOptions = {
-              basedir: path.dirname(importer),
-              extensions: ['.scss', '.sass']
-            };
-
-            try {
-              done({
-                file: resolve__default['default'].sync(moduleUrl, resolveOptions)
-              });
-            } catch (err) {
-              if (customizedSassOptions.importer && customizedSassOptions.importer.length) {
-                return null;
-              }
-
-              done({
-                file: url
-              });
-            }
-          }]).call(_context3, customizedSassOptions.importer || [])
-        }));
-
-        let css = _trimInstanceProperty__default['default'](_context4 = res.css.toString()).call(_context4);
-
-        let defaultExport = '';
-        let restExports;
-
-        if (css) {
-          if (isFunction(options.processor)) {
-            const processResult = await options.processor(css, id);
-
-            if (typeof processResult === 'object') {
-              var _context5;
-
-              if (typeof processResult.css !== 'string') {
-                throw new Error('You need to return the styles using the `css` property. See https://github.com/differui/rollup-plugin-sass#processor');
-              }
-
-              css = processResult.css;
-              delete processResult.css;
-              restExports = _mapInstanceProperty__default['default'](_context5 = _Object$keys__default['default'](processResult)).call(_context5, name => `export const ${name} = ${_JSON$stringify__default['default'](processResult[name])};`);
-            } else if (typeof processResult === 'string') {
-              css = processResult;
-            }
-          }
-
-          if (styleMaps[id]) {
-            styleMaps[id].content = css;
-          } else {
-            styles.push(styleMaps[id] = {
-              id: id,
-              content: css
-            });
-          }
-
-          if (options.insert === true) {
-            defaultExport = `${insertFnName}(${_JSON$stringify__default['default'](css)});`;
-          } else if (options.output === false) {
-            defaultExport = _JSON$stringify__default['default'](css);
-          } else {
-            defaultExport = `"";`;
-          }
+        return [res, processRenderResponse(options, paths, file, {
+          styleMaps,
+          styles
+        }, _trimInstanceProperty__default['default'](_context5 = res.css.toString()).call(_context5))];
+      }).then(([res, codeResult]) => ({
+        code: codeResult,
+        map: {
+          mappings: _mapInstanceProperty__default['default'](res) ? _mapInstanceProperty__default['default'](res).toString() : ''
         }
-
-        return {
-          code: [`export default ${defaultExport};`, ...(restExports || [])].join('\n'),
-          map: {
-            mappings: _mapInstanceProperty__default['default'](res) ? _mapInstanceProperty__default['default'](res).toString() : ''
-          }
-        };
-      } catch (error) {
-        throw error;
-      }
+      })).catch(console.error);
     },
 
     async generateBundle(generateOptions, bundle, isWrite) {

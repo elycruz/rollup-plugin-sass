@@ -1,30 +1,109 @@
-import pify from 'pify'
+import {promisify} from 'util';
 import resolve from 'resolve';
 import sass from 'sass';
-import { dirname } from 'path';
+import {dirname} from 'path';
 import fs from 'fs';
-import { createFilter } from '@rollup/pluginutils';
-import { insertStyle } from './style.js';
+import {createFilter} from '@rollup/pluginutils';
+import {insertStyle} from './style.js';
 
-const MATCH_SASS_FILENAME_RE = /\.sass$/;
-const MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i;
-const isString = x => typeof x === 'string';
-const isFunction = x => typeof x === 'function';
+const MATCH_SASS_FILENAME_RE = /\.sass$/,
+  MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i,
+  isString = x => typeof x === 'string',
+  isFunction = x => typeof x === 'function',
+
+  insertFnName = '___$insertStyle',
+
+  getImporterList = sassOptions => {
+    const importer1 = (url, importer, done) => {
+      if (!MATCH_NODE_MODULE_RE.test(url)) {
+        return null;
+      }
+
+      const moduleUrl = url.slice(1);
+      const resolveOptions = {
+        basedir: dirname(importer),
+        extensions: ['.scss', '.sass'],
+      };
+
+      try {
+        done({
+          file: resolve.sync(moduleUrl, resolveOptions),
+        });
+      } catch (err) {
+        if (sassOptions.importer && sassOptions.importer.length) {
+          return null;
+        }
+        done({
+          file: url,
+        });
+      }
+    }
+    return [importer1].concat(sassOptions.importer || [])
+  },
+
+  processRenderResponse = (sassOptions, paths, file, state, inCss) => {
+    if (!inCss) return;
+
+    const {processor} = sassOptions;
+
+    return Promise.resolve()
+      .then(() => !isFunction(processor) ? '' : processor(inCss, file))
+      .then(result => {
+        if (typeof result === 'object') {
+          if (typeof result.css !== 'string') {
+            throw new Error('You need to return the styles using the `css` property. ' +
+              'See https://github.com/differui/rollup-plugin-sass#processor');
+          }
+          const outCss = result.css;
+          const restExports = Object.keys(result).reduce((agg, name) => {
+            if (name === 'css') return agg;
+            return agg + `export const ${name} = ${JSON.stringify(result[name])};\n`;
+          }, '');
+          return [outCss, restExports];
+        } else if (typeof result === 'string') {
+          return [result];
+        }
+      })
+      .then(([resolvedCss, restExports]) => {
+
+        // @todo Break state changes into separate method
+        const {styleMaps, styles} = state;
+        if (styleMaps[file]) {
+          styleMaps[file].content = resolvedCss;
+        } else {
+          const mapEntry = {
+            id: file,
+            content: resolvedCss,
+          };
+          styleMaps[file] = mapEntry;
+          styles.push(mapEntry);
+        }
+
+        let defaultExport = `"";`;
+        if (sassOptions.insert === true) {
+          defaultExport = `${insertFnName}(${JSON.stringify(resolvedCss)});`;
+        } else if (sassOptions.output === false) {
+          defaultExport = JSON.stringify(resolvedCss);
+        }
+
+        return `export default ${defaultExport};\n${restExports || ''}`;
+      });
+  };
 
 export default function plugin(options = {}) {
   const {
-    include = [ '**/*.sass', '**/*.scss' ],
-    exclude = 'node_modules/**',
-  } = options;
-  const filter = createFilter(include, exclude);
-  const insertFnName = '___$insertStyle';
-  const styles = [];
-  const styleMaps = {};
+      include = ['**/*.sass', '**/*.scss'],
+      exclude = 'node_modules/**',
+    } = options,
+    filter = createFilter(include, exclude),
+    styles = [],
+    styleMaps = {},
+    sassRuntime = options.runtime || sass;
 
   options.output = options.output || false;
   options.insert = options.insert || false;
 
-  const sassRuntime = options.runtime || sass;
+  const incomingSassOptions = options.options || {};
 
   return {
     name: 'sass',
@@ -35,97 +114,30 @@ export default function plugin(options = {}) {
       }
     },
 
-    async transform(code, id) {
-      if (!filter(id)) {
-        return;
+    transform(code, file) {
+      if (!filter(file)) {
+        return Promise.resolve();
       }
 
-      try {
-        const paths = [dirname(id), process.cwd()];
-        const customizedSassOptions = options.options || {};
-        const res = await pify(sassRuntime.render.bind(sassRuntime))(Object.assign({}, customizedSassOptions, {
-          file: id,
-          data: customizedSassOptions.data && `${customizedSassOptions.data}${code}`,
-          indentedSyntax: MATCH_SASS_FILENAME_RE.test(id),
-          includePaths: customizedSassOptions.includePaths
-            ? customizedSassOptions.includePaths.concat(paths)
-            : paths,
-          importer: [
-            (url, importer, done) => {
-              if (!MATCH_NODE_MODULE_RE.test(url)) {
-                return null;
-              }
+      const paths = [dirname(file), process.cwd()],
 
-              const moduleUrl = url.slice(1);
-              const resolveOptions = {
-                basedir: dirname(importer),
-                extensions: ['.scss', '.sass'],
-              };
+        resolvedOptions = Object.assign({},  incomingSassOptions, {
+          file: file,
+          data: incomingSassOptions.data && `${incomingSassOptions.data}${code}`,
+          indentedSyntax: MATCH_SASS_FILENAME_RE.test(file),
+          includePaths: incomingSassOptions.includePaths ?
+            incomingSassOptions.includePaths.concat(paths) :
+            paths,
+          importer: getImporterList(incomingSassOptions),
+        });
 
-              try {
-                done({
-                  file: resolve.sync(moduleUrl, resolveOptions),
-                });
-              } catch (err) {
-                if (customizedSassOptions.importer && customizedSassOptions.importer.length) {
-                  return null;
-                }
-                done({
-                  file: url,
-                });
-              }
-            },
-          ].concat(customizedSassOptions.importer || []),
-        }));
-        let css = res.css.toString().trim();
-        let defaultExport = '';
-        let restExports;
-
-        if (css) {
-          if (isFunction(options.processor)) {
-            const processResult = await options.processor(css, id);
-
-            if (typeof processResult === 'object') {
-              if (typeof processResult.css !== 'string') {
-                throw new Error('You need to return the styles using the `css` property. See https://github.com/differui/rollup-plugin-sass#processor');
-              }
-              css = processResult.css;
-              delete processResult.css;
-              restExports = Object.keys(processResult).map(name => `export const ${name} = ${JSON.stringify(processResult[name])};`);
-            } else if (typeof processResult === 'string') {
-              css = processResult;
-            }
-          }
-          if (styleMaps[id]) {
-            styleMaps[id].content = css;
-          } else {
-            styles.push(styleMaps[id] = {
-              id: id,
-              content: css,
-            });
-          }
-          if (options.insert === true) {
-            defaultExport = `${insertFnName}(${JSON.stringify(css)});`;
-          } else if (options.output === false) {
-            defaultExport = JSON.stringify(css);
-          } else {
-            defaultExport = `"";`;
-          }
-        }
-        return {
-          code: [
-            `export default ${defaultExport};`,
-            ...(restExports || []),
-          ].join('\n'),
-          map: {
-            mappings: res.map
-              ? res.map.toString()
-              : '',
-          },
-        };
-      } catch (error) {
-        throw error;
-      }
+      return promisify(sassRuntime.render.bind(sassRuntime))(resolvedOptions)
+        .then(res => [res, processRenderResponse(options, paths, file, {styleMaps, styles}, res.css.toString().trim())])
+        .then(([res, codeResult]) => ({
+          code: codeResult,
+          map: {mappings: res.map ? res.map.toString() : ''},
+        }))
+        .catch(console.error);
     },
 
     async generateBundle(generateOptions, bundle, isWrite) {
