@@ -1,6 +1,6 @@
 import test from 'ava';
-import { readFileSync } from 'fs';
-import { insertStyle } from '../dist/style';
+import {readFileSync} from 'fs';
+import {insertStyle} from '../src/style';
 
 const expectA = readFileSync('test/assets/expect_a.css').toString();
 

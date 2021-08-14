@@ -1,10 +1,19 @@
-const {promisify} = require('util'),
-  resolve = require('resolve'),
-  sass = require('sass'),
-  {dirname} = require('path'),
-  fs = require('fs'),
-  {createFilter} = require('@rollup/pluginutils'),
-  {insertStyle} = require('./style.js');
+import {promisify} from 'util';
+import resolve from 'resolve';
+import sass from 'sass';
+import {dirname} from 'path';
+import * as fs from 'fs';
+import {createFilter} from '@rollup/pluginutils';
+import {insertStyle} from './style';
+
+export interface RollupPluginSassOptions {
+  exclude?: string | string[],
+  include?: string | string[],
+  insert?: any,
+  options?: any
+  output?: any,
+  runtime?: any,
+}
 
 const MATCH_SASS_FILENAME_RE = /\.sass$/,
   MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i,
@@ -46,7 +55,7 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
     return [importer1].concat(sassOptions.importer || [])
   },
 
-  processRenderResponse = (rollupOptions, paths, file, state, inCss) => {
+  processRenderResponse = (rollupOptions, file, state, inCss) => {
     if (!inCss) return;
 
     const {processor} = rollupOptions;
@@ -60,16 +69,18 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
               'See https://github.com/differui/rollup-plugin-sass#processor');
           }
           const outCss = result.css;
-          delete result.css;
           const restExports = Object.keys(result).reduce((agg, name) =>
-            agg + `export const ${name} = ${JSON.stringify(result[name])};\n`
+              name === 'css' ? agg : agg + `export const ${name} = ${JSON.stringify(result[name])};\n`
             , ''
           );
           return [outCss, restExports];
+        } else if (typeof result === 'string') {
+          return [result];
         }
-        return [result];
+        return [];
       })
       .then(([resolvedCss, restExports]) => {
+        console.log(resolvedCss, restExports);
         // @todo Break state changes into separate method
         const {styleMaps, styles} = state;
         if (styleMaps[file]) {
@@ -95,7 +106,7 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
       .catch(console.error);
   };
 
-module.exports = function plugin(options = {}) {
+export default function plugin(options = {} as RollupPluginSassOptions) {
   const {
       include = ['**/*.sass', '**/*.scss'],
       exclude = 'node_modules/**',
@@ -108,7 +119,7 @@ module.exports = function plugin(options = {}) {
   options.output = options.output || false;
   options.insert = options.insert || false;
 
-  const incomingSassOptions = options.options || {};
+  const inSassOptions = options.options || {};
 
   return {
     name: 'sass',
@@ -119,28 +130,26 @@ module.exports = function plugin(options = {}) {
       }
     },
 
-    transform(code, file) {
+    transform(code, file): Promise<any> {
       if (!filter(file)) {
         return Promise.resolve();
       }
 
       const paths = [dirname(file), process.cwd()],
 
-        resolvedOptions = Object.assign({}, incomingSassOptions, {
+        resolvedOptions = Object.assign({}, inSassOptions, {
           file: file,
-          data: incomingSassOptions.data && `${incomingSassOptions.data}${code}`,
+          data: inSassOptions.data && `${inSassOptions.data}${code}`,
           indentedSyntax: MATCH_SASS_FILENAME_RE.test(file),
-          includePaths: incomingSassOptions.includePaths ?
-            incomingSassOptions.includePaths.concat(paths) :
-            paths,
-          importer: getImporterList(incomingSassOptions),
+          includePaths: (inSassOptions.includePaths || []).concat(paths),
+          importer: getImporterList(inSassOptions),
         });
 
       return promisify(sassRuntime.render.bind(sassRuntime))(resolvedOptions)
-        .then(res => processRenderResponse(options, paths, file, {styleMaps, styles}, res.css.toString().trim())
+        .then(res => processRenderResponse(options, file, {styleMaps, styles}, res.css.toString().trim())
           .then(result => [res, result])
         )
-        .then((...args) => (console.log('processed result: ', ...args), args))
+        // .then((...args) => (console.log('processed result: ', ...args), args))
         .then(([res, codeResult]) => ({
           code: codeResult,
           map: {mappings: res.map ? res.map.toString() : ''},
@@ -148,10 +157,7 @@ module.exports = function plugin(options = {}) {
     },
 
     async generateBundle(generateOptions, bundle, isWrite) {
-      if (!options.insert && (!styles.length || options.output === false)) {
-        return;
-      }
-      if (!isWrite) {
+      if (!isWrite || (!options.insert && (!styles.length || options.output === false))) {
         return;
       }
 

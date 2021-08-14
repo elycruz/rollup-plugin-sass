@@ -65,11 +65,11 @@ before(async () => {
     });
 });
 
-// after(async () => {
-//   return fs.rmdir(tmpDir, {recursive: true})
-//     .then(() => log(`Test artifacts in '${tmpDir}' cleared out.`))
-//     .catch(error);
-// });
+after(async () => {
+  return fs.rmdir(tmpDir, {recursive: true})
+    .then(() => log(`Test artifacts in '${tmpDir}' cleared out.`))
+    .catch(error);
+});
 
 test('should import *.scss and *.sass files', async t => {
   const outputBundle = await rollup({
@@ -84,6 +84,7 @@ test('should import *.scss and *.sass files', async t => {
 
   await outputBundle.close();
 });
+/*
 
 test('should compress the dest CSS', async t => {
   const outputBundle = await rollup({
@@ -359,3 +360,4 @@ test('should support options.runtime', async t => {
 
   await outputBundle.close();
 });
+*/

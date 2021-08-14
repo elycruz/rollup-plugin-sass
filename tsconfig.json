@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "target": "es2015",
+    "lib": [
+      "es2015",
+      "dom"
+    ],
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "noImplicitAny": false,
+    "sourceMap": true,
+    "resolveJsonModule": false,
+    "esModuleInterop": true,
+    "baseUrl": "./",
+    "downlevelIteration": true,
+    "importHelpers": false,
+    "typeRoots": [
+      "node_modules/@types"
+    ]
+  }
+}
