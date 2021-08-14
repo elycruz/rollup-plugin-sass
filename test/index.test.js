@@ -4,7 +4,7 @@ import test, {after, before} from 'ava';
 import sinon from 'sinon';
 import {rollup} from 'rollup';
 import sassJs from 'sass';
-import sass from '../dist/index';
+import sass from '../src/index';
 
 const repoRoot = path.join(__dirname, '../'),
 
@@ -65,11 +65,11 @@ before(async () => {
     });
 });
 
-after(async () => {
-  return fs.rmdir(tmpDir, {recursive: true})
-    .then(() => log(`Test artifacts in '${tmpDir}' cleared out.`))
-    .catch(error);
-});
+// after(async () => {
+//   return fs.rmdir(tmpDir, {recursive: true})
+//     .then(() => log(`Test artifacts in '${tmpDir}' cleared out.`))
+//     .catch(error);
+// });
 
 test('should import *.scss and *.sass files', async t => {
   const outputBundle = await rollup({

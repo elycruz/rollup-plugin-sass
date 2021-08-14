@@ -4,7 +4,7 @@
  * @param {String} css style
  * @return {String} css style
  */
-export function insertStyle(css) {
+module.exports = function insertStyle(css) {
   if (!css) {
     return;
   }

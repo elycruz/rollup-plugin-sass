@@ -1,10 +1,10 @@
-import {promisify} from 'util';
-import resolve from 'resolve';
-import sass from 'sass';
-import {dirname} from 'path';
-import fs from 'fs';
-import {createFilter} from '@rollup/pluginutils';
-import {insertStyle} from './style.js';
+const {promisify} = require('util'),
+  resolve = require('resolve'),
+  sass = require('sass'),
+  {dirname} = require('path'),
+  fs = require('fs'),
+  {createFilter} = require('@rollup/pluginutils'),
+  {insertStyle} = require('./style.js');
 
 const MATCH_SASS_FILENAME_RE = /\.sass$/,
   MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i,
@@ -15,6 +15,8 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
 
   getImporterList = sassOptions => {
     const importer1 = (url, importer, done) => {
+      console.log(`loading ${url}`);
+
       if (!MATCH_NODE_MODULE_RE.test(url)) {
         return null;
       }
@@ -25,11 +27,14 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
         extensions: ['.scss', '.sass'],
       };
 
+      // @todo use a promise here instead of try/catch (allows whole process to be async)
       try {
+        console.log(`${url} loaded`)
         done({
           file: resolve.sync(moduleUrl, resolveOptions),
         });
       } catch (err) {
+        console.log('default importer recovered from an error: ', err);
         if (sassOptions.importer && sassOptions.importer.length) {
           return null;
         }
@@ -41,10 +46,10 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
     return [importer1].concat(sassOptions.importer || [])
   },
 
-  processRenderResponse = (sassOptions, paths, file, state, inCss) => {
+  processRenderResponse = (rollupOptions, paths, file, state, inCss) => {
     if (!inCss) return;
 
-    const {processor} = sassOptions;
+    const {processor} = rollupOptions;
 
     return Promise.resolve()
       .then(() => !isFunction(processor) ? '' : processor(inCss, file))
@@ -55,17 +60,16 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
               'See https://github.com/differui/rollup-plugin-sass#processor');
           }
           const outCss = result.css;
-          const restExports = Object.keys(result).reduce((agg, name) => {
-            if (name === 'css') return agg;
-            return agg + `export const ${name} = ${JSON.stringify(result[name])};\n`;
-          }, '');
+          delete result.css;
+          const restExports = Object.keys(result).reduce((agg, name) =>
+            agg + `export const ${name} = ${JSON.stringify(result[name])};\n`
+            , ''
+          );
           return [outCss, restExports];
-        } else if (typeof result === 'string') {
-          return [result];
         }
+        return [result];
       })
       .then(([resolvedCss, restExports]) => {
-
         // @todo Break state changes into separate method
         const {styleMaps, styles} = state;
         if (styleMaps[file]) {
@@ -79,18 +83,19 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
           styles.push(mapEntry);
         }
 
-        let defaultExport = `"";`;
-        if (sassOptions.insert === true) {
+        let defaultExport = `""`;
+        if (rollupOptions.insert) {
           defaultExport = `${insertFnName}(${JSON.stringify(resolvedCss)});`;
-        } else if (sassOptions.output === false) {
+        } else if (!rollupOptions.output) {
           defaultExport = JSON.stringify(resolvedCss);
         }
 
         return `export default ${defaultExport};\n${restExports || ''}`;
-      });
+      })
+      .catch(console.error);
   };
 
-export default function plugin(options = {}) {
+module.exports = function plugin(options = {}) {
   const {
       include = ['**/*.sass', '**/*.scss'],
       exclude = 'node_modules/**',
@@ -121,7 +126,7 @@ export default function plugin(options = {}) {
 
       const paths = [dirname(file), process.cwd()],
 
-        resolvedOptions = Object.assign({},  incomingSassOptions, {
+        resolvedOptions = Object.assign({}, incomingSassOptions, {
           file: file,
           data: incomingSassOptions.data && `${incomingSassOptions.data}${code}`,
           indentedSyntax: MATCH_SASS_FILENAME_RE.test(file),
@@ -132,12 +137,14 @@ export default function plugin(options = {}) {
         });
 
       return promisify(sassRuntime.render.bind(sassRuntime))(resolvedOptions)
-        .then(res => [res, processRenderResponse(options, paths, file, {styleMaps, styles}, res.css.toString().trim())])
+        .then(res => processRenderResponse(options, paths, file, {styleMaps, styles}, res.css.toString().trim())
+          .then(result => [res, result])
+        )
+        .then((...args) => (console.log('processed result: ', ...args), args))
         .then(([res, codeResult]) => ({
           code: codeResult,
           map: {mappings: res.map ? res.map.toString() : ''},
-        }))
-        .catch(console.error);
+        }), console.error);
     },
 
     async generateBundle(generateOptions, bundle, isWrite) {
