@@ -4,6 +4,9 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "target": "es2015",
+    "outDir": "./dist",
+    "declaration": true,
+    "declarationDir": "./dist",
     "lib": [
       "es2015",
       "dom"
@@ -12,13 +15,17 @@
     "preserveConstEnums": true,
     "noImplicitAny": false,
     "sourceMap": true,
-    "resolveJsonModule": false,
     "esModuleInterop": true,
-    "baseUrl": "./",
     "downlevelIteration": true,
     "importHelpers": false,
     "typeRoots": [
-      "node_modules/@types"
+      "node_modules/@types",
     ]
-  }
+  },
+  "include": [
+    "./src/*",
+  ],
+  "exclude": [
+    "**/node_modules/**"
+  ]
 }

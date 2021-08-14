@@ -5,26 +5,17 @@ import {dirname} from 'path';
 import * as fs from 'fs';
 import {createFilter} from '@rollup/pluginutils';
 import {insertStyle} from './style';
-
-export interface RollupPluginSassOptions {
-  exclude?: string | string[],
-  include?: string | string[],
-  insert?: any,
-  options?: any
-  output?: any,
-  runtime?: any,
-}
+import {RollupPluginSassOptions, RollupPluginSassOutputFn, SassOptions} from "./types";
+import {error, log, peekAndLast} from "./utils";
 
 const MATCH_SASS_FILENAME_RE = /\.sass$/,
   MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i,
-  isString = x => typeof x === 'string',
-  isFunction = x => typeof x === 'function',
 
   insertFnName = '___$insertStyle',
 
   getImporterList = sassOptions => {
     const importer1 = (url, importer, done) => {
-      console.log(`loading ${url}`);
+      // log(`loading ${url}`);
 
       if (!MATCH_NODE_MODULE_RE.test(url)) {
         return null;
@@ -36,15 +27,17 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
         extensions: ['.scss', '.sass'],
       };
 
-      // @todo use a promise here instead of try/catch (allows whole process to be async)
       try {
-        console.log(`${url} loaded`)
+        log(`${url} loaded`)
         done({
-          file: resolve.sync(moduleUrl, resolveOptions),
+          file: resolve.sync(moduleUrl, resolveOptions), // @todo can we make this async
         });
       } catch (err) {
-        console.log('default importer recovered from an error: ', err);
-        if (sassOptions.importer && sassOptions.importer.length) {
+        log('default importer recovered from an error: ', err);
+
+        // If has other importers exit this one and allow one of the other
+        //  ones to attempt file load.
+        if (sassOptions.importer && sassOptions.importer.length > 1) {
           return null;
         }
         done({
@@ -55,13 +48,13 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
     return [importer1].concat(sassOptions.importer || [])
   },
 
-  processRenderResponse = (rollupOptions, file, state, inCss) => {
+  processRenderResponse = (rollupOptions, file, sassOptions, state, inCss) => {
     if (!inCss) return;
 
-    const {processor} = rollupOptions;
+    const {processor} = sassOptions;
 
     return Promise.resolve()
-      .then(() => !isFunction(processor) ? '' : processor(inCss, file))
+      .then(() => typeof processor !== 'function' ? inCss + '' : processor(inCss, file))
       .then(result => {
         if (typeof result === 'object') {
           if (typeof result.css !== 'string') {
@@ -74,17 +67,17 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
             , ''
           );
           return [outCss, restExports];
-        } else if (typeof result === 'string') {
-          return [result];
         }
-        return [];
+        return [result];
       })
       .then(([resolvedCss, restExports]) => {
-        console.log(resolvedCss, restExports);
         // @todo Break state changes into separate method
         const {styleMaps, styles} = state;
         if (styleMaps[file]) {
           styleMaps[file].content = resolvedCss;
+          if (styles.indexOf(styleMaps[file] === -1)) {
+            styles.push(styleMaps[file]);
+          }
         } else {
           const mapEntry = {
             id: file,
@@ -94,38 +87,37 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
           styles.push(mapEntry);
         }
 
+        const out = JSON.stringify(resolvedCss);
         let defaultExport = `""`;
         if (rollupOptions.insert) {
-          defaultExport = `${insertFnName}(${JSON.stringify(resolvedCss)});`;
+          defaultExport = `${insertFnName}(${out});`;
         } else if (!rollupOptions.output) {
-          defaultExport = JSON.stringify(resolvedCss);
+          defaultExport = out;
         }
 
         return `export default ${defaultExport};\n${restExports || ''}`;
       })
-      .catch(console.error);
+      .catch(error);
   };
 
 export default function plugin(options = {} as RollupPluginSassOptions) {
-  const {
-      include = ['**/*.sass', '**/*.scss'],
-      exclude = 'node_modules/**',
-    } = options,
+  const pluginOptions = Object.assign({
+      runtime: sass,
+      include: ['**/*.sass', '**/*.scss'],
+      exclude: 'node_modules/**',
+      output: false,
+      insert: false
+    }, options),
+    {include, exclude, runtime: sassRuntime, options: sassOptions = {}} = pluginOptions,
     filter = createFilter(include, exclude),
     styles = [],
-    styleMaps = {},
-    sassRuntime = options.runtime || sass;
-
-  options.output = options.output || false;
-  options.insert = options.insert || false;
-
-  const inSassOptions = options.options || {};
+    styleMaps = {};
 
   return {
-    name: 'sass',
+    name: 'rollup-plugin-sass',
 
     intro() {
-      if (options.insert) {
+      if (pluginOptions.insert) {
         return insertStyle.toString().replace(/insertStyle/, insertFnName);
       }
     },
@@ -137,38 +129,40 @@ export default function plugin(options = {} as RollupPluginSassOptions) {
 
       const paths = [dirname(file), process.cwd()],
 
-        resolvedOptions = Object.assign({}, inSassOptions, {
-          file: file,
-          data: inSassOptions.data && `${inSassOptions.data}${code}`,
+        resolvedOptions = Object.assign({}, sassOptions, {
+          file,
+          data: sassOptions.data && `${sassOptions.data}${code}`,
           indentedSyntax: MATCH_SASS_FILENAME_RE.test(file),
-          includePaths: (inSassOptions.includePaths || []).concat(paths),
-          importer: getImporterList(inSassOptions),
+          includePaths: (sassOptions.includePaths || []).concat(paths),
+          importer: getImporterList(sassOptions),
         });
 
       return promisify(sassRuntime.render.bind(sassRuntime))(resolvedOptions)
-        .then(res => processRenderResponse(options, file, {styleMaps, styles}, res.css.toString().trim())
+        .then(res => processRenderResponse(pluginOptions, file, sassOptions, {styleMaps, styles}, res.css.toString().trim())
           .then(result => [res, result])
         )
-        // .then((...args) => (console.log('processed result: ', ...args), args))
         .then(([res, codeResult]) => ({
           code: codeResult,
           map: {mappings: res.map ? res.map.toString() : ''},
-        }), console.error);
+        }), error);
     },
 
-    async generateBundle(generateOptions, bundle, isWrite) {
-      if (!isWrite || (!options.insert && (!styles.length || options.output === false))) {
-        return;
+    generateBundle(generateOptions, bundle, isWrite): Promise<any> {
+      if (!isWrite || (!pluginOptions.insert && (!styles.length || pluginOptions.output === false))) {
+        return Promise.resolve();
       }
 
-      const css = styles.map(style => style.content).join('');
+      // log('bundle', bundle);
 
-      if (isString(options.output)) {
-        return fs.promises.mkdir(dirname(options.output), {recursive: true})
-          .then(() => fs.promises.writeFile(options.output, css));
-      } else if (isFunction(options.output)) {
-        return options.output(css, styles);
-      } else if (!options.insert && generateOptions.file && options.output === true) {
+      const css = styles.map(style => style.content).join(''),
+        {output, insert} = pluginOptions;
+
+      if (typeof output === 'string') {
+        return fs.promises.mkdir(dirname(output as string), {recursive: true})
+          .then(() => fs.promises.writeFile(output as string, css));
+      } else if (typeof output === 'function') {
+        return Promise.resolve((output as RollupPluginSassOutputFn)(css, styles));
+      } else if (!insert && generateOptions.file && output === true) {
         let dest = generateOptions.file;
 
         if (dest.endsWith('.js') || dest.endsWith('.ts')) {
