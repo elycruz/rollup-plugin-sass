@@ -5,8 +5,8 @@ import {dirname} from 'path';
 import * as fs from 'fs';
 import {createFilter} from '@rollup/pluginutils';
 import {insertStyle} from './style';
-import {RollupPluginSassOptions, RollupPluginSassOutputFn, SassOptions} from "./types";
-import {error, log, peekAndLast} from "./utils";
+import {RollupPluginSassOptions, RollupPluginSassOutputFn} from "./types";
+import {warn, isObject, isFunction, isString} from "./utils";
 
 const MATCH_SASS_FILENAME_RE = /\.sass$/,
   MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i,
@@ -15,8 +15,6 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
 
   getImporterList = sassOptions => {
     const importer1 = (url, importer, done) => {
-      // log(`loading ${url}`);
-
       if (!MATCH_NODE_MODULE_RE.test(url)) {
         return null;
       }
@@ -28,12 +26,11 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
       };
 
       try {
-        log(`${url} loaded`)
         done({
           file: resolve.sync(moduleUrl, resolveOptions), // @todo can we make this async
         });
       } catch (err) {
-        log('default importer recovered from an error: ', err);
+        warn('default importer recovered from an error: ', err);
 
         // If has other importers exit this one and allow one of the other
         //  ones to attempt file load.
@@ -48,36 +45,37 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
     return [importer1].concat(sassOptions.importer || [])
   },
 
-  processRenderResponse = (rollupOptions, file, sassOptions, state, inCss) => {
+  processRenderResponse = (rollupOptions, file, state, inCss) => {
     if (!inCss) return;
 
-    const {processor} = sassOptions;
+    const {processor} = rollupOptions;
 
     return Promise.resolve()
-      .then(() => typeof processor !== 'function' ? inCss + '' : processor(inCss, file))
+      .then(() => !isFunction(processor) ? inCss + '' : processor(inCss, file))
       .then(result => {
-        if (typeof result === 'object') {
-          if (typeof result.css !== 'string') {
-            throw new Error('You need to return the styles using the `css` property. ' +
-              'See https://github.com/differui/rollup-plugin-sass#processor');
-          }
-          const outCss = result.css;
-          const restExports = Object.keys(result).reduce((agg, name) =>
-              name === 'css' ? agg : agg + `export const ${name} = ${JSON.stringify(result[name])};\n`
-            , ''
-          );
-          return [outCss, restExports];
+        if (!isObject(result)) {
+          return [result, ''];
         }
-        return [result];
+        if (!isString(result.css)) {
+          throw new Error('You need to return the styles using the `css` property. ' +
+            'See https://github.com/differui/rollup-plugin-sass#processor');
+        }
+        const outCss = result.css;
+        const restExports = Object.keys(result).reduce((agg, name) =>
+            name === 'css' ? agg : agg + `export const ${name} = ${JSON.stringify(result[name])};\n`
+          , ''
+        );
+        return [outCss, restExports];
       })
       .then(([resolvedCss, restExports]) => {
         // @todo Break state changes into separate method
         const {styleMaps, styles} = state;
+
+        // Store output styles, for possible 'later' processing - depends on whether 'output' is a function or not
+        //  determined in generateBundle.
+        // ----
         if (styleMaps[file]) {
           styleMaps[file].content = resolvedCss;
-          if (styles.indexOf(styleMaps[file] === -1)) {
-            styles.push(styleMaps[file]);
-          }
         } else {
           const mapEntry = {
             id: file,
@@ -88,16 +86,17 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
         }
 
         const out = JSON.stringify(resolvedCss);
+
         let defaultExport = `""`;
+
         if (rollupOptions.insert) {
           defaultExport = `${insertFnName}(${out});`;
         } else if (!rollupOptions.output) {
           defaultExport = out;
         }
 
-        return `export default ${defaultExport};\n${restExports || ''}`;
-      })
-      .catch(error);
+        return `export default ${defaultExport};\n${restExports}`;
+      }); // @note do not `catch` here - let error propagate to rollup level
   };
 
 export default function plugin(options = {} as RollupPluginSassOptions) {
@@ -108,7 +107,7 @@ export default function plugin(options = {} as RollupPluginSassOptions) {
       output: false,
       insert: false
     }, options),
-    {include, exclude, runtime: sassRuntime, options: sassOptions = {}} = pluginOptions,
+    {include, exclude, runtime: sassRuntime, options: incomingSassOptions = {}} = pluginOptions,
     filter = createFilter(include, exclude),
     styles = [],
     styleMaps = {};
@@ -129,30 +128,28 @@ export default function plugin(options = {} as RollupPluginSassOptions) {
 
       const paths = [dirname(file), process.cwd()],
 
-        resolvedOptions = Object.assign({}, sassOptions, {
+        resolvedOptions = Object.assign({}, incomingSassOptions, {
           file,
-          data: sassOptions.data && `${sassOptions.data}${code}`,
+          data: incomingSassOptions.data && `${incomingSassOptions.data}${code}`,
           indentedSyntax: MATCH_SASS_FILENAME_RE.test(file),
-          includePaths: (sassOptions.includePaths || []).concat(paths),
-          importer: getImporterList(sassOptions),
+          includePaths: (incomingSassOptions.includePaths || []).concat(paths),
+          importer: getImporterList(incomingSassOptions),
         });
 
       return promisify(sassRuntime.render.bind(sassRuntime))(resolvedOptions)
-        .then(res => processRenderResponse(pluginOptions, file, sassOptions, {styleMaps, styles}, res.css.toString().trim())
+        .then(res => processRenderResponse(pluginOptions, file, {styleMaps, styles}, res.css.toString().trim())
           .then(result => [res, result])
         )
         .then(([res, codeResult]) => ({
           code: codeResult,
           map: {mappings: res.map ? res.map.toString() : ''},
-        }), error);
+        })); // @note do not `catch` here - let error propagate to rollup level.
     },
 
     generateBundle(generateOptions, bundle, isWrite): Promise<any> {
       if (!isWrite || (!pluginOptions.insert && (!styles.length || pluginOptions.output === false))) {
         return Promise.resolve();
       }
-
-      // log('bundle', bundle);
 
       const css = styles.map(style => style.content).join(''),
         {output, insert} = pluginOptions;
@@ -172,6 +169,8 @@ export default function plugin(options = {} as RollupPluginSassOptions) {
         return fs.promises.mkdir(dirname(dest), {recursive: true})
           .then(() => fs.promises.writeFile(dest, css));
       }
+
+      return Promise.resolve(css);
     },
   };
 }

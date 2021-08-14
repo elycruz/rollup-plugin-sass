@@ -64,12 +64,6 @@ before(async () => {
     });
 });
 
-after(async () => {
-  return fs.rm(tmpDir, {recursive: true})
-    .then(() => log(`Test artifacts in '${tmpDir}' cleared out.`))
-    .catch(error);
-});
-
 test('should import *.scss and *.sass files', async t => {
   const outputBundle = await rollup({
       ...baseConfig,
@@ -143,7 +137,7 @@ test('should support options.data', async t => {
       }),
     ],
   });
-  const { output } = await outputBundle.generate(generateOptions);
+  const {output} = await outputBundle.generate(generateOptions);
 
   t.true(squash(unwrap(output)).indexOf(expectE) > -1);
 
@@ -175,7 +169,7 @@ test('should support output as function', async t => {
       plugins: [
         sass({
           output: (...args) => {
-            log(...args);
+            // log(...args);
             outputSpy(...args);
           },
           options: sassOptions,
@@ -194,17 +188,17 @@ test('should support output as function', async t => {
 });
 
 test('should support output as (non-previously existent) path', async t => {
-  const outputStylePath = path.join(tmpDir, 'output-path/style.css');
-  const outputBundle = await rollup({
-    input: 'test/fixtures/output-path/index.js',
-    plugins: [
-      sass({
-        output: outputStylePath,
-        options: sassOptions,
-      }),
-    ],
-  });
-  const filePath = path.join(tmpDir, 'support_output_prev-non-exist.js');
+  const outputStylePath = path.join(tmpDir, 'output-path/style.css'),
+    outputBundle = await rollup({
+      input: 'test/fixtures/output-path/index.js',
+      plugins: [
+        sass({
+          output: outputStylePath,
+          options: sassOptions,
+        }),
+      ],
+    }),
+    filePath = path.join(tmpDir, 'support_output_prev-non-exist.js');
 
   await outputBundle.write({...outputOptions, file: filePath} as OutputOptions);
 
@@ -220,19 +214,18 @@ test('should support output as (non-previously existent) path', async t => {
 
   await outputBundle.close();
 });
-/*
 
 test('should support output as true', async t => {
   const outputBundle = await rollup({
-    input: 'test/fixtures/output-true/index.js',
-    plugins: [
-      sass({
-        output: true,
-        options: sassOptions,
-      }),
-    ],
-  });
-  const filePath = path.join(tmpDir, 'support-output-as-true.js');
+      input: 'test/fixtures/output-true/index.js',
+      plugins: [
+        sass({
+          output: true,
+          options: sassOptions,
+        }),
+      ],
+    }),
+    filePath = path.join(tmpDir, 'support-output-as-true.js');
 
   await outputBundle.write({...outputOptions, file: filePath} as OutputOptions);
 
@@ -250,15 +243,15 @@ test('should support output as true', async t => {
 
 test('should processor return as string', async t => {
   const outputBundle = await rollup({
-    input: 'test/fixtures/processor-string/index.js',
-    plugins: [
-      sass({
-        processor: css => reverse(css),
-        options: sassOptions,
-      }),
-    ],
-  });
-  const { output } = await outputBundle.generate(generateOptions);
+      input: 'test/fixtures/processor-string/index.js',
+      plugins: [
+        sass({
+          processor: css => reverse(css),
+          options: sassOptions,
+        }),
+      ],
+    }),
+    {output} = await outputBundle.generate(generateOptions);
 
   t.true(squash(unwrap(output)).indexOf(reverse(expectA)) > -1);
   t.true(squash(unwrap(output)).indexOf(reverse(expectB)) > -1);
@@ -282,7 +275,7 @@ test('should processor return as object', async t => {
       }),
     ],
   });
-  const { output } = await outputBundle.generate(generateOptions);
+  const {output} = await outputBundle.generate(generateOptions);
 
   t.true(squash(unwrap(output)).indexOf(expectA) > -1);
   t.true(squash(unwrap(output)).indexOf(expectB) > -1);
@@ -294,21 +287,16 @@ test('should processor return as object', async t => {
 
 test('should processor return as promise', async t => {
   const outputBundle = await rollup({
-    input: 'test/fixtures/processor-promise/index.js',
-    plugins: [
-      sass({
-        processor(css) {
-          return new Promise(resolve => {
-            setTimeout(() => {
-              resolve(css);
-            }, 100);
-          });
-        },
-        options: sassOptions,
-      }),
-    ],
-  });
-  const { output } = await outputBundle.generate(generateOptions);
+      input: 'test/fixtures/processor-promise/index.js',
+      plugins: [
+        sass({
+          processor: (css) => new Promise(resolve =>
+            setTimeout(() => resolve(css), 100)),
+          options: sassOptions,
+        }),
+      ],
+    }),
+    {output} = await outputBundle.generate(generateOptions);
 
   t.true(squash(unwrap(output)).indexOf(expectA) > -1);
   t.true(squash(unwrap(output)).indexOf(expectB) > -1);
@@ -317,18 +305,16 @@ test('should processor return as promise', async t => {
 });
 
 test('should processor throw error', async t => {
-  await t.throwsAsync(async () => {
-    await rollup({
-      input: 'test/fixtures/processor-error/index.js',
-      plugins: [
-        sass({
-          // @ts-ignore
-          processor: () => ({}),
-          options: sassOptions,
-        }),
-      ],
-    });
-  }, {
+  await t.throwsAsync(async () => rollup({
+    input: 'test/fixtures/processor-error/index.js',
+    plugins: [
+      sass({
+        // @ts-ignore
+        processor: () => ({}),
+        options: sassOptions,
+      }),
+    ],
+  }), {
     message: 'You need to return the styles using the `css` property. See https://github.com/differui/rollup-plugin-sass#processor',
   });
 });
@@ -342,7 +328,7 @@ test('should resolve ~ as node_modules', async t => {
       }),
     ],
   });
-  const { output } = await outputBundle.generate(generateOptions);
+  const {output} = await outputBundle.generate(generateOptions);
 
   t.true(squash(unwrap(output)).indexOf(expectA) > -1);
   t.true(squash(unwrap(output)).indexOf(expectB) > -1);
@@ -353,15 +339,15 @@ test('should resolve ~ as node_modules', async t => {
 
 test('should support options.runtime', async t => {
   const outputBundle = await rollup({
-    input: 'test/fixtures/runtime/index.js',
-    plugins: [
-      sass({
-        runtime: sassJs,
-        options: sassOptions,
-      }),
-    ],
-  });
-  const { output } = await outputBundle.generate(generateOptions);
+      input: 'test/fixtures/runtime/index.js',
+      plugins: [
+        sass({
+          runtime: sassJs,
+          options: sassOptions,
+        }),
+      ],
+    }),
+    {output} = await outputBundle.generate(generateOptions);
 
   t.true(squash(unwrap(output)).indexOf(expectA) > -1);
   t.true(squash(unwrap(output)).indexOf(expectB) > -1);
@@ -369,4 +355,9 @@ test('should support options.runtime', async t => {
 
   await outputBundle.close();
 });
-*/
+
+after(async (): Promise<any> => {
+  // return fs.rm(tmpDir, {recursive: true})
+  //   // .then(() => log(`Test artifacts in '${tmpDir}' cleared out.`))
+  //   .catch(error);
+});
