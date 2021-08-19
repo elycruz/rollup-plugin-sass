@@ -64,7 +64,7 @@
     "rollup": "^2.53.2",
     "sinon": "^7.2.2",
     "ts-node": "^10.2.0",
-    "typescript": "^3.5.3"
+    "typescript": "^4.3.5"
   },
   "engines": {
     "node": ">=10"

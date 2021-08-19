@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.insertStyle = void 0;
 function insertStyle(css) {
     if (!css || !window) {
         return;
