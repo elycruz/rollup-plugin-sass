@@ -19,7 +19,7 @@
     "downlevelIteration": true,
     "importHelpers": false,
     "typeRoots": [
-      "node_modules/@types",
+      "node_modules/@types"
     ]
   },
   "include": [

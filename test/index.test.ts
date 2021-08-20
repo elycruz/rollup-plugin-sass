@@ -1,5 +1,5 @@
 import {promises as fs} from 'fs';
-import path from 'path';
+import path, {dirname} from 'path';
 import test, {after, before} from 'ava';
 import sinon from 'sinon';
 import {OutputOptions, rollup} from 'rollup';
@@ -80,8 +80,6 @@ test('should import *.scss and *.sass files', async t => {
   t.true(squash(unwrap(output)).indexOf(expectA) > -1);
   t.true(squash(unwrap(output)).indexOf(expectB) > -1);
   t.true(squash(unwrap(output)).indexOf(expectC) > -1);
-
-  await outputBundle.close();
 });
 
 test('should compress the dest CSS', async t => {
@@ -92,8 +90,6 @@ test('should compress the dest CSS', async t => {
     {output} = await outputBundle.generate(generateOptions);
 
   t.true(squash(unwrap(output)).indexOf(expectD) > -1);
-
-  await outputBundle.close();
 });
 
 test('should custom importer works', async t => {
@@ -117,8 +113,6 @@ test('should custom importer works', async t => {
     {output} = await outputBundle.generate(generateOptions);
 
   t.true(squash(unwrap(output)).indexOf(expectA) > -1);
-
-  await outputBundle.close();
 });
 
 test('should support options.data', async t => {
@@ -140,8 +134,6 @@ test('should support options.data', async t => {
   const {output} = await outputBundle.generate(generateOptions);
 
   t.true(squash(unwrap(output)).indexOf(expectE) > -1);
-
-  await outputBundle.close();
 });
 
 test('should insert CSS into head tag', async t => {
@@ -158,33 +150,26 @@ test('should insert CSS into head tag', async t => {
 
   t.true(unwrap(output).includes('___$insertStyle("body{color:red}");'));
   t.true(unwrap(output).includes('___$insertStyle("body{color:green}");'));
-
-  await outputBundle.close();
 });
 
 test('should support output as function', async t => {
   const outputSpy = sinon.spy(),
+    file = path.join(tmpDir, 'import_scss_and_sass.js'),
     outputBundle = await rollup({
       input: 'test/fixtures/output-function/index.js',
       plugins: [
         sass({
-          output: (...args) => {
-            // log(...args);
-            outputSpy(...args);
-          },
+          output: outputSpy,
           options: sassOptions,
         }),
       ],
-    }),
-    file = path.join(tmpDir, 'import_scss_and_sass.js');
+    });
 
   await outputBundle.write({...outputOptions, file} as OutputOptions);
 
   await fs.readFile(file)
-    .then(() => t.true(outputSpy.calledWith(squash(`${expectA}${expectB}`))))
+    .then(() => t.true(outputSpy.args[0][0] === squash(`${expectA}${expectB}`)))
     .catch(() => t.true(false, `Trouble reading back written file "${file}".`));
-
-  await outputBundle.close();
 });
 
 test('should support output as (non-previously existent) path', async t => {
@@ -211,8 +196,6 @@ test('should support output as (non-previously existent) path', async t => {
       t.not(squash(rslt.toString()).indexOf(expectA), -1);
       t.not(squash(rslt.toString()).indexOf(expectB), -1);
     });
-
-  await outputBundle.close();
 });
 
 test('should support output as true', async t => {
@@ -237,8 +220,6 @@ test('should support output as true', async t => {
       t.not(rslt.indexOf(expectA), -1);
       t.not(rslt.indexOf(expectB), -1);
     });
-
-  await outputBundle.close();
 });
 
 test('should processor return as string', async t => {
@@ -255,8 +236,6 @@ test('should processor return as string', async t => {
 
   t.true(squash(unwrap(output)).indexOf(reverse(expectA)) > -1);
   t.true(squash(unwrap(output)).indexOf(reverse(expectB)) > -1);
-
-  await outputBundle.close();
 });
 
 test('should processor return as object', async t => {
@@ -281,8 +260,6 @@ test('should processor return as object', async t => {
   t.true(squash(unwrap(output)).indexOf(expectB) > -1);
   t.true(squash(unwrap(output)).indexOf('foo') > -1);
   t.true(squash(unwrap(output)).indexOf('bar') > -1);
-
-  await outputBundle.close();
 });
 
 test('should processor return as promise', async t => {
@@ -300,8 +277,6 @@ test('should processor return as promise', async t => {
 
   t.true(squash(unwrap(output)).indexOf(expectA) > -1);
   t.true(squash(unwrap(output)).indexOf(expectB) > -1);
-
-  await outputBundle.close();
 });
 
 test('should processor throw error', async t => {
@@ -333,8 +308,6 @@ test('should resolve ~ as node_modules', async t => {
   t.true(squash(unwrap(output)).indexOf(expectA) > -1);
   t.true(squash(unwrap(output)).indexOf(expectB) > -1);
   t.true(squash(unwrap(output)).indexOf(expectC) > -1);
-
-  await outputBundle.close();
 });
 
 test('should support options.runtime', async t => {
@@ -352,12 +325,9 @@ test('should support options.runtime', async t => {
   t.true(squash(unwrap(output)).indexOf(expectA) > -1);
   t.true(squash(unwrap(output)).indexOf(expectB) > -1);
   t.true(squash(unwrap(output)).indexOf(expectC) > -1);
-
-  await outputBundle.close();
 });
 
 after(async (): Promise<any> => {
-  // return fs.rm(tmpDir, {recursive: true})
-  //   // .then(() => log(`Test artifacts in '${tmpDir}' cleared out.`))
-  //   .catch(error);
+  return fs.rm(tmpDir, {recursive: true})
+    .catch(error);
 });

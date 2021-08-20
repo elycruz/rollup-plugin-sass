@@ -3,12 +3,14 @@ import resolve from 'resolve';
 import sass from 'sass';
 import {dirname} from 'path';
 import * as fs from 'fs';
-import {createFilter} from '@rollup/pluginutils';
+import {createFilter} from 'rollup-pluginutils';
 import {insertStyle} from './style';
-import {RollupPluginSassOptions, RollupPluginSassOutputFn} from "./types";
+import {RollupAssetInfo, RollupChunkInfo, RollupPluginSassOptions, RollupPluginSassOutputFn} from "./types";
 import {warn, isObject, isFunction, isString} from "./utils";
+import {Plugin as RollupPlugin} from 'rollup';
 
 const MATCH_SASS_FILENAME_RE = /\.sass$/,
+
   MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i,
 
   insertFnName = '___$insertStyle',
@@ -30,7 +32,7 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
           file: resolve.sync(moduleUrl, resolveOptions), // @todo can we make this async
         });
       } catch (err) {
-        warn('default importer recovered from an error: ', err);
+        warn('default sass importer recovered from an error: ', err);
 
         // If has other importers exit this one and allow one of the other
         //  ones to attempt file load.
@@ -99,7 +101,7 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
       }); // @note do not `catch` here - let error propagate to rollup level
   };
 
-export default function plugin(options = {} as RollupPluginSassOptions) {
+export default function plugin(options = {} as RollupPluginSassOptions): RollupPlugin {
   const pluginOptions = Object.assign({
       runtime: sass,
       include: ['**/*.sass', '**/*.scss'],
@@ -146,7 +148,10 @@ export default function plugin(options = {} as RollupPluginSassOptions) {
         })); // @note do not `catch` here - let error propagate to rollup level.
     },
 
-    generateBundle(generateOptions, bundle, isWrite): Promise<any> {
+    generateBundle(generateOptions: { file?: string },
+                   bundle: { [fileName: string]: RollupAssetInfo | RollupChunkInfo },
+                   isWrite: boolean
+    ): Promise<any> {
       if (!isWrite || (!pluginOptions.insert && (!styles.length || pluginOptions.output === false))) {
         return Promise.resolve();
       }
@@ -172,5 +177,5 @@ export default function plugin(options = {} as RollupPluginSassOptions) {
 
       return Promise.resolve(css);
     },
-  };
+  } as RollupPlugin;
 }

@@ -27,7 +27,7 @@ const resolve_1 = __importDefault(require("resolve"));
 const sass_1 = __importDefault(require("sass"));
 const path_1 = require("path");
 const fs = __importStar(require("fs"));
-const pluginutils_1 = require("@rollup/pluginutils");
+const rollup_pluginutils_1 = require("rollup-pluginutils");
 const style_1 = require("./style");
 const utils_1 = require("./utils");
 const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i, insertFnName = '___$insertStyle', getImporterList = sassOptions => {
@@ -46,7 +46,7 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@)
             });
         }
         catch (err) {
-            utils_1.warn('default importer recovered from an error: ', err);
+            utils_1.warn('default sass importer recovered from an error: ', err);
             if (sassOptions.importer && sassOptions.importer.length > 1) {
                 return null;
             }
@@ -105,7 +105,7 @@ function plugin(options = {}) {
         exclude: 'node_modules/**',
         output: false,
         insert: false
-    }, options), { include, exclude, runtime: sassRuntime, options: incomingSassOptions = {} } = pluginOptions, filter = pluginutils_1.createFilter(include, exclude), styles = [], styleMaps = {};
+    }, options), { include, exclude, runtime: sassRuntime, options: incomingSassOptions = {} } = pluginOptions, filter = rollup_pluginutils_1.createFilter(include, exclude), styles = [], styleMaps = {};
     return {
         name: 'rollup-plugin-sass',
         intro() {

@@ -92,3 +92,43 @@ export interface SassOptions {
   sourceMapRoot?: string,
   sourceMap?: boolean | string | undefined
 }
+
+/**
+ * Rollup's `AssetInfo` bundle type.
+ */
+export interface RollupAssetInfo {
+  fileName: string,
+  name?: string,
+  source: string | Uint8Array,
+  type: 'asset',
+}
+
+/**
+ * Rollup's `ChunkInfo` bundle type.
+ */
+export interface RollupChunkInfo {
+  code: string,
+  dynamicImports: string[],
+  exports: string[],
+  facadeModuleId: string | null,
+  fileName: string,
+  implicitlyLoadedBefore: string[],
+  imports: string[],
+  importedBindings: { [imported: string]: string[] },
+  isDynamicEntry: boolean,
+  isEntry: boolean,
+  isImplicitEntry: boolean,
+  map: { [index: string]: string } | null,
+  modules: {
+    [id: string]: {
+      renderedExports: string[],
+      removedExports: string[],
+      renderedLength: number,
+      originalLength: number,
+      code: string | null
+    },
+  },
+  name: string,
+  referencedFiles: string[],
+  type: 'chunk',
+}
