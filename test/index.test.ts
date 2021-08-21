@@ -321,7 +321,8 @@ test('should resolve ~ as node_modules and output javascript modules', async t =
         }),
       ],
     }),
-    outputFilePath = path.join(tmpDir, 'import_scss_and_sass2.js'),
+    outputFilePath = path.join(tmpDir, 'import_scss_and_sass.es.js'),
+    outputFilePath2 = path.join(tmpDir, 'import_scss_and_sass.cjs.js'),
     expectedInOutput = `${expectA + expectB + expectC}`,
     {output} = await outputBundle.generate(generateOptions),
     outputRslt = squash(unwrap(output));
@@ -329,17 +330,37 @@ test('should resolve ~ as node_modules and output javascript modules', async t =
   t.true(outputRslt.includes(expectedInOutput),
     `${JSON.stringify(outputRslt)}.includes(\`${expectedInOutput}\`)`);
 
-  // Ensure content exist in output file
-  await outputBundle.write({
-    format: 'es',
-    file: outputFilePath
-  })
-    .then(() => fs.readFile(outputFilePath))
-    .then(data => {
-      const rslt = squash(data.toString());
-      t.true(rslt.includes(expectedInOutput),
-        `${JSON.stringify(rslt)}.includes(\`${expectedInOutput}\`)`)
-    });
+  // Test 'es' module output
+  // ----
+  await Promise.all([
+    outputBundle.write({
+      format: 'es',
+      file: outputFilePath
+    })
+      .then(() => fs.readFile(outputFilePath))
+      .then(data => {
+        const rslt = squash(data.toString());
+
+        // Ensure content exist in output file
+        t.true(rslt.includes(expectedInOutput),
+          `${JSON.stringify(rslt)}.includes(\`${expectedInOutput}\`)`)
+      }),
+
+    // Test 'cjs' module output
+    // ----
+    outputBundle.write({
+      format: 'cjs',
+      file: outputFilePath2
+    })
+      .then(() => fs.readFile(outputFilePath2))
+      .then(data => {
+        const rslt = squash(data.toString());
+
+        // Ensure content exist in output file
+        t.true(rslt.includes(expectedInOutput),
+          `${JSON.stringify(rslt)}.includes(\`${expectedInOutput}\`)`)
+      })
+  ]);
 });
 
 test('should support options.runtime', async t => {
