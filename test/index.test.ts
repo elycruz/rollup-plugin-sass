@@ -1,12 +1,12 @@
 import {promises as fs} from 'fs';
-import path, {dirname} from 'path';
+import * as path from 'path';
 import test, {after, before} from 'ava';
 import sinon from 'sinon';
 import {OutputOptions, rollup} from 'rollup';
-import sassJs from 'sass';
+import * as sassJs from 'sass';
 import sass from '../src/index';
 import {SassOptions} from "../src/types";
-import {log, error} from "../src/utils";
+import {error} from "../src/utils";
 import {inspect} from "util";
 
 const repoRoot = path.join(__dirname, '../'),
@@ -74,13 +74,10 @@ test('should import *.scss and *.sass files', async t => {
     {output} = await outputBundle.generate({
       format: 'es',
       file: path.join(tmpDir, 'import_scss_and_sass.js')
-    });
+    }),
+    rslt = squash(unwrap(output));
 
-  // log('output', output);
-
-  t.true(squash(unwrap(output)).indexOf(expectA) > -1);
-  t.true(squash(unwrap(output)).indexOf(expectB) > -1);
-  t.true(squash(unwrap(output)).indexOf(expectC) > -1);
+  t.true([expectA, expectB, expectC].every(xs => rslt.includes(xs)));
 });
 
 test('should compress the dest CSS', async t => {
@@ -315,6 +312,36 @@ test('should resolve ~ as node_modules', async t => {
   t.true(squash(unwrap(output)).indexOf(expectC) > -1);
 });
 
+test('should resolve ~ as node_modules and output javascript modules', async t => {
+  const outputBundle = await rollup({
+      input: 'test/fixtures/import/index.js',
+      plugins: [
+        sass({
+          options: sassOptions,
+        }),
+      ],
+    }),
+    outputFilePath = path.join(tmpDir, 'import_scss_and_sass2.js'),
+    expectedInOutput = `${expectA + expectB + expectC}`,
+    {output} = await outputBundle.generate(generateOptions),
+    outputRslt = squash(unwrap(output));
+
+  t.true(outputRslt.includes(expectedInOutput),
+    `${JSON.stringify(outputRslt)}.includes(\`${expectedInOutput}\`)`);
+
+  // Ensure content exist in output file
+  await outputBundle.write({
+    format: 'es',
+    file: outputFilePath
+  })
+    .then(() => fs.readFile(outputFilePath))
+    .then(data => {
+      const rslt = squash(data.toString());
+      t.true(rslt.includes(expectedInOutput),
+        `${JSON.stringify(rslt)}.includes(\`${expectedInOutput}\`)`)
+    });
+});
+
 test('should support options.runtime', async t => {
   const outputBundle = await rollup({
       input: 'test/fixtures/runtime/index.js',
@@ -325,11 +352,10 @@ test('should support options.runtime', async t => {
         }),
       ],
     }),
-    {output} = await outputBundle.generate(generateOptions);
+    {output} = await outputBundle.generate(generateOptions),
+    rslt = squash(unwrap(output));
 
-  t.true(squash(unwrap(output)).indexOf(expectA) > -1);
-  t.true(squash(unwrap(output)).indexOf(expectB) > -1);
-  t.true(squash(unwrap(output)).indexOf(expectC) > -1);
+  t.true([expectA, expectB, expectC].every(xs => rslt.includes(xs)));
 });
 
 after(async (): Promise<any> => {

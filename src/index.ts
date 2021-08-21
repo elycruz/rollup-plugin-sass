@@ -1,6 +1,6 @@
 import {promisify} from 'util';
 import resolve from 'resolve';
-import sass from 'sass';
+import * as sass from 'sass';
 import {dirname} from 'path';
 import * as fs from 'fs';
 import {createFilter} from 'rollup-pluginutils';
