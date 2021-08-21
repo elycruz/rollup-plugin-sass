@@ -7,6 +7,9 @@ import {createFilter} from 'rollup-pluginutils';
 import {insertStyle} from './style';
 import {RollupAssetInfo, RollupChunkInfo, RollupPluginSassOptions, RollupPluginSassOutputFn} from "./types";
 import {warn, isObject, isFunction, isString} from "./utils";
+
+// @note Rollup is added as a "devDependency" so no actual symbols should be imported.
+//  Interfaces and non-concrete types are ok.
 import {Plugin as RollupPlugin} from 'rollup';
 
 const MATCH_SASS_FILENAME_RE = /\.sass$/,

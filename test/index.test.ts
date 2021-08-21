@@ -7,6 +7,7 @@ import sassJs from 'sass';
 import sass from '../src/index';
 import {SassOptions} from "../src/types";
 import {log, error} from "../src/utils";
+import {inspect} from "util";
 
 const repoRoot = path.join(__dirname, '../'),
 
@@ -163,12 +164,16 @@ test('should support output as function', async t => {
           options: sassOptions,
         }),
       ],
-    });
+    }),
+    expectedSpyArg = squash(`${expectA}${expectB}`);
 
   await outputBundle.write({...outputOptions, file} as OutputOptions);
 
   await fs.readFile(file)
-    .then(() => t.true(outputSpy.args[0][0] === squash(`${expectA}${expectB}`)))
+    .then(rslt => t.true(squash(rslt.toString()) === ''))
+    .then(() => t.true(outputSpy.calledWith(expectedSpyArg),
+      `\`outputSpy\` should've been called with \`${expectedSpyArg}\`.  `+
+      `Spy called with \`${inspect(outputSpy.args[0], {depth: 5})}\``))
     .catch(() => t.true(false, `Trouble reading back written file "${file}".`));
 });
 
