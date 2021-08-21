@@ -1,194 +1,161 @@
-'use strict';
-
-var _bindInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/bind');
-var _Object$assign = require('@babel/runtime-corejs3/core-js-stable/object/assign');
-var _concatInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/concat');
-var _sliceInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/slice');
-var _trimInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/trim');
-var _mapInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/map');
-var _Object$keys = require('@babel/runtime-corejs3/core-js-stable/object/keys');
-var _JSON$stringify = require('@babel/runtime-corejs3/core-js-stable/json/stringify');
-var _endsWithInstanceProperty = require('@babel/runtime-corejs3/core-js-stable/instance/ends-with');
-var pify = require('pify');
-var resolve = require('resolve');
-var sass = require('sass');
-var path = require('path');
-var fs = require('fs');
-var pluginutils = require('@rollup/pluginutils');
-var style = require('./style.js');
-
-function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
-
-var _bindInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_bindInstanceProperty);
-var _Object$assign__default = /*#__PURE__*/_interopDefaultLegacy(_Object$assign);
-var _concatInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_concatInstanceProperty);
-var _sliceInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_sliceInstanceProperty);
-var _trimInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_trimInstanceProperty);
-var _mapInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_mapInstanceProperty);
-var _Object$keys__default = /*#__PURE__*/_interopDefaultLegacy(_Object$keys);
-var _JSON$stringify__default = /*#__PURE__*/_interopDefaultLegacy(_JSON$stringify);
-var _endsWithInstanceProperty__default = /*#__PURE__*/_interopDefaultLegacy(_endsWithInstanceProperty);
-var pify__default = /*#__PURE__*/_interopDefaultLegacy(pify);
-var resolve__default = /*#__PURE__*/_interopDefaultLegacy(resolve);
-var sass__default = /*#__PURE__*/_interopDefaultLegacy(sass);
-var fs__default = /*#__PURE__*/_interopDefaultLegacy(fs);
-
-const MATCH_SASS_FILENAME_RE = /\.sass$/;
-const MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i;
-
-const isString = x => typeof x === 'string';
-
-const isFunction = x => typeof x === 'function';
-
-function plugin(options = {}) {
-  const {
-    include = ['**/*.sass', '**/*.scss'],
-    exclude = 'node_modules/**'
-  } = options;
-  const filter = pluginutils.createFilter(include, exclude);
-  const insertFnName = '___$insertStyle';
-  const styles = [];
-  const styleMaps = {};
-  options.output = options.output || false;
-  options.insert = options.insert || false;
-  const sassRuntime = options.runtime || sass__default['default'];
-  return {
-    name: 'sass',
-
-    intro() {
-      if (options.insert) {
-        return style.insertStyle.toString().replace(/insertStyle/, insertFnName);
-      }
-    },
-
-    async transform(code, id) {
-      if (!filter(id)) {
-        return;
-      }
-
-      try {
-        var _context, _context2, _context3, _context4;
-
-        const paths = [path.dirname(id), process.cwd()];
-        const customizedSassOptions = options.options || {};
-        const res = await pify__default['default'](_bindInstanceProperty__default['default'](_context = sassRuntime.render).call(_context, sassRuntime))(_Object$assign__default['default']({}, customizedSassOptions, {
-          file: id,
-          data: customizedSassOptions.data && `${customizedSassOptions.data}${code}`,
-          indentedSyntax: MATCH_SASS_FILENAME_RE.test(id),
-          includePaths: customizedSassOptions.includePaths ? _concatInstanceProperty__default['default'](_context2 = customizedSassOptions.includePaths).call(_context2, paths) : paths,
-          importer: _concatInstanceProperty__default['default'](_context3 = [(url, importer, done) => {
-            if (!MATCH_NODE_MODULE_RE.test(url)) {
-              return null;
-            }
-
-            const moduleUrl = _sliceInstanceProperty__default['default'](url).call(url, 1);
-
-            const resolveOptions = {
-              basedir: path.dirname(importer),
-              extensions: ['.scss', '.sass']
-            };
-
-            try {
-              done({
-                file: resolve__default['default'].sync(moduleUrl, resolveOptions)
-              });
-            } catch (err) {
-              if (customizedSassOptions.importer && customizedSassOptions.importer.length) {
-                return null;
-              }
-
-              done({
-                file: url
-              });
-            }
-          }]).call(_context3, customizedSassOptions.importer || [])
-        }));
-
-        let css = _trimInstanceProperty__default['default'](_context4 = res.css.toString()).call(_context4);
-
-        let defaultExport = '';
-        let restExports;
-
-        if (css) {
-          if (isFunction(options.processor)) {
-            const processResult = await options.processor(css, id);
-
-            if (typeof processResult === 'object') {
-              var _context5;
-
-              if (typeof processResult.css !== 'string') {
-                throw new Error('You need to return the styles using the `css` property. See https://github.com/differui/rollup-plugin-sass#processor');
-              }
-
-              css = processResult.css;
-              delete processResult.css;
-              restExports = _mapInstanceProperty__default['default'](_context5 = _Object$keys__default['default'](processResult)).call(_context5, name => `export const ${name} = ${_JSON$stringify__default['default'](processResult[name])};`);
-            } else if (typeof processResult === 'string') {
-              css = processResult;
-            }
-          }
-
-          if (styleMaps[id]) {
-            styleMaps[id].content = css;
-          } else {
-            styles.push(styleMaps[id] = {
-              id: id,
-              content: css
-            });
-          }
-
-          if (options.insert === true) {
-            defaultExport = `${insertFnName}(${_JSON$stringify__default['default'](css)});`;
-          } else if (options.output === false) {
-            defaultExport = _JSON$stringify__default['default'](css);
-          } else {
-            defaultExport = `"";`;
-          }
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const util_1 = require("util");
+const resolve_1 = __importDefault(require("resolve"));
+const sass_1 = __importDefault(require("sass"));
+const path_1 = require("path");
+const fs = __importStar(require("fs"));
+const rollup_pluginutils_1 = require("rollup-pluginutils");
+const style_1 = require("./style");
+const utils_1 = require("./utils");
+const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i, insertFnName = '___$insertStyle', getImporterList = sassOptions => {
+    const importer1 = (url, importer, done) => {
+        if (!MATCH_NODE_MODULE_RE.test(url)) {
+            return null;
         }
-
-        return {
-          code: [`export default ${defaultExport};`, ...(restExports || [])].join('\n'),
-          map: {
-            mappings: _mapInstanceProperty__default['default'](res) ? _mapInstanceProperty__default['default'](res).toString() : ''
-          }
+        const moduleUrl = url.slice(1);
+        const resolveOptions = {
+            basedir: path_1.dirname(importer),
+            extensions: ['.scss', '.sass'],
         };
-      } catch (error) {
-        throw error;
-      }
-    },
-
-    async generateBundle(generateOptions, bundle, isWrite) {
-      if (!options.insert && (!styles.length || options.output === false)) {
-        return;
-      }
-
-      if (!isWrite) {
-        return;
-      }
-
-      const css = _mapInstanceProperty__default['default'](styles).call(styles, style => style.content).join('');
-
-      if (isString(options.output)) {
-        return fs__default['default'].promises.mkdir(path.dirname(options.output), {
-          recursive: true
-        }).then(() => fs__default['default'].promises.writeFile(options.output, css));
-      } else if (isFunction(options.output)) {
-        return options.output(css, styles);
-      } else if (!options.insert && generateOptions.file && options.output === true) {
-        let dest = generateOptions.file;
-
-        if (_endsWithInstanceProperty__default['default'](dest).call(dest, '.js') || _endsWithInstanceProperty__default['default'](dest).call(dest, '.ts')) {
-          dest = _sliceInstanceProperty__default['default'](dest).call(dest, 0, -3);
+        try {
+            done({
+                file: resolve_1.default.sync(moduleUrl, resolveOptions),
+            });
         }
-
-        dest = `${dest}.css`;
-        return fs__default['default'].promises.mkdir(path.dirname(dest), {
-          recursive: true
-        }).then(() => fs__default['default'].promises.writeFile(dest, css));
-      }
-    }
-
-  };
+        catch (err) {
+            utils_1.warn('default sass importer recovered from an error: ', err);
+            if (sassOptions.importer && sassOptions.importer.length > 1) {
+                return null;
+            }
+            done({
+                file: url,
+            });
+        }
+    };
+    return [importer1].concat(sassOptions.importer || []);
+}, processRenderResponse = (rollupOptions, file, state, inCss) => {
+    if (!inCss)
+        return;
+    const { processor } = rollupOptions;
+    return Promise.resolve()
+        .then(() => !utils_1.isFunction(processor) ? inCss + '' : processor(inCss, file))
+        .then(result => {
+        if (!utils_1.isObject(result)) {
+            return [result, ''];
+        }
+        if (!utils_1.isString(result.css)) {
+            throw new Error('You need to return the styles using the `css` property. ' +
+                'See https://github.com/differui/rollup-plugin-sass#processor');
+        }
+        const outCss = result.css;
+        const restExports = Object.keys(result).reduce((agg, name) => name === 'css' ? agg : agg + `export const ${name} = ${JSON.stringify(result[name])};\n`, '');
+        return [outCss, restExports];
+    })
+        .then(([resolvedCss, restExports]) => {
+        const { styleMaps, styles } = state;
+        if (styleMaps[file]) {
+            styleMaps[file].content = resolvedCss;
+        }
+        else {
+            const mapEntry = {
+                id: file,
+                content: resolvedCss,
+            };
+            styleMaps[file] = mapEntry;
+            styles.push(mapEntry);
+        }
+        const out = JSON.stringify(resolvedCss);
+        let defaultExport = `""`;
+        if (rollupOptions.insert) {
+            defaultExport = `${insertFnName}(${out});`;
+        }
+        else if (!rollupOptions.output) {
+            defaultExport = out;
+        }
+        return `export default ${defaultExport};\n${restExports}`;
+    });
+};
+function plugin(options = {}) {
+    const pluginOptions = Object.assign({
+        runtime: sass_1.default,
+        include: ['**/*.sass', '**/*.scss'],
+        exclude: 'node_modules/**',
+        output: false,
+        insert: false
+    }, options), { include, exclude, runtime: sassRuntime, options: incomingSassOptions = {} } = pluginOptions, filter = rollup_pluginutils_1.createFilter(include, exclude), styles = [], styleMaps = {};
+    return {
+        name: 'rollup-plugin-sass',
+        intro() {
+            if (pluginOptions.insert) {
+                return style_1.insertStyle.toString().replace(/insertStyle/, insertFnName);
+            }
+        },
+        transform(code, file) {
+            if (!filter(file)) {
+                return Promise.resolve();
+            }
+            const paths = [path_1.dirname(file), process.cwd()], resolvedOptions = Object.assign({}, incomingSassOptions, {
+                file,
+                data: incomingSassOptions.data && `${incomingSassOptions.data}${code}`,
+                indentedSyntax: MATCH_SASS_FILENAME_RE.test(file),
+                includePaths: (incomingSassOptions.includePaths || []).concat(paths),
+                importer: getImporterList(incomingSassOptions),
+            });
+            return util_1.promisify(sassRuntime.render.bind(sassRuntime))(resolvedOptions)
+                .then(res => processRenderResponse(pluginOptions, file, { styleMaps, styles }, res.css.toString().trim())
+                .then(result => [res, result]))
+                .then(([res, codeResult]) => ({
+                code: codeResult,
+                map: { mappings: res.map ? res.map.toString() : '' },
+            }));
+        },
+        generateBundle(generateOptions, bundle, isWrite) {
+            if (!isWrite || (!pluginOptions.insert && (!styles.length || pluginOptions.output === false))) {
+                return Promise.resolve();
+            }
+            const css = styles.map(style => style.content).join(''), { output, insert } = pluginOptions;
+            if (typeof output === 'string') {
+                return fs.promises.mkdir(path_1.dirname(output), { recursive: true })
+                    .then(() => fs.promises.writeFile(output, css));
+            }
+            else if (typeof output === 'function') {
+                return Promise.resolve(output(css, styles));
+            }
+            else if (!insert && generateOptions.file && output === true) {
+                let dest = generateOptions.file;
+                if (dest.endsWith('.js') || dest.endsWith('.ts')) {
+                    dest = dest.slice(0, -3);
+                }
+                dest = `${dest}.css`;
+                return fs.promises.mkdir(path_1.dirname(dest), { recursive: true })
+                    .then(() => fs.promises.writeFile(dest, css));
+            }
+            return Promise.resolve(css);
+        },
+    };
 }
-
-module.exports = plugin;
+exports.default = plugin;
+//# sourceMappingURL=index.js.map
