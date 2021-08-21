@@ -45,7 +45,7 @@ let expectA, expectB, expectC, expectD, expectE;
 before(async () => {
   const mkDir = () => fs.mkdir(tmpDir);
 
-  await fs.rm(tmpDir, {recursive: true})
+  await fs.rmdir(tmpDir, {recursive: true})
     .then(mkDir, mkDir)
     .then(() => Promise.all([
         'test/assets/expect_a.css',
@@ -380,6 +380,6 @@ test('should support options.runtime', async t => {
 });
 
 after(async (): Promise<any> => {
-  return fs.rm(tmpDir, {recursive: true})
+  return fs.rmdir(tmpDir, {recursive: true})
     .catch(error);
 });
