@@ -6,13 +6,14 @@ import * as fs from 'fs';
 import {createFilter} from 'rollup-pluginutils';
 import {insertStyle} from './style';
 import {
+  IdAndContentObject,
   RollupAssetInfo,
   RollupChunkInfo,
   RollupPluginSassOptions,
   RollupPluginSassOutputFn,
   SassOptions
 } from "./types";
-import {warn, isObject, isFunction, isString, error} from "./utils";
+import {warn, isObject, isFunction, isString, error, isset} from "./utils";
 
 // @note Rollup is added as a "devDependency" so no actual symbols should be imported.
 //  Interfaces and non-concrete types are ok.
@@ -69,6 +70,9 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
 
     const {processor} = rollupOptions;
 
+    // Index to store results at
+    let _priority = state.priority++;
+
     return Promise.resolve()
       .then(() => !isFunction(processor) ? inCss + '' : processor(inCss, file))
       .then(result => {
@@ -91,7 +95,7 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
         const {styleMaps, styles} = state;
 
         // Store output styles, for possible 'later' processing - depends on whether 'output' is a function or not
-        //  determined in generateBundle.
+        //  determined in `generateBundle`.
         // ----
         if (styleMaps[file]) {
           styleMaps[file].content = resolvedCss;
@@ -101,7 +105,7 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
             content: resolvedCss,
           };
           styleMaps[file] = mapEntry;
-          styles.push(mapEntry);
+          styles[_priority] = mapEntry;
         }
 
         const out = JSON.stringify(resolvedCss);
@@ -128,8 +132,19 @@ export default function plugin(options = {} as RollupPluginSassOptions): RollupP
     }, options),
     {include, exclude, runtime: sassRuntime, options: incomingSassOptions = {}} = pluginOptions,
     filter = createFilter(include, exclude),
-    styles = [],
-    styleMaps = {};
+
+    pluginState = {
+      // Stores interim bundle objects
+      styles: [] as {id?: string, content?: string}[],
+
+      // "";  Used, currently to ensure that we're not pushing style objects representing
+      // the same file-path into `pluginState.styles` more than once.
+      styleMaps: {} as {[index: string]: {id?: string, content?: string}},
+
+      // Used to ensure that sass style bundle objects are stored in correct order - Since things happen
+      // asynchronously throughout the plugin we need to manually enforce they're concatenation/compilation order.
+      priority: 0
+    };
 
   return {
     name: 'rollup-plugin-sass',
@@ -140,23 +155,23 @@ export default function plugin(options = {} as RollupPluginSassOptions): RollupP
       }
     },
 
-    transform(code, file): Promise<any> {
-      if (!filter(file)) {
+    transform(code: string, filePath: string): Promise<any> {
+      if (!filter(filePath)) {
         return Promise.resolve();
       }
 
-      const paths = [dirname(file), process.cwd()],
+      const paths = [dirname(filePath), process.cwd()],
 
         resolvedOptions = Object.assign({}, incomingSassOptions, {
-          file,
+          file: filePath,
           data: incomingSassOptions.data && `${incomingSassOptions.data}${code}`,
-          indentedSyntax: MATCH_SASS_FILENAME_RE.test(file),
+          indentedSyntax: MATCH_SASS_FILENAME_RE.test(filePath),
           includePaths: (incomingSassOptions.includePaths || []).concat(paths),
           importer: getImporterList(incomingSassOptions),
         });
 
       return promisify(sassRuntime.render.bind(sassRuntime))(resolvedOptions)
-        .then(res => processRenderResponse(pluginOptions, file, {styleMaps, styles}, res.css.toString().trim())
+        .then(res => processRenderResponse(pluginOptions, filePath, pluginState, res.css.toString().trim())
           .then(result => [res, result])
         )
         .then(([res, codeResult]) => ({
@@ -169,18 +184,22 @@ export default function plugin(options = {} as RollupPluginSassOptions): RollupP
                    bundle: { [fileName: string]: RollupAssetInfo | RollupChunkInfo },
                    isWrite: boolean
     ): Promise<any> {
-      if (!isWrite || (!pluginOptions.insert && (!styles.length || pluginOptions.output === false))) {
+      if (!isWrite || (!pluginOptions.insert && (!pluginState.styles.length || pluginOptions.output === false))) {
         return Promise.resolve();
       }
 
-      const css = styles.map(style => style.content).join(''),
+      const stylesToProcess = pluginState.styles.filter(Boolean),
+        css = stylesToProcess.map(style => style.content).join(''),
         {output, insert} = pluginOptions;
+
+      pluginState.styles = stylesToProcess;
+      pluginState.priority = stylesToProcess.length;
 
       if (typeof output === 'string') {
         return fs.promises.mkdir(dirname(output as string), {recursive: true})
           .then(() => fs.promises.writeFile(output as string, css));
       } else if (typeof output === 'function') {
-        return Promise.resolve((output as RollupPluginSassOutputFn)(css, styles));
+        return Promise.resolve((output as RollupPluginSassOutputFn)(css, stylesToProcess));
       } else if (!insert && generateOptions.file && output === true) {
         let dest = generateOptions.file;
 

@@ -24,13 +24,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const util_1 = require("util");
 const resolve_1 = __importDefault(require("resolve"));
-const sass_1 = __importDefault(require("sass"));
+const sass = __importStar(require("sass"));
 const path_1 = require("path");
 const fs = __importStar(require("fs"));
 const rollup_pluginutils_1 = require("rollup-pluginutils");
 const style_1 = require("./style");
 const utils_1 = require("./utils");
-const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i, insertFnName = '___$insertStyle', getImporterList = sassOptions => {
+const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i, insertFnName = '___$insertStyle', getImporterList = (sassOptions) => {
     const importer1 = (url, importer, done) => {
         if (!MATCH_NODE_MODULE_RE.test(url)) {
             return null;
@@ -40,26 +40,29 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@)
             basedir: path_1.dirname(importer),
             extensions: ['.scss', '.sass'],
         };
-        try {
-            done({
-                file: resolve_1.default.sync(moduleUrl, resolveOptions),
-            });
-        }
-        catch (err) {
-            utils_1.warn('default sass importer recovered from an error: ', err);
+        util_1.promisify(resolve_1.default)(moduleUrl, resolveOptions)
+            .then(file => done({ file }))
+            .catch(err => {
+            utils_1.warn('[rollup-plugin-sass]: Recovered from error: ', err);
             if (sassOptions.importer && sassOptions.importer.length > 1) {
-                return null;
+                done(null);
+                return;
             }
             done({
                 file: url,
             });
-        }
+        })
+            .catch(err => {
+            utils_1.error(err);
+            done(new Error(err));
+        });
     };
     return [importer1].concat(sassOptions.importer || []);
 }, processRenderResponse = (rollupOptions, file, state, inCss) => {
     if (!inCss)
         return;
     const { processor } = rollupOptions;
+    let _priority = state.priority++;
     return Promise.resolve()
         .then(() => !utils_1.isFunction(processor) ? inCss + '' : processor(inCss, file))
         .then(result => {
@@ -85,7 +88,7 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@)
                 content: resolvedCss,
             };
             styleMaps[file] = mapEntry;
-            styles.push(mapEntry);
+            styles[_priority] = mapEntry;
         }
         const out = JSON.stringify(resolvedCss);
         let defaultExport = `""`;
@@ -100,12 +103,16 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@)
 };
 function plugin(options = {}) {
     const pluginOptions = Object.assign({
-        runtime: sass_1.default,
+        runtime: sass,
         include: ['**/*.sass', '**/*.scss'],
         exclude: 'node_modules/**',
         output: false,
         insert: false
-    }, options), { include, exclude, runtime: sassRuntime, options: incomingSassOptions = {} } = pluginOptions, filter = rollup_pluginutils_1.createFilter(include, exclude), styles = [], styleMaps = {};
+    }, options), { include, exclude, runtime: sassRuntime, options: incomingSassOptions = {} } = pluginOptions, filter = rollup_pluginutils_1.createFilter(include, exclude), pluginState = {
+        styles: [],
+        styleMaps: {},
+        priority: 0
+    };
     return {
         name: 'rollup-plugin-sass',
         intro() {
@@ -113,19 +120,19 @@ function plugin(options = {}) {
                 return style_1.insertStyle.toString().replace(/insertStyle/, insertFnName);
             }
         },
-        transform(code, file) {
-            if (!filter(file)) {
+        transform(code, filePath) {
+            if (!filter(filePath)) {
                 return Promise.resolve();
             }
-            const paths = [path_1.dirname(file), process.cwd()], resolvedOptions = Object.assign({}, incomingSassOptions, {
-                file,
+            const paths = [path_1.dirname(filePath), process.cwd()], resolvedOptions = Object.assign({}, incomingSassOptions, {
+                file: filePath,
                 data: incomingSassOptions.data && `${incomingSassOptions.data}${code}`,
-                indentedSyntax: MATCH_SASS_FILENAME_RE.test(file),
+                indentedSyntax: MATCH_SASS_FILENAME_RE.test(filePath),
                 includePaths: (incomingSassOptions.includePaths || []).concat(paths),
                 importer: getImporterList(incomingSassOptions),
             });
             return util_1.promisify(sassRuntime.render.bind(sassRuntime))(resolvedOptions)
-                .then(res => processRenderResponse(pluginOptions, file, { styleMaps, styles }, res.css.toString().trim())
+                .then(res => processRenderResponse(pluginOptions, filePath, pluginState, res.css.toString().trim())
                 .then(result => [res, result]))
                 .then(([res, codeResult]) => ({
                 code: codeResult,
@@ -133,16 +140,18 @@ function plugin(options = {}) {
             }));
         },
         generateBundle(generateOptions, bundle, isWrite) {
-            if (!isWrite || (!pluginOptions.insert && (!styles.length || pluginOptions.output === false))) {
+            if (!isWrite || (!pluginOptions.insert && (!pluginState.styles.length || pluginOptions.output === false))) {
                 return Promise.resolve();
             }
-            const css = styles.map(style => style.content).join(''), { output, insert } = pluginOptions;
+            const stylesToProcess = pluginState.styles.filter(Boolean), css = stylesToProcess.map(style => style.content).join(''), { output, insert } = pluginOptions;
+            pluginState.styles = stylesToProcess;
+            pluginState.priority = stylesToProcess.length;
             if (typeof output === 'string') {
                 return fs.promises.mkdir(path_1.dirname(output), { recursive: true })
                     .then(() => fs.promises.writeFile(output, css));
             }
             else if (typeof output === 'function') {
-                return Promise.resolve(output(css, styles));
+                return Promise.resolve(output(css, stylesToProcess));
             }
             else if (!insert && generateOptions.file && output === true) {
                 let dest = generateOptions.file;

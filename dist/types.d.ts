@@ -1,9 +1,9 @@
 import { types } from 'sass';
-export interface IdCodePair {
+export interface IdAndContentObject {
     id?: string;
     content?: string;
 }
-export declare type RollupPluginSassOutputFn = (styles: string, styleNodes: IdCodePair[]) => any;
+export declare type RollupPluginSassOutputFn = (styles: string, styleNodes: IdAndContentObject[]) => any;
 export declare type RollupPluginSassProcessorFn<T = string | {
     css: string;
 }> = (styles: string, id: string) => Promise<T> | T;

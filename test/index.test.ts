@@ -168,9 +168,12 @@ test('should support output as function', async t => {
 
   await fs.readFile(file)
     .then(rslt => t.true(squash(rslt.toString()) === ''))
-    .then(() => t.true(outputSpy.calledWith(expectedSpyArg),
+    .then(() => t.true(
+      outputSpy.calledWith(expectedSpyArg),
       `\`outputSpy\` should've been called with \`${expectedSpyArg}\`.  `+
-      `Spy called with \`${inspect(outputSpy.args[0], {depth: 5})}\``))
+      `Spy called with \`${outputSpy.args[0][0]}\`, other args ` +
+      `${JSON.stringify(outputSpy.args[0].slice(1))}`
+    ))
     .catch(() => t.true(false, `Trouble reading back written file "${file}".`));
 });
 
