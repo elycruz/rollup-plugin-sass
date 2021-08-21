@@ -5,8 +5,14 @@ import {dirname} from 'path';
 import * as fs from 'fs';
 import {createFilter} from 'rollup-pluginutils';
 import {insertStyle} from './style';
-import {RollupAssetInfo, RollupChunkInfo, RollupPluginSassOptions, RollupPluginSassOutputFn} from "./types";
-import {warn, isObject, isFunction, isString} from "./utils";
+import {
+  RollupAssetInfo,
+  RollupChunkInfo,
+  RollupPluginSassOptions,
+  RollupPluginSassOutputFn,
+  SassOptions
+} from "./types";
+import {warn, isObject, isFunction, isString, error} from "./utils";
 
 // @note Rollup is added as a "devDependency" so no actual symbols should be imported.
 //  Interfaces and non-concrete types are ok.
@@ -18,7 +24,11 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
 
   insertFnName = '___$insertStyle',
 
-  getImporterList = sassOptions => {
+  /**
+   * Returns a sass `importer` list:
+   * @see https://sass-lang.com/documentation/js-api#importer
+   */
+  getImporterList = (sassOptions: SassOptions) => {
     const importer1 = (url, importer, done) => {
       if (!MATCH_NODE_MODULE_RE.test(url)) {
         return null;
@@ -30,22 +40,26 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
         extensions: ['.scss', '.sass'],
       };
 
-      try {
-        done({
-          file: resolve.sync(moduleUrl, resolveOptions), // @todo can we make this async
-        });
-      } catch (err) {
-        warn('default sass importer recovered from an error: ', err);
+      promisify(resolve)(moduleUrl, resolveOptions)
+        .then(file => done({file}))
+        .catch(err => {
+          warn('[rollup-plugin-sass]: Recovered from error: ', err);
+          // If importer has sibling importers then exit and allow one of the other
+          //  importers to attempt file path resolution.
+          if (sassOptions.importer && sassOptions.importer.length > 1) {
+            done(null);
+            return;
+          }
+          done({
+            file: url,
+          });
+        })
 
-        // If has other importers exit this one and allow one of the other
-        //  ones to attempt file load.
-        if (sassOptions.importer && sassOptions.importer.length > 1) {
-          return null;
-        }
-        done({
-          file: url,
+        // Catch any further errors
+        .catch(err => {
+          error(err); // Log error
+          done(new Error(err));
         });
-      }
     }
     return [importer1].concat(sassOptions.importer || [])
   },
