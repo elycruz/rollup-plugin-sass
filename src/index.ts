@@ -128,8 +128,6 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
 export default function plugin(options = {} as RollupPluginSassOptions): RollupPlugin {
   const pluginOptions = Object.assign({
       runtime: sass,
-      include: defaultIncludes,
-      exclude: defaultExcludes,
       output: false,
       insert: false
     }, options),
