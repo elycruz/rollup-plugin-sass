@@ -1,3 +1,9 @@
+## [1.2.6](https://github.com/differui/rollup-plugin-sass/releases/tag/1.2.6)
+
+### Fixes: 
+- Reverted rollup-pluginutils version back to recently upgraded @rollup/pluginutils version, minus one major version from latest version - The version is set to one major behind to ensure backwards compatibility with existing projects.  
+   We also upgraded to this version, of @rollup/pluginutils, to allow users, who have started to use rollup-plugin-sass@1.2.5, to continue supplying `RegExp | string | string[]` for `include` and `exclude` properties (rollup-pluginutils doesn't accept `RegExp` for these props).
+- Updated plugin's source to ensure that `include` and `exclude` always have a default when their incoming values are directly set to `undefined` - previous update had removed these default, since they were set in options merge call, however merging in `undefined` prop. values weren't taken into account in that update - this update fixes that change.
 
 ## [1.1.0](https://github.com/differui/rollup-plugin-sass/releases/tag/1.1.0)
 

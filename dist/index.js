@@ -14,7 +14,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -27,7 +27,7 @@ const resolve_1 = __importDefault(require("resolve"));
 const sass = __importStar(require("sass"));
 const path_1 = require("path");
 const fs = __importStar(require("fs"));
-const rollup_pluginutils_1 = require("rollup-pluginutils");
+const pluginutils_1 = require("@rollup/pluginutils");
 const style_1 = require("./style");
 const utils_1 = require("./utils");
 const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i, insertFnName = '___$insertStyle', getImporterList = (sassOptions) => {
@@ -100,15 +100,13 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@)
         }
         return `export default ${defaultExport};\n${restExports}`;
     });
-};
+}, defaultIncludes = ['**/*.sass', '**/*.scss'], defaultExcludes = 'node_modules/**';
 function plugin(options = {}) {
     const pluginOptions = Object.assign({
         runtime: sass,
-        include: ['**/*.sass', '**/*.scss'],
-        exclude: 'node_modules/**',
         output: false,
         insert: false
-    }, options), { include, exclude, runtime: sassRuntime, options: incomingSassOptions = {} } = pluginOptions, filter = rollup_pluginutils_1.createFilter(include, exclude), pluginState = {
+    }, options), { include = defaultIncludes, exclude = defaultExcludes, runtime: sassRuntime, options: incomingSassOptions = {} } = pluginOptions, filter = pluginutils_1.createFilter(include || '', exclude || ''), pluginState = {
         styles: [],
         styleMaps: {},
         priority: 0
