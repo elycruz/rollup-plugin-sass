@@ -27,7 +27,7 @@ const resolve_1 = __importDefault(require("resolve"));
 const sass = __importStar(require("sass"));
 const path_1 = require("path");
 const fs = __importStar(require("fs"));
-const rollup_pluginutils_1 = require("rollup-pluginutils");
+const pluginutils_1 = require("@rollup/pluginutils");
 const style_1 = require("./style");
 const utils_1 = require("./utils");
 const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i, insertFnName = '___$insertStyle', getImporterList = (sassOptions) => {
@@ -104,11 +104,9 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@)
 function plugin(options = {}) {
     const pluginOptions = Object.assign({
         runtime: sass,
-        include: defaultIncludes,
-        exclude: defaultExcludes,
         output: false,
         insert: false
-    }, options), { include, exclude, runtime: sassRuntime, options: incomingSassOptions = {} } = pluginOptions, filter = rollup_pluginutils_1.createFilter(include || defaultIncludes, exclude || defaultExcludes), pluginState = {
+    }, options), { include = defaultIncludes, exclude = defaultExcludes, runtime: sassRuntime, options: incomingSassOptions = {} } = pluginOptions, filter = pluginutils_1.createFilter(include || '', exclude || ''), pluginState = {
         styles: [],
         styleMaps: {},
         priority: 0
