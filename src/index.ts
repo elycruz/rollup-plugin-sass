@@ -3,17 +3,16 @@ import resolve from 'resolve';
 import * as sass from 'sass';
 import {dirname} from 'path';
 import * as fs from 'fs';
-import {createFilter} from 'rollup-pluginutils';
+import {createFilter} from '@rollup/pluginutils';
 import {insertStyle} from './style';
 import {
-  IdAndContentObject,
   RollupAssetInfo,
   RollupChunkInfo,
   RollupPluginSassOptions,
   RollupPluginSassOutputFn,
   SassOptions
 } from "./types";
-import {warn, isObject, isFunction, isString, error, isset} from "./utils";
+import {error, isFunction, isObject, isString, warn} from "./utils";
 
 // @note Rollup is added as a "devDependency" so no actual symbols should be imported.
 //  Interfaces and non-concrete types are ok.
@@ -120,18 +119,29 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
 
         return `export default ${defaultExport};\n${restExports}`;
       }); // @note do not `catch` here - let error propagate to rollup level
-  };
+  },
+
+  defaultIncludes = ['**/*.sass', '**/*.scss'],
+
+  defaultExcludes = 'node_modules/**';
 
 export default function plugin(options = {} as RollupPluginSassOptions): RollupPlugin {
   const pluginOptions = Object.assign({
       runtime: sass,
-      include: ['**/*.sass', '**/*.scss'],
-      exclude: 'node_modules/**',
+      include: defaultIncludes,
+      exclude: defaultExcludes,
       output: false,
       insert: false
     }, options),
-    {include, exclude, runtime: sassRuntime, options: incomingSassOptions = {}} = pluginOptions,
-    filter = createFilter(include, exclude),
+
+    {
+      include = defaultIncludes,
+      exclude = defaultExcludes,
+      runtime: sassRuntime,
+      options: incomingSassOptions = {}
+    } = pluginOptions,
+
+    filter = createFilter(include || '', exclude || ''),
 
     pluginState = {
       // Stores interim bundle objects
