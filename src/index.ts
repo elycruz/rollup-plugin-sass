@@ -150,7 +150,7 @@ export default function plugin(options = {} as RollupPluginSassOptions): RollupP
       styleMaps: {} as {[index: string]: {id?: string, content?: string}},
 
       // Used to ensure that sass style bundle objects are stored in correct order - Since things happen
-      // asynchronously throughout the plugin we need to manually enforce they're concatenation/compilation order.
+      // asynchronously throughout the plugin we need to manually enforce their concatenation/compilation order.
       priority: 0
     };
 

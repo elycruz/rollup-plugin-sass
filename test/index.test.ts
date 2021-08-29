@@ -1,13 +1,12 @@
-import {promises as fs} from 'fs';
+import {promises as fs, constants as fsConstants} from 'fs';
 import * as path from 'path';
 import test, {after, before} from 'ava';
 import sinon from 'sinon';
-import {OutputOptions, rollup} from 'rollup';
+import {OutputOptions, rollup, RollupOutput} from 'rollup';
 import * as sassJs from 'sass';
 import sass from '../src/index';
 import {SassOptions} from "../src/types";
 import {error} from "../src/utils";
-import {inspect} from "util";
 
 const repoRoot = path.join(__dirname, '../'),
 
@@ -380,6 +379,70 @@ test('should support options.runtime', async t => {
     rslt = squash(unwrap(output));
 
   t.true([expectA, expectB, expectC].every(xs => rslt.includes(xs)));
+});
+
+test('When `sourcemap` isn\'t set adjacent source map files should not be output, and ' +
+  'rollup output chunk shouldn\'t contain a `map` entry', async t => {
+  const outputFilePath = path.join(tmpDir, 'with-no-adjacent-source-map.js'),
+
+    bundle = await rollup({
+      input: 'test/fixtures/basic/index.js',
+      plugins: [
+        sass({
+          options: sassOptions
+        }),
+      ],
+    }),
+
+    sourceMapFilePath = `${outputFilePath}.map`;
+
+  // Run test
+  await bundle.write({file: outputFilePath, format: 'esm'})
+    .then((rslt: RollupOutput): Promise<any> => {
+      // Check for output chunk
+      t.true(rslt && rslt.output && !!rslt.output.length, 'output should contain an output chunk');
+
+      // Check absence of 'map' entry in chunk
+      t.true(rslt.output[0].map === null || rslt.output[0].map === undefined,
+        'output chunk\'s `map` property should not be set.  It should equal `null` or `undefined`');
+
+      // Check for absence of source map file
+      return fs.access(sourceMapFilePath, fsConstants.R_OK)
+        .then(() => t.false(true, `'${sourceMapFilePath}' should not exist.`),
+          () => t.true(true)
+        );
+    });
+});
+
+test('When `sourcemap` is set, to `true`, adjacent source map file should be output, and ' +
+  'rollup output chunk should contain `map` entry', async t => {
+  const outputFilePath = path.join(tmpDir, 'with-adjacent-source-map.js'),
+
+    bundle = await rollup({
+      input: 'test/fixtures/basic/index.js',
+      plugins: [
+        sass({
+          options: sassOptions
+        }),
+      ],
+    }),
+
+    sourceMapFilePath = `${outputFilePath}.map`;
+
+  await bundle.write({file: outputFilePath, sourcemap: true, format: 'esm'})
+    .then((rslt: RollupOutput): Promise<any> => {
+      // Check for output chunk
+      t.true(rslt && rslt.output && !!rslt.output.length, 'output should contain an output chunk');
+
+      // Check for 'map' entry in chunk
+      t.true(!!rslt.output[0].map, 'rollup output output chunk\'s `map` property should be set');
+
+      // Check for source map file
+      return fs.readFile(sourceMapFilePath)
+        .then(contents => {
+          t.true(!!contents.toString(), `${sourceMapFilePath} should have been written.`);
+        });
+    });
 });
 
 after(async (): Promise<any> => {
