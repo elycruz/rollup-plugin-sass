@@ -125,7 +125,9 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
 
   defaultExcludes = 'node_modules/**';
 
-export default function plugin(options = {} as RollupPluginSassOptions): RollupPlugin {
+// Typescript syntax for CommonJs "default exports" compatible export
+// @reference https://www.typescriptlang.org/docs/handbook/modules.html#export--and-import--require
+export = function plugin(options = {} as RollupPluginSassOptions): RollupPlugin {
   const pluginOptions = Object.assign({
       runtime: sass,
       output: false,

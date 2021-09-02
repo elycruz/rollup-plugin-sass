@@ -21,7 +21,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-Object.defineProperty(exports, "__esModule", { value: true });
 const util_1 = require("util");
 const resolve_1 = __importDefault(require("resolve"));
 const sass = __importStar(require("sass"));
@@ -101,7 +100,7 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@)
         return `export default ${defaultExport};\n${restExports}`;
     });
 }, defaultIncludes = ['**/*.sass', '**/*.scss'], defaultExcludes = 'node_modules/**';
-function plugin(options = {}) {
+module.exports = function plugin(options = {}) {
     const pluginOptions = Object.assign({
         runtime: sass,
         output: false,
@@ -163,6 +162,5 @@ function plugin(options = {}) {
             return Promise.resolve(css);
         },
     };
-}
-exports.default = plugin;
+};
 //# sourceMappingURL=index.js.map
