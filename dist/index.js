@@ -96,8 +96,7 @@ module.exports = function plugin(options = {}) {
         insert: false
     }, options), { include = defaultIncludes, exclude = defaultExcludes, runtime: sassRuntime, options: incomingSassOptions = {} } = pluginOptions, filter = pluginutils_1.createFilter(include || '', exclude || ''), pluginState = {
         styles: [],
-        styleMaps: {},
-        priority: 0
+        styleMaps: {}
     };
     return {
         name: 'rollup-plugin-sass',
