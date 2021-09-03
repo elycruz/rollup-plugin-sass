@@ -1,6 +1,6 @@
 {
   "name": "rollup-plugin-sass",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "Rollup Sass files.",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -59,6 +59,7 @@
     "ava": "^3.15.0",
     "coveralls": "^3.1.1",
     "eslint": "^7.32.0",
+    "jsdom": "^17.0.0",
     "nyc": "^15.1.0",
     "rollup": "^1.32.1",
     "sinon": "^7.2.2",

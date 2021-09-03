@@ -53,10 +53,10 @@ export interface RollupPluginSassOptions {
   runtime?: any,
 }
 
-export interface SassImporterResult {
+export type SassImporterResult = null | {
   file?: string,
   contents?: string
-}
+} | Error;
 
 export type SassDoneFn<T extends SassImporterResult = SassImporterResult> =
   (result: T) => void | T;
