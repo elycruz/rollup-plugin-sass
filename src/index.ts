@@ -69,9 +69,6 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
 
     const {processor} = rollupOptions;
 
-    // Index to store results at
-    let _priority = state.priority++;
-
     return Promise.resolve()
       .then(() => !isFunction(processor) ? inCss + '' : processor(inCss, file))
       .then(result => {
@@ -90,22 +87,10 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
         return [outCss, restExports];
       })
       .then(([resolvedCss, restExports]) => {
-        // @todo Break state changes into separate method
-        const {styleMaps, styles} = state;
+        const {styleMaps} = state;
 
-        // Store output styles, for possible 'later' processing - depends on whether 'output' is a function or not
-        //  determined in `generateBundle`.
-        // ----
-        if (styleMaps[file]) {
-          styleMaps[file].content = resolvedCss;
-        } else {
-          const mapEntry = {
-            id: file,
-            content: resolvedCss,
-          };
-          styleMaps[file] = mapEntry;
-          styles[_priority] = mapEntry;
-        }
+        // Update bundle tracking entry with resolved content
+        styleMaps[file].content = resolvedCss;
 
         const out = JSON.stringify(resolvedCss);
 
@@ -149,11 +134,7 @@ export = function plugin(options = {} as RollupPluginSassOptions): RollupPlugin 
 
       // "";  Used, currently to ensure that we're not pushing style objects representing
       // the same file-path into `pluginState.styles` more than once.
-      styleMaps: {} as {[index: string]: {id?: string, content?: string}},
-
-      // Used to ensure that sass style bundle objects are stored in correct order - Since things happen
-      // asynchronously throughout the plugin we need to manually enforce their concatenation/compilation order.
-      priority: 0
+      styleMaps: {} as {[index: string]: {id?: string, content?: string}}
     };
 
   return {
@@ -169,8 +150,9 @@ export = function plugin(options = {} as RollupPluginSassOptions): RollupPlugin 
       if (!filter(filePath)) {
         return Promise.resolve();
       }
-
       const paths = [dirname(filePath), process.cwd()],
+
+       {styleMaps, styles} = pluginState,
 
         resolvedOptions = Object.assign({}, incomingSassOptions, {
           file: filePath,
@@ -179,6 +161,17 @@ export = function plugin(options = {} as RollupPluginSassOptions): RollupPlugin 
           includePaths: (incomingSassOptions.includePaths || []).concat(paths),
           importer: getImporterList(incomingSassOptions),
         });
+
+      // Setup resolved css output bundle tracking, for use later in `generateBundle` method.
+      // ----
+      if (!styleMaps[filePath]) {
+        const mapEntry = {
+          id: filePath,
+          content: '', // Populated after `sass.render`
+        };
+        styleMaps[filePath] = mapEntry;
+        styles.push(mapEntry);
+      }
 
       return promisify(sassRuntime.render.bind(sassRuntime))(resolvedOptions)
         .then(res => processRenderResponse(pluginOptions, filePath, pluginState, res.css.toString().trim())
@@ -198,18 +191,15 @@ export = function plugin(options = {} as RollupPluginSassOptions): RollupPlugin 
         return Promise.resolve();
       }
 
-      const stylesToProcess = pluginState.styles.filter(Boolean),
-        css = stylesToProcess.map(style => style.content).join(''),
+      const {styles} = pluginState,
+        css = styles.map(style => style.content).join(''),
         {output, insert} = pluginOptions;
-
-      pluginState.styles = stylesToProcess;
-      pluginState.priority = stylesToProcess.length;
 
       if (typeof output === 'string') {
         return fs.promises.mkdir(dirname(output as string), {recursive: true})
           .then(() => fs.promises.writeFile(output as string, css));
       } else if (typeof output === 'function') {
-        return Promise.resolve((output as RollupPluginSassOutputFn)(css, stylesToProcess));
+        return Promise.resolve((output as RollupPluginSassOutputFn)(css, styles));
       } else if (!insert && generateOptions.file && output === true) {
         let dest = generateOptions.file;
 

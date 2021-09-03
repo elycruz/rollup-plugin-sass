@@ -61,7 +61,6 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@)
     if (!inCss)
         return;
     const { processor } = rollupOptions;
-    let _priority = state.priority++;
     return Promise.resolve()
         .then(() => !utils_1.isFunction(processor) ? inCss + '' : processor(inCss, file))
         .then(result => {
@@ -77,18 +76,8 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@)
         return [outCss, restExports];
     })
         .then(([resolvedCss, restExports]) => {
-        const { styleMaps, styles } = state;
-        if (styleMaps[file]) {
-            styleMaps[file].content = resolvedCss;
-        }
-        else {
-            const mapEntry = {
-                id: file,
-                content: resolvedCss,
-            };
-            styleMaps[file] = mapEntry;
-            styles[_priority] = mapEntry;
-        }
+        const { styleMaps } = state;
+        styleMaps[file].content = resolvedCss;
         const out = JSON.stringify(resolvedCss);
         let defaultExport = `""`;
         if (rollupOptions.insert) {
@@ -121,13 +110,21 @@ module.exports = function plugin(options = {}) {
             if (!filter(filePath)) {
                 return Promise.resolve();
             }
-            const paths = [path_1.dirname(filePath), process.cwd()], resolvedOptions = Object.assign({}, incomingSassOptions, {
+            const paths = [path_1.dirname(filePath), process.cwd()], { styleMaps, styles } = pluginState, resolvedOptions = Object.assign({}, incomingSassOptions, {
                 file: filePath,
                 data: incomingSassOptions.data && `${incomingSassOptions.data}${code}`,
                 indentedSyntax: MATCH_SASS_FILENAME_RE.test(filePath),
                 includePaths: (incomingSassOptions.includePaths || []).concat(paths),
                 importer: getImporterList(incomingSassOptions),
             });
+            if (!styleMaps[filePath]) {
+                const mapEntry = {
+                    id: filePath,
+                    content: '',
+                };
+                styleMaps[filePath] = mapEntry;
+                styles.push(mapEntry);
+            }
             return util_1.promisify(sassRuntime.render.bind(sassRuntime))(resolvedOptions)
                 .then(res => processRenderResponse(pluginOptions, filePath, pluginState, res.css.toString().trim())
                 .then(result => [res, result]))
@@ -140,15 +137,13 @@ module.exports = function plugin(options = {}) {
             if (!isWrite || (!pluginOptions.insert && (!pluginState.styles.length || pluginOptions.output === false))) {
                 return Promise.resolve();
             }
-            const stylesToProcess = pluginState.styles.filter(Boolean), css = stylesToProcess.map(style => style.content).join(''), { output, insert } = pluginOptions;
-            pluginState.styles = stylesToProcess;
-            pluginState.priority = stylesToProcess.length;
+            const { styles } = pluginState, css = styles.map(style => style.content).join(''), { output, insert } = pluginOptions;
             if (typeof output === 'string') {
                 return fs.promises.mkdir(path_1.dirname(output), { recursive: true })
                     .then(() => fs.promises.writeFile(output, css));
             }
             else if (typeof output === 'function') {
-                return Promise.resolve(output(css, stylesToProcess));
+                return Promise.resolve(output(css, styles));
             }
             else if (!insert && generateOptions.file && output === true) {
                 let dest = generateOptions.file;
