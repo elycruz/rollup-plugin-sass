@@ -5,10 +5,11 @@
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "scripts": {
-    "prepublishOnly": "npm i && npm run build && npm run test",
+    "prepare": "npm run build && npm test",
     "build": "tsc --project tsconfig.json",
-    "test": "nyc --reporter=html --reporter=text ava ./test/*.test.ts -s",
-    "coverage": "nyc report --reporter=text-lcov | coveralls"
+    "test": "nyc --reporter=html --reporter=text ava ./test/*.test.ts -s && npm run test:rollup.config.spec.ts",
+    "coverage": "nyc report --reporter=text-lcov | coveralls",
+    "test:rollup.config.spec.ts": "tsc --project tsconfig.spec.json --noEmit"
   },
   "standard": {
     "ignore": [
@@ -26,6 +27,9 @@
     "sass"
   ],
   "author": "BinRui.Guan <differui@gmail.com>",
+  "contributors": [
+    "elycruz <elycruz@elycruz.com> (https://github.com/elycruz)"
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/differui/rollup-plugin-sass/issues"

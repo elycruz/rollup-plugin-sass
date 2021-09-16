@@ -25,6 +25,34 @@ export default {
 })
 ```
 
+#### rollup.config.ts
+
+Add `allowSyntheticDefaultImports`, or `esModuleInterop` (enables `allowSyntheticDefaultImports`), to tsconfig.json:
+
+```json
+{
+  //...
+ 
+  "compilerOptions": {
+    "esModuleInterOp": true,
+    // ...
+  },
+}
+```
+
+Reference: (https://www.typescriptlang.org/tsconfig#esModuleInterop)
+
+Write rollup.config.ts:
+
+```typescript
+// rollup.config.ts
+import sass from 'rollup-plugin-sass';
+
+// ...
+```
+
+Profit.
+
 ## Options
 
 ### `output`
