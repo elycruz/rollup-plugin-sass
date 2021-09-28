@@ -24,3 +24,12 @@ test('should insertStyle works', t => {
   t.true(styleSheet.textContent.replace(newLineRegex, '') === cssStr, 'stylesheet\'s content should equal returned css string');
   t.true(styleSheet.type === 'text/css', 'Should contain `type` attrib. equal to "text/css"');
 });
+
+test("insertStyle shouldn't choke when window is undefined", t => {
+  const saved = global['window'];
+  delete global['window'];
+  t.throws(() => !window);
+  t.notThrows(() => typeof window === 'undefined');
+  t.notThrows(() => insertStyle('css'));
+  global['window'] = saved;
+})

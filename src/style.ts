@@ -5,7 +5,7 @@
  * @return {String} css style
  */
 export function insertStyle(css) {
-  if (!css || !window) {
+  if (!css || typeof window === 'undefined') {
     return;
   }
 
