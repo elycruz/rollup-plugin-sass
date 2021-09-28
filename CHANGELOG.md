@@ -1,3 +1,12 @@
+## [1.2.9](https://github.com/differui/rollup-plugin-sass/releases/tag/1.2.9)
+
+### Fixes:
+9b938ee - moved insertStyle test to correct file
+b940849 - insertStyle no longer throws a fatal error when window is undefined
+
+### Other:
+c9332d0 - #88 - Added 'master' branch to 'dev-build-and-test' git workflow file.
+
 ## [1.2.6](https://github.com/differui/rollup-plugin-sass/releases/tag/1.2.6)
 
 ### Fixes: 
