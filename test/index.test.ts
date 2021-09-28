@@ -445,6 +445,15 @@ test('When `sourcemap` is set, to `true`, adjacent source map file should be out
     });
 });
 
+import {insertStyle} from '../src/style';
+test("insertStyle doesn't choke if window is undefined", async t => {
+  const noop = () => {}
+  t.throws(() => { if (!window) noop() });
+  t.notThrows(() => { if (typeof window === 'undefined') noop() });
+  t.notThrows(() => insertStyle('css'));
+})
+
+
 after(async (): Promise<any> => {
   return fs.rmdir(tmpDir, {recursive: true})
     .catch(error);
