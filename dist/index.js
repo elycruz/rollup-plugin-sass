@@ -1,25 +1,13 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
     return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 const util_1 = require("util");
 const resolve_1 = __importDefault(require("resolve"));
@@ -39,9 +27,12 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@)
             basedir: path_1.dirname(importer),
             extensions: ['.scss', '.sass'],
         };
-        util_1.promisify(resolve_1.default)(moduleUrl, resolveOptions)
-            .then(file => done({ file }))
-            .catch(err => {
+        let file;
+        try {
+            file = resolve_1.default.sync(moduleUrl, resolveOptions);
+            done({ file });
+        }
+        catch (err) {
             utils_1.warn('[rollup-plugin-sass]: Recovered from error: ', err);
             if (sassOptions.importer && sassOptions.importer.length > 1) {
                 done(null);
@@ -50,11 +41,7 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@)
             done({
                 file: url,
             });
-        })
-            .catch(err => {
-            utils_1.error(err);
-            done(new Error(err));
-        });
+        }
     };
     return [importer1].concat(sassOptions.importer || []);
 }, processRenderResponse = (rollupOptions, file, state, inCss) => {
