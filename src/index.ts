@@ -6,14 +6,13 @@ import * as fs from 'fs';
 import {createFilter} from '@rollup/pluginutils';
 import {insertStyle} from './style';
 import {
-  ResolvePromisified,
   RollupAssetInfo,
   RollupChunkInfo,
   RollupPluginSassOptions,
   RollupPluginSassOutputFn,
   SassOptions
 } from "./types";
-import {error, isFunction, isObject, isString, warn} from "./utils";
+import {isFunction, isObject, isString, warn} from "./utils";
 
 // @note Rollup is added as a "devDependency" so no actual symbols should be imported.
 //  Interfaces and non-concrete types are ok.
@@ -41,26 +40,23 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
         extensions: ['.scss', '.sass'],
       };
 
-      (promisify(resolve) as ResolvePromisified)(moduleUrl, resolveOptions)
-        .then(file => done({file}))
-        .catch(err => {
-          warn('[rollup-plugin-sass]: Recovered from error: ', err);
-          // If importer has sibling importers then exit and allow one of the other
-          //  importers to attempt file path resolution.
-          if (sassOptions.importer && sassOptions.importer.length > 1) {
-            done(null);
-            return;
-          }
-          done({
-            file: url,
-          });
-        })
+      let file: string;
 
-        // Catch any further errors
-        .catch(err => {
-          error(err); // Log error
-          done(new Error(err));
+      try {
+        file = resolve.sync(moduleUrl, resolveOptions);
+        done({file});
+      } catch (err) {
+        warn('[rollup-plugin-sass]: Recovered from error: ', err);
+        // If importer has sibling importers then exit and allow one of the other
+        //  importers to attempt file path resolution.
+        if (sassOptions.importer && sassOptions.importer.length > 1) {
+          done(null);
+          return;
+        }
+        done({
+          file: url,
         });
+      }
     }
     return [importer1].concat(sassOptions.importer || [])
   },
