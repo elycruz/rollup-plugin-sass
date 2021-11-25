@@ -6,6 +6,7 @@ import * as fs from 'fs';
 import {createFilter} from '@rollup/pluginutils';
 import {insertStyle} from './style';
 import {
+  ResolvePromisified,
   RollupAssetInfo,
   RollupChunkInfo,
   RollupPluginSassOptions,
@@ -40,7 +41,7 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
         extensions: ['.scss', '.sass'],
       };
 
-      promisify(resolve)(moduleUrl, resolveOptions)
+      (promisify(resolve) as ResolvePromisified)(moduleUrl, resolveOptions)
         .then(file => done({file}))
         .catch(err => {
           warn('[rollup-plugin-sass]: Recovered from error: ', err);

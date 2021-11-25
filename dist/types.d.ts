@@ -79,3 +79,7 @@ export interface RollupChunkInfo {
     referencedFiles: string[];
     type: 'chunk';
 }
+export declare type ResolvePromisified = (xs: string, options: {
+    basedir: string;
+    extensions: string[];
+}) => Promise<string>;

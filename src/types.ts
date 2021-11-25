@@ -132,3 +132,8 @@ export interface RollupChunkInfo {
   referencedFiles: string[],
   type: 'chunk',
 }
+
+/**
+ * Type for "promisified" `resolve` method.
+ */
+export type ResolvePromisified = (xs: string, options: {basedir: string, extensions: string[]}) => Promise<string>;
