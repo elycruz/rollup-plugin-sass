@@ -27,9 +27,12 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@)
             basedir: path_1.dirname(importer),
             extensions: ['.scss', '.sass'],
         };
-        util_1.promisify(resolve_1.default)(moduleUrl, resolveOptions)
-            .then(file => done({ file }))
-            .catch(err => {
+        let file;
+        try {
+            file = resolve_1.default.sync(moduleUrl, resolveOptions);
+            done({ file });
+        }
+        catch (err) {
             utils_1.warn('[rollup-plugin-sass]: Recovered from error: ', err);
             if (sassOptions.importer && sassOptions.importer.length > 1) {
                 done(null);
@@ -38,11 +41,7 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@)
             done({
                 file: url,
             });
-        })
-            .catch(err => {
-            utils_1.error(err);
-            done(new Error(err));
-        });
+        }
     };
     return [importer1].concat(sassOptions.importer || []);
 }, processRenderResponse = (rollupOptions, file, state, inCss) => {
