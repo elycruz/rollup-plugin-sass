@@ -22,7 +22,7 @@ export default {
   plugins: [
     sass()
   ]
-})
+}
 ```
 
 #### rollup.config.ts
@@ -31,12 +31,9 @@ Add `allowSyntheticDefaultImports`, or `esModuleInterop` (enables `allowSyntheti
 
 ```json
 {
-  //...
- 
   "compilerOptions": {
-    "esModuleInterOp": true,
-    // ...
-  },
+    "esModuleInterOp": true
+  }
 }
 ```
 
