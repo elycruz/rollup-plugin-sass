@@ -174,10 +174,16 @@ export = function plugin(options = {} as RollupPluginSassOptions): RollupPlugin 
         .then(res => processRenderResponse(pluginOptions, filePath, pluginState, res.css.toString().trim())
           .then(result => [res, result])
         )
-        .then(([res, codeResult]) => ({
-          code: codeResult,
-          map: {mappings: res.map ? res.map.toString() : ''},
-        })); // @note do not `catch` here - let error propagate to rollup level.
+        .then(([res, codeResult]) => {
+
+            res.stats.includedFiles.forEach(i => {this.addWatchFile(i)})
+
+            return {
+                code: codeResult,
+                map: {mappings: res.map ? res.map.toString() : ''}
+            }
+
+        }); // @note do not `catch` here - let error propagate to rollup level.
     },
 
     generateBundle(generateOptions: { file?: string },
