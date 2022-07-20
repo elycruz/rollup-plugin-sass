@@ -3,7 +3,7 @@
  * @description Removes '{repo-root}/ts3.5' directory, re-creates it, runs
  *  `npm run downlevel-dts` from repo-root, and copies the root tsconfig.json file into new directory.
  */
- const fs = require('fs').promises,
+const fs = require('fs').promises,
   path = require('path'),
   {spawn} = require('child_process'),
 
@@ -15,6 +15,7 @@
   tsConfigFilePath = path.join(rootDir, 'tsconfig.json'),
   tsConfigOutFilePath = path.join(outputDir, 'tsconfig.json');
 
+// Run 'clean-and-run' process
 (async () =>
     fs.rmdir(outputDir, {recursive: true})
 
@@ -37,7 +38,7 @@
         // Handle process end
         subProcess.on('close', (code) => code !== 0 ?
           reject(`Child process existed with code ${code}.\n`) :
-          resolve('Process completed successfully.\n')
+          resolve('"clean-and-run-downlevel-dts" completed successfully.\n')
         );
 
         // Catch process start errors
