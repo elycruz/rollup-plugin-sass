@@ -114,10 +114,13 @@ module.exports = function plugin(options = {}) {
             return util_1.promisify(sassRuntime.render.bind(sassRuntime))(resolvedOptions)
                 .then(res => processRenderResponse(pluginOptions, filePath, pluginState, res.css.toString().trim())
                 .then(result => [res, result]))
-                .then(([res, codeResult]) => ({
-                code: codeResult,
-                map: { mappings: res.map ? res.map.toString() : '' },
-            }));
+                .then(([res, codeResult]) => {
+                res.stats.includedFiles.forEach(i => { this.addWatchFile(i); });
+                return {
+                    code: codeResult,
+                    map: { mappings: res.map ? res.map.toString() : '' }
+                };
+            });
         },
         generateBundle(generateOptions, bundle, isWrite) {
             if (!isWrite || (!pluginOptions.insert && (!pluginState.styles.length || pluginOptions.output === false))) {
