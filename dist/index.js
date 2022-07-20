@@ -1,13 +1,29 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
     return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 const util_1 = require("util");
 const resolve_1 = __importDefault(require("resolve"));
@@ -24,7 +40,7 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@)
         }
         const moduleUrl = url.slice(1);
         const resolveOptions = {
-            basedir: path_1.dirname(importer),
+            basedir: (0, path_1.dirname)(importer),
             extensions: ['.scss', '.sass'],
         };
         let file;
@@ -33,7 +49,7 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@)
             done({ file });
         }
         catch (err) {
-            utils_1.warn('[rollup-plugin-sass]: Recovered from error: ', err);
+            (0, utils_1.warn)('[rollup-plugin-sass]: Recovered from error: ', err);
             if (sassOptions.importer && sassOptions.importer.length > 1) {
                 done(null);
                 return;
@@ -49,12 +65,12 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@)
         return;
     const { processor } = rollupOptions;
     return Promise.resolve()
-        .then(() => !utils_1.isFunction(processor) ? inCss + '' : processor(inCss, file))
+        .then(() => !(0, utils_1.isFunction)(processor) ? inCss + '' : processor(inCss, file))
         .then(result => {
-        if (!utils_1.isObject(result)) {
+        if (!(0, utils_1.isObject)(result)) {
             return [result, ''];
         }
-        if (!utils_1.isString(result.css)) {
+        if (!(0, utils_1.isString)(result.css)) {
             throw new Error('You need to return the styles using the `css` property. ' +
                 'See https://github.com/differui/rollup-plugin-sass#processor');
         }
@@ -81,7 +97,7 @@ module.exports = function plugin(options = {}) {
         runtime: sass,
         output: false,
         insert: false
-    }, options), { include = defaultIncludes, exclude = defaultExcludes, runtime: sassRuntime, options: incomingSassOptions = {} } = pluginOptions, filter = pluginutils_1.createFilter(include || '', exclude || ''), pluginState = {
+    }, options), { include = defaultIncludes, exclude = defaultExcludes, runtime: sassRuntime, options: incomingSassOptions = {} } = pluginOptions, filter = (0, pluginutils_1.createFilter)(include || '', exclude || ''), pluginState = {
         styles: [],
         styleMaps: {}
     };
@@ -96,7 +112,7 @@ module.exports = function plugin(options = {}) {
             if (!filter(filePath)) {
                 return Promise.resolve();
             }
-            const paths = [path_1.dirname(filePath), process.cwd()], { styleMaps, styles } = pluginState, resolvedOptions = Object.assign({}, incomingSassOptions, {
+            const paths = [(0, path_1.dirname)(filePath), process.cwd()], { styleMaps, styles } = pluginState, resolvedOptions = Object.assign({}, incomingSassOptions, {
                 file: filePath,
                 data: incomingSassOptions.data && `${incomingSassOptions.data}${code}`,
                 indentedSyntax: MATCH_SASS_FILENAME_RE.test(filePath),
@@ -111,7 +127,7 @@ module.exports = function plugin(options = {}) {
                 styleMaps[filePath] = mapEntry;
                 styles.push(mapEntry);
             }
-            return util_1.promisify(sassRuntime.render.bind(sassRuntime))(resolvedOptions)
+            return (0, util_1.promisify)(sassRuntime.render.bind(sassRuntime))(resolvedOptions)
                 .then(res => processRenderResponse(pluginOptions, filePath, pluginState, res.css.toString().trim())
                 .then(result => [res, result]))
                 .then(([res, codeResult]) => {
@@ -128,7 +144,7 @@ module.exports = function plugin(options = {}) {
             }
             const { styles } = pluginState, css = styles.map(style => style.content).join(''), { output, insert } = pluginOptions;
             if (typeof output === 'string') {
-                return fs.promises.mkdir(path_1.dirname(output), { recursive: true })
+                return fs.promises.mkdir((0, path_1.dirname)(output), { recursive: true })
                     .then(() => fs.promises.writeFile(output, css));
             }
             else if (typeof output === 'function') {
@@ -140,7 +156,7 @@ module.exports = function plugin(options = {}) {
                     dest = dest.slice(0, -3);
                 }
                 dest = `${dest}.css`;
-                return fs.promises.mkdir(path_1.dirname(dest), { recursive: true })
+                return fs.promises.mkdir((0, path_1.dirname)(dest), { recursive: true })
                     .then(() => fs.promises.writeFile(dest, css));
             }
             return Promise.resolve(css);
