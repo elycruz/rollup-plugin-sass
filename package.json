@@ -4,9 +4,18 @@
   "description": "Rollup Sass files.",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
+  "typesVersions": {
+    "<4.0": {
+      "*": [
+        "ts3.5/*"
+      ]
+    }
+  },
   "scripts": {
     "prepare": "npm run build && npm test",
-    "build": "tsc --project tsconfig.json",
+    "build": "npm run build-downlevel-dts && tsc --project tsconfig.json",
+    "build-downlevel-dts": "node scripts/clean-and-run-downlevel-dts.js",
+    "downlevel-dts": "downlevel-dts . ts3.5 [--to=3.5]",
     "test": "nyc --reporter=html --reporter=text ava ./test/*.test.ts -s && npm run test:rollup.config.spec.ts",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
     "test:rollup.config.spec.ts": "tsc --project tsconfig.spec.json --noEmit"
@@ -59,6 +68,7 @@
     "@types/sass": "^1.16.1",
     "ava": "^4.3.1",
     "coveralls": "^3.1.1",
+    "downlevel-dts": "^0.10.0",
     "eslint": "^7.32.0",
     "jsdom": "^17.0.0",
     "nyc": "^15.1.0",
