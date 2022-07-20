@@ -1,6 +1,6 @@
 import {promises as fs, constants as fsConstants} from 'fs';
 import * as path from 'path';
-import test, {after, before} from 'ava';
+import test from 'ava';
 import sinon from 'sinon';
 import {OutputOptions, rollup, RollupOutput} from 'rollup';
 import * as sassJs from 'sass';
@@ -41,7 +41,7 @@ const repoRoot = path.join(__dirname, '../'),
 
 let expectA, expectB, expectC, expectD, expectE;
 
-before(async () => {
+test.before(async () => {
   const mkDir = () => fs.mkdir(tmpDir);
 
   await fs.rmdir(tmpDir, {recursive: true})
@@ -445,7 +445,7 @@ test('When `sourcemap` is set, to `true`, adjacent source map file should be out
     });
 });
 
-after(async (): Promise<any> => {
+test.after(async (): Promise<any> => {
   return fs.rmdir(tmpDir, {recursive: true})
     .catch(error);
 });
