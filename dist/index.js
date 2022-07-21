@@ -34,29 +34,30 @@ const pluginutils_1 = require("@rollup/pluginutils");
 const style_1 = require("./style");
 const utils_1 = require("./utils");
 const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i, insertFnName = '___$insertStyle', getImporterList = (sassOptions) => {
-    const importer1 = (url, importer, done) => {
+    let lastResult = Promise.resolve();
+    const importer1 = (url, prevUrl, done) => {
         if (!MATCH_NODE_MODULE_RE.test(url)) {
             return null;
         }
         const moduleUrl = url.slice(1);
         const resolveOptions = {
-            basedir: (0, path_1.dirname)(importer),
+            basedir: (0, path_1.dirname)(prevUrl),
             extensions: ['.scss', '.sass'],
         };
         let file;
         try {
             file = resolve_1.default.sync(moduleUrl, resolveOptions);
-            done({ file });
+            lastResult = lastResult.then(() => done({ file }));
         }
         catch (err) {
             (0, utils_1.warn)('[rollup-plugin-sass]: Recovered from error: ', err);
             if (sassOptions.importer && sassOptions.importer.length > 1) {
-                done(null);
+                lastResult = lastResult.then(() => done(null));
                 return;
             }
-            done({
+            lastResult = lastResult.then(() => done({
                 file: url,
-            });
+            }));
         }
     };
     return [importer1].concat(sassOptions.importer || []);

@@ -16,10 +16,11 @@ export interface RollupPluginSassOptions {
     output?: boolean | string | RollupPluginSassOutputFn;
     runtime?: any;
 }
-export declare type SassImporterResult = null | {
-    file?: string;
-    contents?: string;
-} | Error;
+export declare type SassImporterResult = {
+    file: string;
+} | {
+    contents: string;
+} | Error | null;
 export declare type SassDoneFn<T extends SassImporterResult = SassImporterResult> = (result: T) => void | T;
 export declare type SassImporter<T extends SassImporterResult = SassImporterResult> = (url: string, prev: string, done: SassDoneFn<T>) => void | T;
 export interface SassFunctionsObject {
