@@ -44,9 +44,8 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/, MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@)
             basedir: (0, path_1.dirname)(prevUrl),
             extensions: ['.scss', '.sass'],
         };
-        let file;
         try {
-            file = resolve_1.default.sync(moduleUrl, resolveOptions);
+            const file = resolve_1.default.sync(moduleUrl, resolveOptions);
             lastResult = lastResult.then(() => done({ file }));
         }
         catch (err) {
