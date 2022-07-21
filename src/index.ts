@@ -187,6 +187,7 @@ export = function plugin(options = {} as RollupPluginSassOptions): RollupPlugin 
         )
         .then(([res, codeResult]) => {
 
+            // @todo Do we need to filter this call so it only occurs when rollup is in 'watch' mode?
             res.stats.includedFiles.forEach(i => {this.addWatchFile(i)});
 
             return {
