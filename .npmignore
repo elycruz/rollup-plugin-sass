@@ -1,0 +1,14 @@
+rollup*
+tsconfig*
+CHANGELOG.md
+UNALLOCATED*
+.editorconfig
+.gitignore
+test/
+src/
+scripts/
+coverage/
+.nyc_output/
+.idea/
+.github/
+.circleci/

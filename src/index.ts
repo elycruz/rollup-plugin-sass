@@ -6,6 +6,7 @@ import * as fs from 'fs';
 import {createFilter} from '@rollup/pluginutils';
 import {insertStyle} from './style';
 import {
+  SassImporterResult,
   RollupAssetInfo,
   RollupChunkInfo,
   RollupPluginSassOptions,
@@ -29,33 +30,43 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
    * @see https://sass-lang.com/documentation/js-api#importer
    */
   getImporterList = (sassOptions: SassOptions) => {
-    const importer1 = (url, importer, done) => {
+    // `Promise` to chain all `importer1` calls to;  E.g.,  subsequent `importer1` calls won't call `done` until previous `importer1` calls have called `done` (import order enforcement) - Required since importer below is actually 'async'.
+    let lastResult = Promise.resolve();
+
+    /**
+     * Legacy Sass (*.scss/*.sass) file importer (works in new, and older, versions of `sass` module).
+     * @see https://sass-lang.com/documentation/js-api/modules#LegacyAsyncImporter
+     * @param {string} url - Url found in `@import`/`@use`, found in parent sass file, exactly as it appears in sass file.
+     * @param {string} prevUrl - Url of file that contains '@import' rule for `url`.
+     * @param {(result: LegacyImporterResult | SassImporterResult) => void} done - Signals import completion.  Note: `LegacyImporterResult`, and `SassImporterResult`, are the same here - We've defined the type for out plugin, since older versions of sass don't have the type defined amongst their types.
+     * @returns {void}
+     */
+    const importer1 = (url: string, prevUrl: string, done: (rslt: SassImporterResult) => void): void => {
       if (!MATCH_NODE_MODULE_RE.test(url)) {
         return null;
       }
 
       const moduleUrl = url.slice(1);
       const resolveOptions = {
-        basedir: dirname(importer),
+        basedir: dirname(prevUrl),
         extensions: ['.scss', '.sass'],
       };
 
-      let file: string;
-
+      // @todo This block should run as a promise instead, will help ensure we're not blocking the thread it is running on, even though `sass` is probably already running the importer in one.
       try {
-        file = resolve.sync(moduleUrl, resolveOptions);
-        done({file});
+        const file = resolve.sync(moduleUrl, resolveOptions);
+        lastResult = lastResult.then(() => done({file}));
       } catch (err) {
         warn('[rollup-plugin-sass]: Recovered from error: ', err);
         // If importer has sibling importers then exit and allow one of the other
         //  importers to attempt file path resolution.
         if (sassOptions.importer && sassOptions.importer.length > 1) {
-          done(null);
+          lastResult = lastResult.then(() => done(null));
           return;
         }
-        done({
+        lastResult = lastResult.then(() => done({
           file: url,
-        });
+        }));
       }
     }
     return [importer1].concat(sassOptions.importer || [])

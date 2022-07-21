@@ -1,12 +1,21 @@
 {
   "name": "rollup-plugin-sass",
-  "version": "1.2.12",
+  "version": "1.2.13-alpha.1",
   "description": "Rollup Sass files.",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
+  "typesVersions": {
+    "<4.0": {
+      "*": [
+        "ts3.5/*"
+      ]
+    }
+  },
   "scripts": {
     "prepare": "npm run build && npm test",
-    "build": "tsc --project tsconfig.json",
+    "build": "npm run build-downlevel-dts && tsc --project tsconfig.json",
+    "build-downlevel-dts": "node scripts/clean-and-run-downlevel-dts.js",
+    "downlevel-dts": "downlevel-dts . ts3.5 [--to=3.5]",
     "test": "nyc --reporter=html --reporter=text ava ./test/*.test.ts -s && npm run test:rollup.config.spec.ts",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
     "test:rollup.config.spec.ts": "tsc --project tsconfig.spec.json --noEmit"
@@ -52,19 +61,21 @@
     "sass": "^1.7.2"
   },
   "devDependencies": {
+    "@ava/typescript": "^3.0.1",
     "@types/node": "^15.14.9",
     "@types/resolve": "^0.0.8",
     "@types/rollup": "^0.54.0",
     "@types/sass": "^1.16.1",
-    "ava": "^3.15.0",
+    "ava": "^4.3.1",
     "coveralls": "^3.1.1",
+    "downlevel-dts": "^0.10.0",
     "eslint": "^7.32.0",
     "jsdom": "^17.0.0",
     "nyc": "^15.1.0",
     "rollup": "^1.32.1",
     "sinon": "^7.2.2",
-    "ts-node": "^10.2.0",
-    "typescript": "3.5.3"
+    "ts-node": "^10.9.1",
+    "typescript": "^4.7.4"
   },
   "engines": {
     "node": ">=10"

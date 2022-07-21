@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "target": "es2015",
+    "outDir": "./dist",
+    "declaration": true,
+    "declarationDir": "./dist",
+    "lib": [
+      "es2015",
+      "dom"
+    ],
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "noImplicitAny": false,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "downlevelIteration": true,
+    "importHelpers": false,
+    "typeRoots": [
+      "node_modules/@types"
+    ]
+  },
+  "include": [
+    "./src/*"
+  ],
+  "exclude": [
+    "**/node_modules/**"
+  ]
+}

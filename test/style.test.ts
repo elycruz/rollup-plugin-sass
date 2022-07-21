@@ -1,4 +1,4 @@
-import test, {before} from 'ava';
+import test from 'ava';
 import {readFileSync} from 'fs';
 import {insertStyle} from '../src/style';
 import jsdom from 'jsdom';
@@ -6,7 +6,7 @@ import jsdom from 'jsdom';
 const expectA = readFileSync('test/assets/expect_a.css').toString();
 const newLineRegex = /[\n\r\f\t]+/g;
 
-before(async () => {
+test.before(async () => {
   const dom = new jsdom.JSDOM(`<!Doctype html>
     <html>
       <head></head>
