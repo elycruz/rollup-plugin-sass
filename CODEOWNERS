@@ -1,0 +1,21 @@
+# CODEOWNERS file
+# ----
+# @see following link for syntax:
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+# ----
+
+# Protected files
+# ----
+.circleci @elycruz
+.editorconfig @elycruz
+.gitignore @elycruz
+.npmignore @elycruz
+.github/ @elycruz
+./*.json @elycruz
+
+LICENSE @elycruz
+README @elycruz
+rollup* @elycruz
+
+package-lock.json
+
