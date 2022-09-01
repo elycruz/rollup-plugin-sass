@@ -2,14 +2,14 @@
 # For more information see: https://help.github.com/actions/language-and-framework-guides/publishing-nodejs-packages
 # and https://docs.github.com/en/actions/guides/publishing-nodejs-packages#publishing-packages-to-the-npm-registry .
 
-name: Node.js Package
+name: Publish
 
 on:
   release:
     types: [created]
 
 jobs:
-  build-test-publish-npm:
+  build-test-publish-to-npm:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -22,7 +22,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
-  build-test-publish-gpr:
+  build-test-publish-to-github-pkgs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
