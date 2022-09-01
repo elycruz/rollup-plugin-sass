@@ -161,4 +161,4 @@ sass({
 
 ## License
 
-[MIT](./LICENSE) &copy; [BinRui.Guan](mailto:differui@gmail.com), [ElyCruz](https://github.com/elycruz)
+[MIT](./LICENSE)
