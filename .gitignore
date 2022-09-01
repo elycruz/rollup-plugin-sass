@@ -1,7 +1,9 @@
 .DS_Store
-.nyc_output
+.dist/
 .idea/
-
-/coverage
-/node_modules
+.nyc_output/
 .tests-output/
+
+coverage/
+node_modules/
+ts3.5/

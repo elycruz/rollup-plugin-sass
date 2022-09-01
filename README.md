@@ -1,4 +1,4 @@
-rollup-plugin-sass [![CircleCI](https://img.shields.io/circleci/project/github/differui/rollup-plugin-sass/master.svg?style=flat-square)](https://circleci.com/gh/differui/rollup-plugin-sass) [![issues](https://img.shields.io/github/issues/differui/rollup-plugin-sass.svg?style=flat-square)](https://www.npmjs.com/package/rollup-plugin-sass) [![npm](https://img.shields.io/npm/v/rollup-plugin-sass.svg?style=flat-square)](https://www.npmjs.com/package/rollup-plugin-sass) [![mit](https://img.shields.io/npm/l/rollup-plugin-sass.svg?style=flat-square)](https://opensource.org/licenses/MIT) [![Coverage Status](https://coveralls.io/repos/github/differui/rollup-plugin-sass/badge.svg?branch=master)](https://coveralls.io/github/differui/rollup-plugin-sass?branch=master)
+rollup-plugin-sass ![build](https://github.com/elycruz/rollup-plugin-sass/actions/workflows/dev-build-and-test.yml/badge.svg)[![CircleCI](https://img.shields.io/circleci/project/github/differui/rollup-plugin-sass/master.svg?style=flat-square)](https://circleci.com/gh/differui/rollup-plugin-sass) [![issues](https://img.shields.io/github/issues/differui/rollup-plugin-sass.svg?style=flat-square)](https://www.npmjs.com/package/rollup-plugin-sass) [![npm](https://img.shields.io/npm/v/rollup-plugin-sass.svg?style=flat-square)](https://www.npmjs.com/package/rollup-plugin-sass) [![mit](https://img.shields.io/npm/l/rollup-plugin-sass.svg?style=flat-square)](https://opensource.org/licenses/MIT) [![Coverage Status](https://coveralls.io/repos/github/differui/rollup-plugin-sass/badge.svg?branch=master)](https://coveralls.io/github/differui/rollup-plugin-sass?branch=master)
 =====
 
 ## Installation
@@ -155,6 +155,10 @@ sass({
 })
 ```
 
+## Maintainers
+
+- [ElyCruz](https://github.com/elycruz)
+
 ## License
 
-MIT &copy; [BinRui.Guan](mailto:differui@gmail.com)
+[MIT](./LICENSE.md) &copy; [BinRui.Guan](mailto:differui@gmail.com), [ElyCruz](https://github.com/elycruz)
