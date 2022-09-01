@@ -19,9 +19,6 @@ import {isFunction, isObject, isString, warn} from "./utils";
 //  Interfaces and non-concrete types are ok.
 import {Plugin as RollupPlugin} from 'rollup';
 
-export * from './style';
-export * from './types';
-
 const MATCH_SASS_FILENAME_RE = /\.sass$/,
 
   MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i,
