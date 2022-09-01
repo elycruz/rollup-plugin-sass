@@ -162,4 +162,4 @@ sass({
 ## License
 
 [MIT](./LICENSE) &copy; 2022 [elycruz](https://github.com/elycruz), 
-@copy; 2016 [BinRui.Guan](mailto:differui@gmail.com)
+&copy; 2016 [BinRui.Guan](mailto:differui@gmail.com)
