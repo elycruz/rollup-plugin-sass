@@ -299,24 +299,19 @@ test('should support processor return type `Promise<{css: string, icssExport: {}
               out = Object.assign({}, extractedIcss.icssExports, {
                 css: cleanedCss,
               });
-            console.table(extractedIcss);
-            console.log(out);
+            // console.table(extractedIcss);
+            // console.log(out);
             resolve(out);
           }),
           options: sassOptions,
         }),
       ],
     }),
-    {output} = await outputBundle.generate(generateOptions);
+    {output} = await outputBundle.generate(generateOptions),
+    rslt = squash(unwrap(output));
 
-  outputBundle.write({
-    ...generateOptions,
-    file: path.join(tmpDir, 'with--icss-exports.js'),
-  });
-  // console.log('output:', output);
-
-  t.true(squash(unwrap(output)).includes(expectA2));
-  t.true(squash(unwrap(output)).includes(expectB));
+  t.true(rslt.includes(expectA2));
+  t.true(rslt.includes(expectB));
 });
 
 test('should processor throw error', async t => {
@@ -482,6 +477,6 @@ test('When `sourcemap` is set, to `true`, adjacent source map file should be out
 });
 
 test.after(async (): Promise<any> => {
-  // return fs.rmdir(tmpDir, {recursive: true})
-  //   .catch(error);
+  return fs.rmdir(tmpDir, {recursive: true})
+    .catch(error);
 });
