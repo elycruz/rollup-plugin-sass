@@ -155,11 +155,7 @@ sass({
 })
 ```
 
-## Maintainers
-
-- [ElyCruz](https://github.com/elycruz)
-
 ## License
 
-[MIT](./LICENSE) &copy; 2022 [elycruz](https://github.com/elycruz), 
-&copy; 2016 [BinRui.Guan](mailto:differui@gmail.com)
+[MIT](./LICENSE) [elycruz](https://github.com/elycruz), 
+[BinRui.Guan](mailto:differui@gmail.com)

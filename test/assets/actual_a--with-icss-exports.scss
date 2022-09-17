@@ -1,0 +1,12 @@
+$color_red: red;
+$color_blue: blue;
+
+body {
+  color: $color_red;
+  background: $color_blue;
+}
+
+:export {
+  color: $color_red;
+  color2: $color_blue;
+}

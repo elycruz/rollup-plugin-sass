@@ -57,6 +57,7 @@
   },
   "dependencies": {
     "@rollup/pluginutils": "^3.1.0",
+    "icss-utils": "^5.1.0",
     "resolve": "^1.5.0",
     "sass": "^1.7.2"
   },
@@ -72,6 +73,7 @@
     "eslint": "^7.32.0",
     "jsdom": "^17.0.0",
     "nyc": "^15.1.0",
+    "postcss": "^8.4.16",
     "rollup": "^1.32.1",
     "sinon": "^7.2.2",
     "ts-node": "^10.9.1",
