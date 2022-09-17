@@ -1,8 +1,5 @@
-# Maintainers
+# Maintainers/Authors
 
 2022 Ely De La Cruz (https://github.com/elycruz)
-
-# Legacy
-
 2016 BinRui.Guan <differui@gmail.com> - Author
 2016 Thomas Ghysels (https://github.com/thgh)

@@ -88,10 +88,9 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
             'See https://github.com/differui/rollup-plugin-sass#processor');
         }
         const outCss = result.css;
+        delete result.css;
         const restExports = Object.keys(result).reduce((agg, name) =>
-            name === 'css' ? agg : agg + `export const ${name} = ${JSON.stringify(result[name])};\n`
-          , ''
-        );
+          agg + `export const ${name} = ${JSON.stringify(result[name])};\n`, '');
         return [outCss, restExports];
       })
       .then(([resolvedCss, restExports]) => {

@@ -7,6 +7,8 @@ import * as sassJs from 'sass';
 import sass from '../src/index';
 import {SassOptions} from "../src/types";
 import {error} from "../src/utils";
+import postcss from "postcss";
+import {extractICSS} from "icss-utils";
 
 const repoRoot = path.join(__dirname, '../'),
 
@@ -39,7 +41,7 @@ const repoRoot = path.join(__dirname, '../'),
 
   unwrap = output => output[0].code;
 
-let expectA, expectB, expectC, expectD, expectE;
+let expectA, expectA2, expectB, expectC, expectD, expectE;
 
 test.before(async () => {
   const mkDir = () => fs.mkdir(tmpDir);
@@ -48,6 +50,7 @@ test.before(async () => {
     .then(mkDir, mkDir)
     .then(() => Promise.all([
         'test/assets/expect_a.css',
+        'test/assets/expect_a--with-icss-exports.css',
         'test/assets/expect_b.css',
         'test/assets/expect_c.css',
         'test/assets/expect_d.css',
@@ -55,8 +58,9 @@ test.before(async () => {
       ]
         .map(xs => fs.readFile(xs).then(buff => buff.toString()))
     ))
-    .then(([a, b, c, d, e]) => {
+    .then(([a, a2, b, c, d, e]) => {
       expectA = squash(a);
+      expectA2 = squash(a2);
       expectB = squash(b);
       expectC = squash(c);
       expectD = squash(d);
@@ -266,7 +270,7 @@ test('should processor return as object', async t => {
   t.true(squash(unwrap(output)).indexOf('bar') > -1);
 });
 
-test('should processor return as promise', async t => {
+test('should support processor return type `Promise<string>`', async t => {
   const outputBundle = await rollup({
       input: 'test/fixtures/processor-promise/index.js',
       plugins: [
@@ -281,6 +285,33 @@ test('should processor return as promise', async t => {
 
   t.true(squash(unwrap(output)).indexOf(expectA) > -1);
   t.true(squash(unwrap(output)).indexOf(expectB) > -1);
+});
+
+test('should support processor return type `Promise<{css: string, icssExport: {}, icssImport: {}}}>', async t => {
+  const outputBundle = await rollup({
+      input: 'test/fixtures/processor-promise/with-icss-exports.js',
+      plugins: [
+        sass({
+          processor: (css) => new Promise((resolve, reject) => {
+            const pcssRootNodeRslt = postcss.parse(css),
+              extractedIcss = extractICSS(pcssRootNodeRslt, true),
+              cleanedCss = pcssRootNodeRslt.toString(),
+              out = Object.assign({}, extractedIcss.icssExports, {
+                css: cleanedCss,
+              });
+            // console.table(extractedIcss);
+            // console.log(out);
+            resolve(out);
+          }),
+          options: sassOptions,
+        }),
+      ],
+    }),
+    {output} = await outputBundle.generate(generateOptions),
+    rslt = squash(unwrap(output));
+
+  t.true(rslt.includes(expectA2));
+  t.true(rslt.includes(expectB));
 });
 
 test('should processor throw error', async t => {
