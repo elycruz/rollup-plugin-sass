@@ -5,6 +5,8 @@
 
 .editorconfig
 .gitignore
+.node-version
+.npmrc
 
 CHANGELOG*
 CODEOWNERS*
