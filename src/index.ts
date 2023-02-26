@@ -34,11 +34,14 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
     let lastResult = Promise.resolve();
 
     /**
-     * Legacy Sass (*.scss/*.sass) file importer (works in new, and older, versions of `sass` module).
+     * Legacy Sass (*.scss/*.sass) file importer (works in new (< v2.0), and older, versions of `sass` (dart-sass) module).
+     *
      * @see https://sass-lang.com/documentation/js-api/modules#LegacyAsyncImporter
-     * @param {string} url - Url found in `@import`/`@use`, found in parent sass file, exactly as it appears in sass file.
-     * @param {string} prevUrl - Url of file that contains '@import' rule for `url`.
-     * @param {(result: LegacyImporterResult | SassImporterResult) => void} done - Signals import completion.  Note: `LegacyImporterResult`, and `SassImporterResult`, are the same here - We've defined the type for out plugin, since older versions of sass don't have the type defined amongst their types.
+     *
+     * @param {string} url - Url found in `@import`/`@use`, found in parent sass file;  E.g., exactly as it appears in sass file.
+     * @param {string} prevUrl - Url of file that contains '@import' rule for incoming file (`url`).
+     * @param {(result: LegacyImporterResult | SassImporterResult) => void} done - Signals import completion.  Note: `LegacyImporterResult`, and `SassImporterResult`, are the same here - We've defined the type for our plugin, since older versions of sass don't have this type defined.
+     * @note This importer may not work in dart-sass v2.0+ (which may be far off in the future, but is important to note: https://sass-lang.com/documentation/js-api/#legacy-api).
      * @returns {void}
      */
     const importer1 = (url: string, prevUrl: string, done: (rslt: SassImporterResult) => void): void => {
@@ -68,8 +71,9 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
           file: url,
         }));
       }
-    }
-    return [importer1].concat(sassOptions.importer || [])
+    };
+
+    return [importer1].concat(sassOptions.importer || []);
   },
 
   processRenderResponse = (rollupOptions, file, state, inCss) => {

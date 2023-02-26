@@ -46,7 +46,10 @@ let expectA, expectA2, expectB, expectC, expectD, expectE;
 test.before(async () => {
   const mkDir = () => fs.mkdir(tmpDir);
 
-  await fs.rmdir(tmpDir, {recursive: true})
+  // @note Conditional check here since we have a relaxed 'package.json.engines.node' value,
+  //   and `fs.rmdir` is being deprecated in later versions of node (node v18+).
+  // ----
+  await (fs.rm ? fs.rm : fs.rmdir)(tmpDir, {recursive: true})
     .then(mkDir, mkDir)
     .then(() => Promise.all([
         'test/assets/expect_a.css',
@@ -314,12 +317,12 @@ test('should support processor return type `Promise<{css: string, icssExport: {}
   t.true(rslt.includes(expectB));
 });
 
-test('should processor throw error', async t => {
+test('should throw an error when processor returns an object type missing the `css` prop.', async t => {
   await t.throwsAsync(async () => rollup({
     input: 'test/fixtures/processor-error/index.js',
     plugins: [
       sass({
-        // @ts-ignore
+        // @ts-ignore - Ignoring incorrect type (for test).
         processor: () => ({}),
         options: sassOptions,
       }),
@@ -474,9 +477,4 @@ test('When `sourcemap` is set, to `true`, adjacent source map file should be out
           t.true(!!contents.toString(), `${sourceMapFilePath} should have been written.`);
         });
     });
-});
-
-test.after(async (): Promise<any> => {
-  return fs.rmdir(tmpDir, {recursive: true})
-    .catch(error);
 });
