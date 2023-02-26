@@ -17,7 +17,11 @@ const fs = require('fs').promises,
 
 // Run 'clean-and-run' process
 (async () =>
-    fs.rmdir(outputDir, {recursive: true})
+
+  // @note Conditional check here since we have a relaxed 'package.json.engines.node' value,
+  //   and `fs.rmdir` is being deprecated in later versions of node (node v18+).
+  // ----
+  (fs.rm ? fs.rm : fs.rmdir)(outputDir, {recursive: true})
 
       .then(() => fs.mkdir(outputDir))
 
