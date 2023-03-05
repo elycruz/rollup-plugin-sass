@@ -23,30 +23,33 @@ const fs = require('fs').promises,
   // ----
   (fs.rm ? fs.rm : fs.rmdir)(outputDir, {recursive: true})
 
-      .then(() => fs.mkdir(outputDir))
+    // If error is any other than "file doesn't exist"/"ENOENT" ensure error is thrown.
+    .catch(err => err.code !== 'ENOENT' ? error(err) : null)
 
-      .then(() => fs.copyFile(tsConfigFilePath, tsConfigOutFilePath))
+    .then(() => fs.mkdir(outputDir))
 
-      // Run downlevel-dts
-      .then(() => new Promise((resolve, reject) => {
+    .then(() => fs.copyFile(tsConfigFilePath, tsConfigOutFilePath))
 
-        // Start downlevel-dts package script
-        const subProcess = spawn('npm', ['run', 'downlevel-dts'], {cwd: rootDir});
+    // Run downlevel-dts
+    .then(() => new Promise((resolve, reject) => {
 
-        // Log child process buffer data as `string`
-        subProcess.stdout.on('data', data => log(data.toString().trim() + '\n'));
+      // Start downlevel-dts package script
+      const subProcess = spawn('npm', ['run', 'downlevel-dts'], {cwd: rootDir});
 
-        // Log stderr, child process, buffer data as a `string`
-        subProcess.stderr.on('data', data => warn(data.toString().trim() + '\n'));
+      // Log child process buffer data as `string`
+      subProcess.stdout.on('data', data => log(data.toString().trim() + '\n'));
 
-        // Handle process end
-        subProcess.on('close', (code) => code !== 0 ?
-          reject(`Child process existed with code ${code}.\n`) :
-          resolve('"clean-and-run-downlevel-dts" completed successfully.\n')
-        );
+      // Log stderr, child process, buffer data as a `string`
+      subProcess.stderr.on('data', data => warn(data.toString().trim() + '\n'));
 
-        // Catch process start errors
-        subProcess.on('error', reject);
-      }))
+      // Handle process end
+      subProcess.on('close', (code) => code !== 0 ?
+        reject(`Child process existed with code ${code}.\n`) :
+        resolve('"clean-and-run-downlevel-dts" completed successfully.\n')
+      );
+
+      // Catch process start errors
+      subProcess.on('error', reject);
+    }))
 
 )().then(log, error);

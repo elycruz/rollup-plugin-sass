@@ -1,6 +1,6 @@
 {
   "name": "rollup-plugin-sass",
-  "version": "1.12.18",
+  "version": "1.12.19",
   "description": "Rollup Sass files.",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -56,16 +56,14 @@
     ]
   },
   "dependencies": {
-    "@rollup/pluginutils": "^3.1.0",
+    "@rollup/pluginutils": "^3 || ^4 || ^5",
     "resolve": "^1.5.0",
     "sass": "^1.7.2"
   },
   "devDependencies": {
     "@ava/typescript": "^3.0.1",
-    "@types/node": "^15.14.9",
+    "@types/node": "^18.14.6",
     "@types/resolve": "^0.0.8",
-    "@types/rollup": "^0.54.0",
-    "@types/sass": "^1.16.1",
     "ava": "^4.3.1",
     "coveralls": "^3.1.1",
     "downlevel-dts": "^0.10.0",
@@ -74,7 +72,7 @@
     "jsdom": "^17.0.0",
     "nyc": "^15.1.0",
     "postcss": "^8.4.16",
-    "rollup": "^1.32.1",
+    "rollup": "^1 || ^2 || ^3",
     "sinon": "^7.2.2",
     "ts-node": "^10.9.1",
     "typescript": "^4.7.4"
