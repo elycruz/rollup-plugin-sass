@@ -28,7 +28,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/differui/rollup-plugin-sass.git"
+    "url": "git+https://github.com/elycruz/rollup-plugin-sass.git"
   },
   "keywords": [
     "rollup",
@@ -41,9 +41,9 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/differui/rollup-plugin-sass/issues"
+    "url": "https://github.com/elycruz/rollup-plugin-sass/issues"
   },
-  "homepage": "https://github.com/differui/rollup-plugin-sass#readme",
+  "homepage": "https://github.com/elycruz/rollup-plugin-sass#readme",
   "files": [
     "dist"
   ],
