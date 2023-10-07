@@ -1,4 +1,4 @@
-import {types} from 'sass';
+import {LegacyOptions, types} from 'sass';
 
 export interface IdAndContentObject {
   id?: string,
@@ -58,37 +58,30 @@ export type SassImporterResult = { file: string } | { contents: string } | Error
 export type SassDoneFn<T extends SassImporterResult = SassImporterResult> =
   (result: T) => void | T;
 
+/**
+ * @deprecated - Use types directly from `sass` package instead.
+ */
 export type SassImporter<T extends SassImporterResult = SassImporterResult> =
   (url: string, prev: string, done: SassDoneFn<T>) => void | T;
 
+/**
+ * @deprecated - Use types directly from `sass` package instead.
+ */
 export interface SassFunctionsObject {
   [index: string]: types.Color | types.Number | types.String | types.List | types.Map | types.Null;
 }
 
 /**
  * All option types taken from https://github.com/sass/node-sass#options -
- * **Note:** As noted by dart-sass project "When installed via npm, Dart Sass supports a JavaScript API that's fully
- * compatible with Node Sass (with a few exceptions listed below) ...".  See the (dart) sass npm page for more:
+ * **Note 1:** As noted by dart-sass project "When installed via npm, Dart Sass supports a JavaScript API that's fully compatible with Node Sass (with a few exceptions listed below) ...".  See the (dart) sass npm page for more:
  * https://www.npmjs.com/package/sass
+ *
+ * **Note 2:** Our plugin only uses the "legacy" (async) API (internally) so `SassOptions` type below, for now,
+ *  is the legacy type.
+ *
+ * @todo Update this if/when we update to the new sass API.
  */
-export interface SassOptions {
-  data?: string,
-  file?: string,
-  functions?: SassFunctionsObject,
-  importer?: SassImporter | SassImporter[],
-  includePaths?: string[],
-  indentType?: 'space' | 'tab',
-  indentWidth?: number,
-  indentedSyntax?: boolean,
-  linefeed?: string,
-  omitSourceMapUrl?: boolean,
-  outFile?: string,
-  outputStyle?: 'compressed' | 'expanded',
-  sourceMapContents?: boolean,
-  sourceMapEmbed?: boolean,
-  sourceMapRoot?: string,
-  sourceMap?: boolean | string | undefined
-}
+export type SassOptions = LegacyOptions<'async'>;
 
 /**
  * Rollup's `AssetInfo` bundle type.
