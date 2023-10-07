@@ -134,7 +134,7 @@ export = function plugin(options = {} as RollupPluginSassOptions): RollupPlugin 
       include = defaultIncludes,
       exclude = defaultExcludes,
       runtime: sassRuntime,
-      options: incomingSassOptions = {}
+      options: incomingSassOptions = {} as SassOptions
     } = pluginOptions,
 
     filter = createFilter(include || '', exclude || ''),
