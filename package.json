@@ -66,7 +66,7 @@
     "@types/node": "^18.14.6",
     "@types/resolve": "^0.0.8",
     "ava": "^4.3.1",
-    "coveralls": "^3.1.1",
+    "coveralls-next": "^4.2.1",
     "downlevel-dts": "^0.10.0",
     "eslint": "^7.32.0",
     "icss-utils": "^5.1.0",
