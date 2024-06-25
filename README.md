@@ -155,6 +155,32 @@ sass({
 })
 ```
 
+### `include`
+
++ Type: `string | string[]`
++ Default: `['**/*.sass', '**/*.scss']`
+
+Glob of sass/css files to be targeted.
+
+```ts
+sass({
+  include: ['**/*.css', '**/*.sass', '**/*.scss'] 
+})
+```
+
+### `exclude`
+
++ Type: `string | string[]`; 
++ Default: `'node_modules/**'`
+
+Globs to exclude from processing.
+
+```ts
+sass({
+  exclude: 'node_modules/**'
+})
+```
+
 ## License
 
 [MIT](./LICENSE) [elycruz](https://github.com/elycruz), 

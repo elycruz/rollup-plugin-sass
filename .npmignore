@@ -1,12 +1,4 @@
-.circleci/
-.github/
-.idea/
-.nyc_output/
-
-.editorconfig
-.gitignore
-.node-version
-.npmrc
+./.*
 
 CHANGELOG*
 CODEOWNERS*

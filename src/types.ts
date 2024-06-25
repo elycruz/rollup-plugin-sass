@@ -73,7 +73,8 @@ export interface SassFunctionsObject {
 
 /**
  * All option types taken from https://github.com/sass/node-sass#options -
- * **Note 1:** As noted by dart-sass project "When installed via npm, Dart Sass supports a JavaScript API that's fully compatible with Node Sass (with a few exceptions listed below) ...".  See the (dart) sass npm page for more:
+ * **Note 1:** As noted by dart-sass project "When installed via npm, Dart Sass supports a JavaScript API that's
+ * fully compatible with Node Sass (with a few exceptions listed below) ...".  See the (dart) sass npm page for more:
  * https://www.npmjs.com/package/sass
  *
  * **Note 2:** Our plugin only uses the "legacy" (async) API (internally) so `SassOptions` type below, for now,

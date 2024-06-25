@@ -52,10 +52,11 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
       const moduleUrl = url.slice(1);
       const resolveOptions = {
         basedir: dirname(prevUrl),
-        extensions: ['.scss', '.sass'],
+        extensions: ['.scss', '.css', '.sass'],
       };
 
-      // @todo This block should run as a promise instead, will help ensure we're not blocking the thread it is running on, even though `sass` is probably already running the importer in one.
+      // @todo This block should run as a promise instead, will help ensure we're not blocking the thread it is
+      //   running on, even though `sass` is probably already running the importer in one.
       try {
         const file = resolve.sync(moduleUrl, resolveOptions);
         lastResult = lastResult.then(() => done({file}));
