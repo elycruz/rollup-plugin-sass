@@ -13,7 +13,7 @@
   },
   "scripts": {
     "prepare": "npm run build && npm test",
-    "build": "npm run build-downlevel-dts && tsc --project tsconfig.json",
+    "build": "npm run build-downlevel-dts && tsc --project tsconfig.build.plugin.json && tsc --project tsconfig.build.insertStyle.json",
     "build-downlevel-dts": "node scripts/clean-and-run-downlevel-dts.js",
     "downlevel-dts": "downlevel-dts . ts3.5 [--to=3.5]",
     "test": "nyc --reporter=html --reporter=text ava ./test/*.test.ts -s && npm run test:rollup.config.spec.ts",

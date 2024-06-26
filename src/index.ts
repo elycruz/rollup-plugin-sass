@@ -4,7 +4,6 @@ import * as sass from 'sass';
 import {dirname} from 'path';
 import * as fs from 'fs';
 import {createFilter} from '@rollup/pluginutils';
-import {insertStyle} from './style';
 import {
   SassImporterResult,
   RollupAssetInfo,
@@ -107,14 +106,20 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
         const out = JSON.stringify(resolvedCss);
 
         let defaultExport = `""`;
+        let imports = '';
 
         if (rollupOptions.insert) {
+          /**
+           * @see insertStyle.ts for additional information
+           * Let rollup handle import by processing insertStyle as a module
+           */
+          imports = `import ${insertFnName} from '${__dirname}/insertStyle.js';\n`;
           defaultExport = `${insertFnName}(${out});`;
         } else if (!rollupOptions.output) {
           defaultExport = out;
         }
 
-        return `export default ${defaultExport};\n${restExports}`;
+        return `${imports}export default ${defaultExport};\n${restExports}`;
       }); // @note do not `catch` here - let error propagate to rollup level
   },
 
@@ -151,12 +156,6 @@ export = function plugin(options = {} as RollupPluginSassOptions): RollupPlugin 
 
   return {
     name: 'rollup-plugin-sass',
-
-    intro() {
-      if (pluginOptions.insert) {
-        return insertStyle.toString().replace(/insertStyle/, insertFnName);
-      }
-    },
 
     transform(code: string, filePath: string): Promise<any> {
       if (!filter(filePath)) {
