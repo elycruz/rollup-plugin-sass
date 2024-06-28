@@ -54,7 +54,8 @@
     ],
     "require": [
       "ts-node/register"
-    ]
+    ],
+    "snapshotDir": "./test/snapshots"
   },
   "dependencies": {
     "@rollup/pluginutils": "^3 || ^4 || ^5",
