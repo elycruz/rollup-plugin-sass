@@ -1,4 +1,4 @@
-import '../../assets/actual_a.scss';
-import './index3.css';
+import './nested-styles.scss';
+import './index';
 
-const yetAnotherOp = () => null;
+const yetAnotherOp = () => console.log(`${yetAnotherOp.name} called.`);
