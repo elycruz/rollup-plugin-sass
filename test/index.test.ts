@@ -195,11 +195,18 @@ test("should generate chunks with import insertStyle when `insert` is true", asy
   t.is(output.length, 2, "has 2 chunks");
   t.true(
     output.every(
-      (chunk) =>
-        chunk.type === "chunk" &&
-        chunk.imports.some((it) => it.includes("/insertStyle.js"))
+      (outputItem) => {
+        if (outputItem.type === "chunk") {
+          const insertStyleImportsCount = outputItem.imports.filter((it) =>
+            it.includes("/insertStyle.js")
+          ).length;
+          return insertStyleImportsCount === 1;
+        }
+        // if is an assets there is no need to check imports
+        return true;
+      }
     ),
-    "each chunk must include insertStyle"
+    "each chunk must include insertStyle once"
   );
 
   // outputBundle.write({
