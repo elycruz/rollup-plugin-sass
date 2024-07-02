@@ -1,14 +1,14 @@
+import test from 'ava';
 import {promises as fs, constants as fsConstants} from 'fs';
 import * as path from 'path';
-import test from 'ava';
 import sinon from 'sinon';
 import {OutputOptions, rollup, RollupOutput} from 'rollup';
 import * as sassJs from 'sass';
-import sass from '../src/index';
-import {SassOptions} from "../src/types";
-import {error} from "../src/utils";
 import postcss from "postcss";
 import {extractICSS} from "icss-utils";
+
+import sass from "../src/index";
+import { SassOptions } from "../src/types";
 
 const repoRoot = path.join(__dirname, '../'),
 
@@ -86,6 +86,22 @@ test('should import *.scss and *.sass files', async t => {
   t.true([expectA, expectB, expectC].every(xs => rslt.includes(xs)));
 });
 
+test("should import *.scss and *.sass files with default configuration", async (t) => {
+  const outputBundle = await rollup({
+      input: "test/fixtures/basic/index.js",
+      plugins: [
+        sass(),
+      ],
+    }),
+    { output } = await outputBundle.generate({
+      format: "es",
+      file: path.join(tmpDir, "import_scss_and_sass_default_options.js"),
+    }),
+    rslt = squash(unwrap(output));
+
+    t.snapshot(rslt)
+});
+
 test('should compress the dest CSS', async t => {
   const outputBundle = await rollup({
       ...baseConfig,
@@ -152,8 +168,51 @@ test('should insert CSS into head tag', async t => {
     }),
     {output} = await outputBundle.generate(generateOptions);
 
-  t.true(unwrap(output).includes('___$insertStyle("body{color:red}");'));
-  t.true(unwrap(output).includes('___$insertStyle("body{color:green}");'));
+    t.snapshot(unwrap(output));
+});
+
+test("should generate chunks with import insertStyle when `insert` is true", async (t) => {
+  const outputBundle = await rollup({
+    input: {
+      entryA: "test/fixtures/multiple-entry-points/entryA.js",
+      entryB: "test/fixtures/multiple-entry-points/entryB.js",
+    },
+    plugins: [
+      sass({
+        insert: true,
+        options: sassOptions,
+      }),
+    ],
+    output: {
+      preserveModules: true,
+      preserveModulesRoot: "src",
+    },
+    external: [/\/insertStyle\.js$/],
+  });
+
+  const { output } = await outputBundle.generate(generateOptions);
+
+  t.is(output.length, 2, "has 2 chunks");
+  t.true(
+    output.every(
+      (outputItem) => {
+        if (outputItem.type === "chunk") {
+          const insertStyleImportsCount = outputItem.imports.filter((it) =>
+            it.includes("/insertStyle.js")
+          ).length;
+          return insertStyleImportsCount === 1;
+        }
+        // if is an assets there is no need to check imports
+        return true;
+      }
+    ),
+    "each chunk must include insertStyle once"
+  );
+
+  // outputBundle.write({
+  //   format: 'es',
+  //   dir: path.join(tmpDir, 'insert-style-preserve-modules'),
+  // });
 });
 
 test('should support output as function', async t => {
