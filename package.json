@@ -12,7 +12,7 @@
     }
   },
   "scripts": {
-    "prepare": "npm run build && npm test",
+    "prepare": "npm run build && npm test && husky",
     "build": "npm run build-downlevel-dts && tsc --project tsconfig.build.plugin.json && tsc --project tsconfig.build.insertStyle.json",
     "build-downlevel-dts": "node scripts/clean-and-run-downlevel-dts.js",
     "downlevel-dts": "downlevel-dts . ts3.5 [--to=3.5]",
@@ -64,12 +64,15 @@
   },
   "devDependencies": {
     "@ava/typescript": "^3.0.1",
+    "@commitlint/cli": "^19.3.0",
+    "@commitlint/config-conventional": "^19.2.2",
     "@types/node": "^18.14.6",
     "@types/resolve": "^0.0.8",
     "ava": "^4.3.1",
     "coveralls-next": "^4.2.1",
     "downlevel-dts": "^0.10.0",
     "eslint": "^7.32.0",
+    "husky": "^9.0.11",
     "icss-utils": "^5.1.0",
     "jsdom": "^17.0.0",
     "nyc": "^15.1.0",
