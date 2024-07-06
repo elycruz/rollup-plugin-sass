@@ -1,10 +1,8 @@
 import test from 'ava';
-import {readFileSync} from 'fs';
 import insertStyle from '../src/insertStyle';
 import jsdom from 'jsdom';
 
-const expectA = readFileSync('test/assets/expect_a.css').toString();
-const newLineRegex = /[\n\r\f\t]+/g;
+const expectA = 'body{color:red}';
 
 test.before(async () => {
   const dom = new jsdom.JSDOM(`<!Doctype html>
@@ -19,9 +17,9 @@ test.before(async () => {
 });
 
 test('should insertStyle works', t => {
-  const cssStr = insertStyle(expectA).replace(newLineRegex, '');
-  const styleSheet = document.head.querySelector('style');
-  t.true(styleSheet.textContent.replace(newLineRegex, '') === cssStr, 'stylesheet\'s content should equal returned css string');
+  const cssStr = insertStyle(expectA);
+  const styleSheet = document.head.querySelector('style')!;
+  t.true(styleSheet.textContent === cssStr, 'stylesheet\'s content should equal returned css string');
   t.true(styleSheet.type === 'text/css', 'Should contain `type` attrib. equal to "text/css"');
 });
 
