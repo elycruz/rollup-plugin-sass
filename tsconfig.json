@@ -17,6 +17,7 @@
     "esModuleInterop": true,
     "downlevelIteration": true,
     "importHelpers": false,
+    "skipLibCheck": true,
     "typeRoots": [
       "node_modules/@types"
     ]
