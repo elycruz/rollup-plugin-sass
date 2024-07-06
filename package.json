@@ -19,7 +19,8 @@
     "test": "nyc --reporter=html --reporter=text ava ./test/*.test.ts -s && npm run test:rollup.config.spec.ts",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
     "output-coverage-lcov": "nyc report --reporter=text-lcov > coverage/tests.lcov",
-    "test:rollup.config.spec.ts": "tsc --project tsconfig.spec.json --noEmit"
+    "test:rollup.config.spec.ts": "tsc --project tsconfig.spec.json --noEmit",
+    "commitlint": "commitlint --edit"
   },
   "standard": {
     "ignore": [
