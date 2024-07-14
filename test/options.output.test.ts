@@ -14,6 +14,11 @@ import {
   TEST_OUTPUT_OPTIONS,
 } from "./utils";
 
+/*
+ * Right now we can't use snapshot testing on this file because sometimes rollup mess with the order of imports.
+ * Detailed information can be found here: https://github.com/elycruz/rollup-plugin-sass/pull/143#issuecomment-2227274405
+ */
+
 const onwarn: WarningHandlerWithDefault = (warning, defaultHandler) => {
   if (warning.code === "EMPTY_BUNDLE") {
     return;
