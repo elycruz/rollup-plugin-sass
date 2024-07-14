@@ -3,7 +3,7 @@ import { rollup } from "rollup";
 import { promises as fs } from "fs";
 
 import sass from "../src/index";
-import { TEST_UTILS, TEST_SASS_OPTIONS_DEFAULT } from "./utils";
+import { TEST_SASS_OPTIONS_DEFAULT } from "./utils";
 
 test("module stylesheets graph should be added to watch list", async (t) => {
   const inputFilePath = "test/fixtures/dependencies/index.js";
@@ -19,19 +19,13 @@ test("module stylesheets graph should be added to watch list", async (t) => {
     ],
   });
 
-  // Load nested style sheet contents and return associated list of filename and content tuples
+  // List of nested stylesheets paths
   // ----
-  const nestedFilePathsAndContents = await Promise.all(
-    [
-      "test/fixtures/dependencies/style1.scss",
-      "test/fixtures/dependencies/style2.scss",
-      "test/fixtures/dependencies/style3.scss",
-    ].map((filePath) =>
-      fs
-        .readFile(filePath)
-        .then((buf) => [filePath, TEST_UTILS.squash(buf.toString())])
-    )
-  );
+  const nestedFilePaths = [
+    "test/fixtures/dependencies/style1.scss",
+    "test/fixtures/dependencies/style2.scss",
+    "test/fixtures/dependencies/style3.scss",
+  ];
 
   // Run tests
   // ----
@@ -50,7 +44,7 @@ test("module stylesheets graph should be added to watch list", async (t) => {
   // Skip 'index.js' file and ensure remaining nested files are also watched.
   // ----
   bundle.watchFiles.slice(1).forEach((filePath, i) => {
-    const [expectedTail] = nestedFilePathsAndContents[i];
+    const expectedTail = nestedFilePaths[i];
     t.true(
       filePath.endsWith(expectedTail),
       `${filePath} should end with ${expectedTail}`
@@ -66,20 +60,16 @@ test("module stylesheets graph should be added to watch list", async (t) => {
   // ----
   t.true(
     targetModule.transformDependencies?.every((filePath, i) => {
-      const [expectedTail] = nestedFilePathsAndContents[i];
+      const expectedTail = nestedFilePaths[i];
       const result = filePath.endsWith(expectedTail);
       t.true(result, `${filePath} should end with ${expectedTail}`);
       return result;
     }),
-    "`bundle.cache.modules[0].transformDependencies` entries should" +
-      " each end with expected file-path tails"
+    "each `bundle.cache.modules[0].transformDependencies` entries should end with expected file-path tails"
   );
 
   // Test final content output
   // ----
-  const expectedFinalContent = await fs
-    .readFile("test/fixtures/dependencies/expected.js")
-    .then((x) => x.toString());
-
-  t.is(targetModule.code.trim(), expectedFinalContent.trim());
+  const expectedFinalContent = await fs.readFile("test/fixtures/dependencies/expected.js")
+  t.is(targetModule.code.trim(), expectedFinalContent.toString().trim());
 });
