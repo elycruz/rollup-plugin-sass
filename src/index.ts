@@ -77,12 +77,14 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
   },
 
   processRenderResponse = (rollupOptions, file, state, inCss) => {
-    if (!inCss) return;
+    if (!inCss) return Promise.resolve();
 
     const {processor} = rollupOptions;
 
     return Promise.resolve()
       .then(() => !isFunction(processor) ? inCss + '' : processor(inCss, file))
+
+      // Gather output requirements
       .then(result => {
         if (!isObject(result)) {
           return [result, ''];
@@ -97,6 +99,8 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
           agg + `export const ${name} = ${JSON.stringify(result[name])};\n`, '');
         return [outCss, restExports];
       })
+
+      // Compose output
       .then(([resolvedCss, restExports]) => {
         const {styleMaps} = state;
 
@@ -110,8 +114,9 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
 
         if (rollupOptions.insert) {
           /**
+           * Add `insertStyle` import for handling "inserting"
+           * *.css into *.html `head`.
            * @see insertStyle.ts for additional information
-           * Let rollup handle import by processing insertStyle as a module
            */
           imports = `import ${insertFnName} from '${__dirname}/insertStyle.js';\n`;
           defaultExport = `${insertFnName}(${out});`;
@@ -123,7 +128,7 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
       }); // @note do not `catch` here - let error propagate to rollup level
   },
 
-  defaultIncludes = ['**/*.sass', '**/*.scss'],
+  defaultIncludes = ['**/*.sass', '**/*.scss', '**/*.css'],
 
   defaultExcludes = 'node_modules/**';
 
@@ -190,8 +195,12 @@ export = function plugin(options = {} as RollupPluginSassOptions): RollupPlugin 
         )
         .then(([res, codeResult]) => {
 
+          if (!codeResult) return null;
+
             // @todo Do we need to filter this call so it only occurs when rollup is in 'watch' mode?
-            res.stats.includedFiles.forEach(i => {this.addWatchFile(i)});
+            res.stats.includedFiles.forEach(filePath => {
+              this.addWatchFile(filePath);
+            });
 
             return {
                 code: codeResult,
