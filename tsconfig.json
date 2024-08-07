@@ -6,10 +6,8 @@
     "outDir": "./dist",
     "declaration": true,
     "declarationDir": "./dist",
-    "lib": [
-      "es2015",
-      "dom"
-    ],
+    "lib": ["es2015", "dom"],
+    "skipLibCheck": true,
     "removeComments": true,
     "preserveConstEnums": true,
     "noImplicitAny": false,
@@ -17,14 +15,8 @@
     "esModuleInterop": true,
     "downlevelIteration": true,
     "importHelpers": false,
-    "typeRoots": [
-      "node_modules/@types"
-    ]
+    "typeRoots": ["node_modules/@types"]
   },
-  "include": [
-    "./src/*"
-  ],
-  "exclude": [
-    "**/node_modules/**"
-  ]
+  "include": ["./src/*"],
+  "exclude": ["**/node_modules/**"]
 }
