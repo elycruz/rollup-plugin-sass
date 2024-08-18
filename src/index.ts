@@ -51,7 +51,7 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
       const moduleUrl = url.slice(1);
       const resolveOptions = {
         basedir: dirname(prevUrl),
-        extensions: ['.scss', '.css', '.sass'],
+        extensions: ['.scss', '.sass'],
       };
 
       // @todo This block should run as a promise instead, will help ensure we're not blocking the thread it is
@@ -128,7 +128,7 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
       }); // @note do not `catch` here - let error propagate to rollup level
   },
 
-  defaultIncludes = ['**/*.sass', '**/*.scss', '**/*.css'],
+  defaultIncludes = ['**/*.sass', '**/*.scss'],
 
   defaultExcludes = 'node_modules/**';
 
