@@ -51,7 +51,7 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
       const moduleUrl = url.slice(1);
       const resolveOptions = {
         basedir: dirname(prevUrl),
-        extensions: ['.scss', '.css', '.sass'],
+        extensions: ['.scss', '.sass'],
       };
 
       // @todo This block should run as a promise instead, will help ensure we're not blocking the thread it is
@@ -77,12 +77,14 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
   },
 
   processRenderResponse = (rollupOptions, file, state, inCss) => {
-    if (!inCss) return;
+    if (!inCss) return Promise.resolve();
 
     const {processor} = rollupOptions;
 
     return Promise.resolve()
       .then(() => !isFunction(processor) ? inCss + '' : processor(inCss, file))
+
+      // Gather output requirements
       .then(result => {
         if (!isObject(result)) {
           return [result, ''];
@@ -97,6 +99,8 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
           agg + `export const ${name} = ${JSON.stringify(result[name])};\n`, '');
         return [outCss, restExports];
       })
+
+      // Compose output
       .then(([resolvedCss, restExports]) => {
         const {styleMaps} = state;
 
@@ -110,8 +114,9 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
 
         if (rollupOptions.insert) {
           /**
+           * Add `insertStyle` import for handling "inserting"
+           * *.css into *.html `head`.
            * @see insertStyle.ts for additional information
-           * Let rollup handle import by processing insertStyle as a module
            */
           imports = `import ${insertFnName} from '${__dirname}/insertStyle.js';\n`;
           defaultExport = `${insertFnName}(${out});`;
@@ -189,15 +194,15 @@ export = function plugin(options = {} as RollupPluginSassOptions): RollupPlugin 
           .then(result => [res, result])
         )
         .then(([res, codeResult]) => {
-
             // @todo Do we need to filter this call so it only occurs when rollup is in 'watch' mode?
-            res.stats.includedFiles.forEach(i => {this.addWatchFile(i)});
+            res.stats.includedFiles.forEach((filePath: string) => {
+              this.addWatchFile(filePath);
+            });
 
             return {
-                code: codeResult,
+                code: codeResult || '',
                 map: {mappings: res.map ? res.map.toString() : ''}
             };
-
         }); // @note do not `catch` here - let error propagate to rollup level.
     },
 

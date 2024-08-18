@@ -354,7 +354,7 @@ test('should support processor return type `Promise<{css: string, icssExport: {}
       input: 'test/fixtures/processor-promise/with-icss-exports.js',
       plugins: [
         sass({
-          processor: (css) => new Promise((resolve, reject) => {
+          processor: (css) => new Promise((resolve) => {
             const pcssRootNodeRslt = postcss.parse(css),
               extractedIcss = extractICSS(pcssRootNodeRslt, true),
               cleanedCss = pcssRootNodeRslt.toString(),
@@ -556,25 +556,26 @@ test('module stylesheets graph should be added to watch list', t => {
     .then(bundle => {
       return Promise.all([
           'test/fixtures/dependencies/style1.scss',
-          'test/fixtures/dependencies/style2.scss',
+          'test/fixtures/dependencies/empty-style1.scss',
+          'test/fixtures/dependencies/style2.sass',
           'test/fixtures/dependencies/style3.scss',
+          'test/fixtures/dependencies/empty-style3.scss',
+          'test/fixtures/dependencies/empty-style2.sass',
         ]
           .map(filePath => fs.readFile(filePath).then(buf => [filePath, squash(buf.toString())]))
       )
         // Run tests
         // ----
         .then(async nestedFilePathsAndContents => {
-          // Check `watchFiles` count (three above, and 'index.js' module one)
-          t.true(bundle.watchFiles.length === 4, 'should contain expected number of "watched" files');
+          const expectedWatchedFiles = ['test/fixtures/dependencies/index.js']
+            .concat(nestedFilePathsAndContents.map(([fp]) => fp));
 
-          // Ensure our initial 'index.js' module is being watched
-          t.true(bundle.watchFiles[0].endsWith(inputFilePath),
-            'Expected `bundle.watchFiles[0]` to end with "index.js"');
+          // Check `watchFiles` count (watched ones plus 'index.js' one)
+          t.deepEqual(bundle.watchFiles.length, expectedWatchedFiles.length, 'should contain expected number of "watched" files');
 
-          // Skip 'index.js' file and ensure remaining nested files are also watched.
-          // ----
-          bundle.watchFiles.slice(1).forEach((filePath, i) => {
-            const [expectedTail] = nestedFilePathsAndContents[i];
+          // Ensure 'index.js' module, and other files in dep tree are watched
+          bundle.watchFiles.forEach((filePath, i) => {
+            const expectedTail = expectedWatchedFiles[i];
             t.true(filePath.endsWith(expectedTail), `${filePath} should end with ${expectedTail}`);
           });
 
@@ -585,11 +586,8 @@ test('module stylesheets graph should be added to watch list', t => {
 
           // Ensure target module transform dependencies indeed end with expected file path tails.
           // ----
-          t.true(targetModule.transformDependencies?.every((filePath, i) => {
-            const [expectedTail] = nestedFilePathsAndContents[i];
-            const result = filePath.endsWith(expectedTail);
-            t.true(result, `${filePath} should end with ${expectedTail}`);
-            return result;
+          t.true(targetModule.transformDependencies?.every(filePath => {
+            return !!expectedWatchedFiles.find(fp => filePath.endsWith(fp));
           }), '`bundle.cache.modules[0].transformDependencies` entries should' +
             ' each end with expected file-path tails');
 
