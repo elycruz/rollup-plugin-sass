@@ -194,19 +194,15 @@ export = function plugin(options = {} as RollupPluginSassOptions): RollupPlugin 
           .then(result => [res, result])
         )
         .then(([res, codeResult]) => {
-
-          if (!codeResult) return null;
-
             // @todo Do we need to filter this call so it only occurs when rollup is in 'watch' mode?
-            res.stats.includedFiles.forEach(filePath => {
+            res.stats.includedFiles.forEach((filePath: string) => {
               this.addWatchFile(filePath);
             });
 
             return {
-                code: codeResult,
+                code: codeResult || '',
                 map: {mappings: res.map ? res.map.toString() : ''}
             };
-
         }); // @note do not `catch` here - let error propagate to rollup level.
     },
 
