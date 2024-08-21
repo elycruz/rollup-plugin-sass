@@ -112,7 +112,7 @@ sass({
 })
 ```
 
-The `processor` also support object result. Reverse `css` filed for stylesheet, the rest properties can be customized.
+The `processor` also support object result. Reverse `css` filLed for stylesheet, the rest of the properties can be customized.
 
 ```js
 sass({
@@ -131,6 +131,36 @@ Otherwise, you could do:
 ```js
 import style, { foo, bar } from 'stylesheet';
 ```
+
+#### Exporting sass variable to *.js
+
+Example showing how to use [icss-utils](https://www.npmjs.com/package/icss-utils) to extract resulting sass vars
+to your *.js bundle:
+
+```js
+const config = {
+  input: 'test/fixtures/processor-promise/with-icss-exports.js',
+  plugins: [
+    sass({
+      processor: (css) => new Promise((resolve, reject) => {
+        const pcssRootNodeRslt = postcss.parse(css),
+          extractedIcss = extractICSS(pcssRootNodeRslt, true),
+          cleanedCss = pcssRootNodeRslt.toString(),
+          out = Object.assign({}, extractedIcss.icssExports, {
+            css: cleanedCss,
+          });
+        // console.table(extractedIcss); 
+        // console.log(out); 
+        resolve(out);
+      }),
+      options: sassOptions,
+    }),
+  ],
+}
+```
+
+See the [Input file](test/fixtures/processor-promise/with-icss-exports.js) for example on how to access
+the exported vars.
 
 ### `runtime`
 
