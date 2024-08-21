@@ -1,201 +1,197 @@
-import test from 'ava';
-import {promises as fs, constants as fsConstants} from 'fs';
-import * as path from 'path';
-import sinon from 'sinon';
-import {OutputOptions, rollup, RollupOutput} from 'rollup';
-import * as sassJs from 'sass';
+import test from "ava";
+import Sinon from "sinon";
+import { readFileSync, promises as fs, constants as fsConstants } from "fs";
+import * as path from "path";
+import { rollup } from "rollup";
+import type {
+  OutputOptions,
+  RollupOutput,
+  WarningHandlerWithDefault,
+} from "rollup";
+import * as sassRuntime from "sass";
 import postcss from "postcss";
-import {extractICSS} from "icss-utils";
+import { extractICSS } from "icss-utils";
 
 import sass from "../src/index";
-import { SassOptions } from "../src/types";
+import { RollupPluginSassOutputFn, SassOptions } from "../src/types";
 
-const repoRoot = path.join(__dirname, '../'),
+const repoRoot = path.join(__dirname, "../");
 
-  tmpDir = path.join(repoRoot, '.tests-output/'),
+const TEST_OUTPUT_DIR = path.join(repoRoot, ".tests-output/");
 
-  sassOptions = {
-    outputStyle: 'compressed',
-  } as SassOptions,
+const TEST_SASS_OPTIONS_DEFAULT = {
+  outputStyle: "compressed",
+} as SassOptions;
 
-  baseConfig = {
-    plugins: [
-      sass({
-        options: sassOptions,
-      }),
-    ],
-  },
+const TEST_BASE_CONFIG = {
+  plugins: [
+    sass({
+      options: TEST_SASS_OPTIONS_DEFAULT,
+    }),
+  ],
+};
 
-  generateOptions = {
-    format: 'es',
-  } as OutputOptions,
+const TEST_GENERATE_OPTIONS = {
+  format: "es",
+} as OutputOptions;
 
-  outputOptions = {
-    format: 'es',
-    file: path.join(tmpDir, 'bundle.js'),
-  },
+const TEST_OUTPUT_OPTIONS = {
+  format: "es",
+  file: path.join(TEST_OUTPUT_DIR, "bundle.js"),
+} as const;
 
-  squash = str => str.trim().replace(/[\n\r\f]/g, ''),
+function stripNewLines(str: string): string {
+  return str.trim().replace(/[\n\r\f]/g, "");
+}
 
-  reverse = str => str.split('').reverse().join(''),
+function getFirstChunkCode(outputChunks: RollupOutput["output"]): string {
+  return outputChunks[0].code;
+}
 
-  unwrap = output => output[0].code;
-
-let expectA, expectA2, expectB, expectC, expectD, expectE;
-
-test.before(async () => {
-  const mkDir = () => fs.mkdir(tmpDir);
-
-  // @note Conditional check here since we have a relaxed 'package.json.engines.node' value,
-  //   and `fs.rmdir` is being deprecated in later versions of node (node v18+).
-  // ----
-  await (fs.rm ? fs.rm : fs.rmdir)(tmpDir, {recursive: true})
-    .then(mkDir, mkDir)
-    .then(() => Promise.all([
-        'test/assets/expect_a.css',
-        'test/assets/expect_a--with-icss-exports.css',
-        'test/assets/expect_b.css',
-        'test/assets/expect_c.css',
-        'test/assets/expect_d.css',
-        'test/assets/expect_e.css'
-      ]
-        .map(xs => fs.readFile(xs).then(buff => buff.toString()))
-    ))
-    .then(([a, a2, b, c, d, e]) => {
-      expectA = squash(a);
-      expectA2 = squash(a2);
-      expectB = squash(b);
-      expectC = squash(c);
-      expectD = squash(d);
-      expectE = squash(e);
-    });
-});
-
-test('should import *.scss and *.sass files', async t => {
+test("should import *.scss and *.sass files", async (t) => {
   const outputBundle = await rollup({
-      ...baseConfig,
-      input: 'test/fixtures/basic/index.js',
-    }),
+    input: "test/fixtures/basic/index.js",
+    ...TEST_BASE_CONFIG,
+  });
+  const { output } = await outputBundle.generate({
+    format: "es",
+    file: path.join(TEST_OUTPUT_DIR, "import_scss_and_sass.js"),
+  });
+  const result = getFirstChunkCode(output);
 
-    {output} = await outputBundle.generate({
-      format: 'es',
-      file: path.join(tmpDir, 'import_scss_and_sass.js')
-    }),
-    rslt = squash(unwrap(output));
-
-  t.true([expectA, expectB, expectC].every(xs => rslt.includes(xs)));
+  t.snapshot(result);
 });
 
 test("should import *.scss and *.sass files with default configuration", async (t) => {
   const outputBundle = await rollup({
-      input: "test/fixtures/basic/index.js",
-      plugins: [
-        sass(),
-      ],
-    }),
-    { output } = await outputBundle.generate({
-      format: "es",
-      file: path.join(tmpDir, "import_scss_and_sass_default_options.js"),
-    }),
-    rslt = squash(unwrap(output));
+    input: "test/fixtures/basic/index.js",
+    plugins: [sass()],
+  });
+  const { output } = await outputBundle.generate({
+    ...TEST_GENERATE_OPTIONS,
+    file: path.join(TEST_OUTPUT_DIR, "import_scss_and_sass_default_options.js"),
+  });
+  const result = getFirstChunkCode(output);
 
-    t.snapshot(rslt)
+  t.snapshot(result);
 });
 
-test('should compress the dest CSS', async t => {
+test("should compress the dest CSS", async (t) => {
   const outputBundle = await rollup({
-      ...baseConfig,
-      input: 'test/fixtures/compress/index.js',
-    }),
-    {output} = await outputBundle.generate(generateOptions);
+    ...TEST_BASE_CONFIG,
+    input: "test/fixtures/compress/index.js",
+  });
+  const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+  const result = getFirstChunkCode(output);
 
-  t.true(squash(unwrap(output)).indexOf(expectD) > -1);
+  t.snapshot(result);
 });
 
-test('should custom importer works', async t => {
+test("should custom importer works", async (t) => {
   const outputBundle = await rollup({
-      input: 'test/fixtures/custom-importer/index.js',
-      plugins: [
-        sass({
-          options: {
-            ...sassOptions,
-            importer: [
-              (url, prev, done) => {
-                done({
-                  file: url.replace('${name}', 'actual_a'),
-                });
-              },
-            ],
-          }
-        }),
-      ],
-    }),
-    {output} = await outputBundle.generate(generateOptions);
-
-  t.true(squash(unwrap(output)).indexOf(expectA) > -1);
-});
-
-test('should support options.data', async t => {
-  const jsVars = {
-    color_red: 'red',
-  };
-  const scssVars = Object.keys(jsVars).reduce((prev, key) => `${prev}$${key}:${jsVars[key]};`, '');
-  const outputBundle = await rollup({
-    input: 'test/fixtures/data/index.js',
+    input: "test/fixtures/custom-importer/index.js",
     plugins: [
       sass({
         options: {
-          ...sassOptions,
+          ...TEST_SASS_OPTIONS_DEFAULT,
+          importer: [
+            (url, prev, done) => {
+              done({
+                file: url.replace("${name}", "actual_a"),
+              });
+            },
+          ],
+        } as SassOptions,
+      }),
+    ],
+  });
+  const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+  const result = getFirstChunkCode(output);
+
+  t.snapshot(result);
+});
+
+test("should support options.data", async (t) => {
+  const jsVars = { color_red: "red" };
+  const scssVars = Object.entries(jsVars).reduce(
+    (prev, [varName, varValue]) => `${prev}$${varName}:${varValue};`,
+    ""
+  );
+  const outputBundle = await rollup({
+    input: "test/fixtures/data/index.js",
+    plugins: [
+      sass({
+        options: {
+          ...TEST_SASS_OPTIONS_DEFAULT,
           data: scssVars,
         },
       }),
     ],
   });
-  const {output} = await outputBundle.generate(generateOptions);
+  const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+  const result = getFirstChunkCode(output);
 
-  t.true(squash(unwrap(output)).indexOf(expectE) > -1);
+  t.snapshot(result);
 });
 
-test('should insert CSS into head tag', async t => {
-  const outputBundle = await rollup({
-      input: 'test/fixtures/insert/index.js',
+// #region insert option
+{
+  /**
+   * In unit tests we are targeting `src` folder,
+   * so there is no `insertStyle.js` file so `rollup` issues a warning
+   * that we can silence.
+   */
+  const onwarn: WarningHandlerWithDefault = (warning, defaultHandler) => {
+    if (
+      warning.code === "UNRESOLVED_IMPORT" &&
+      warning.exporter?.includes("insertStyle.js")
+    ) {
+      return;
+    }
+    defaultHandler(warning);
+  };
+
+  test("should insert CSS into head tag", async (t) => {
+    const outputBundle = await rollup({
+      input: "test/fixtures/insert/index.js",
       plugins: [
         sass({
           insert: true,
-          options: sassOptions,
+          options: TEST_SASS_OPTIONS_DEFAULT,
         }),
       ],
-    }),
-    {output} = await outputBundle.generate(generateOptions);
+      onwarn,
+    });
+    const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+    const result = getFirstChunkCode(output);
 
-    t.snapshot(unwrap(output));
-});
-
-test("should generate chunks with import insertStyle when `insert` is true", async (t) => {
-  const outputBundle = await rollup({
-    input: {
-      entryA: "test/fixtures/multiple-entry-points/entryA.js",
-      entryB: "test/fixtures/multiple-entry-points/entryB.js",
-    },
-    plugins: [
-      sass({
-        insert: true,
-        options: sassOptions,
-      }),
-    ],
-    output: {
-      preserveModules: true,
-      preserveModulesRoot: "src",
-    },
-    external: [/\/insertStyle\.js$/],
+    t.snapshot(result);
   });
 
-  const { output } = await outputBundle.generate(generateOptions);
+  test("should generate chunks with import insertStyle when `insert` is true", async (t) => {
+    const outputBundle = await rollup({
+      input: {
+        entryA: "test/fixtures/multiple-entry-points/entryA.js",
+        entryB: "test/fixtures/multiple-entry-points/entryB.js",
+      },
+      plugins: [
+        sass({
+          insert: true,
+          options: TEST_SASS_OPTIONS_DEFAULT,
+        }),
+      ],
+      output: {
+        preserveModules: true,
+        preserveModulesRoot: "src",
+      },
+      onwarn,
+    });
 
-  t.is(output.length, 2, "has 2 chunks");
-  t.true(
-    output.every(
-      (outputItem) => {
+    const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+
+    t.is(output.length, 2, "has 2 chunks");
+    t.true(
+      output.every((outputItem) => {
         if (outputItem.type === "chunk") {
           const insertStyleImportsCount = outputItem.imports.filter((it) =>
             it.includes("/insertStyle.js")
@@ -204,399 +200,478 @@ test("should generate chunks with import insertStyle when `insert` is true", asy
         }
         // if is an assets there is no need to check imports
         return true;
-      }
-    ),
-    "each chunk must include insertStyle once"
+      }),
+      "each chunk must include insertStyle once"
+    );
+  });
+}
+// #endregion
+
+// #region output option
+{
+  const onwarn: WarningHandlerWithDefault = (warning, defaultHandler) => {
+    if (warning.code === "EMPTY_BUNDLE") {
+      return;
+    }
+    defaultHandler(warning);
+  };
+
+  const [expectA, expectB] = [
+    "test/assets/expect_a.css",
+    "test/assets/expect_b.css",
+  ].map((filePath) =>
+    stripNewLines(readFileSync(filePath, { encoding: "utf-8" }))
   );
 
-  // outputBundle.write({
-  //   format: 'es',
-  //   dir: path.join(tmpDir, 'insert-style-preserve-modules'),
-  // });
-});
+  /**
+   * @warning
+   * Right now we can't use snapshot testing on this tests because sometimes rollup mess with the order of imports.
+   * Detailed information can be found here: https://github.com/elycruz/rollup-plugin-sass/pull/143#issuecomment-2227274405
+   */
 
-test('should support output as function', async t => {
-  const outputSpy = sinon.spy(),
-    file = path.join(tmpDir, 'import_scss_and_sass.js'),
-    outputBundle = await rollup({
-      input: 'test/fixtures/output-function/index.js',
+  test("should support output as function", async (t) => {
+    const outputSpy = Sinon.spy() as Sinon.SinonSpy<
+      Parameters<RollupPluginSassOutputFn>,
+      ReturnType<RollupPluginSassOutputFn>
+    >;
+    const outputFilePath = path.join(
+      TEST_OUTPUT_DIR,
+      "support_output_function.js"
+    );
+
+    const outputBundle = await rollup({
+      input: "test/fixtures/output-function/index.js",
       plugins: [
         sass({
           output: outputSpy,
-          options: sassOptions,
+          options: TEST_SASS_OPTIONS_DEFAULT,
         }),
       ],
-    }),
-    expectedSpyArg = squash(`${expectA}${expectB}`);
+      onwarn,
+    });
 
-  await outputBundle.write({...outputOptions, file} as OutputOptions);
+    await outputBundle.write({ ...TEST_OUTPUT_OPTIONS, file: outputFilePath });
 
-  await fs.readFile(file)
-    .then(rslt => t.true(squash(rslt.toString()) === ''))
-    .then(() => t.true(
-      outputSpy.calledWith(expectedSpyArg),
-      `\`outputSpy\` should've been called with \`${expectedSpyArg}\`.  `+
-      `Spy called with \`${outputSpy.args[0][0]}\`, other args ` +
-      `${JSON.stringify(outputSpy.args[0].slice(1))}`
-    ))
-    .catch(() => t.true(false, `Trouble reading back written file "${file}".`));
-});
+    const result = await fs
+      .readFile(outputFilePath)
+      .catch(() =>
+        t.true(false, `Trouble reading back written file "${outputFilePath}".`)
+      );
 
-test('should support output as (non-previously existent) path', async t => {
-  const outputStylePath = path.join(tmpDir, 'output-path/style.css'),
-    outputBundle = await rollup({
-      input: 'test/fixtures/output-path/index.js',
+    t.is(stripNewLines(result.toString()), "", "JS bundle mus be empty");
+
+    t.true(outputSpy.calledOnce, "output function has been called");
+
+    const [actualCSSstring, ...otherOutputParams] = outputSpy.args[0];
+
+    [expectA, expectB].forEach((expectedChunkCSS) => {
+      t.true(
+        actualCSSstring.includes(expectedChunkCSS),
+        [
+          `expect "${actualCSSstring}" to include "${expectedChunkCSS}"`,
+          `Additional params are: ${JSON.stringify(otherOutputParams)}`,
+        ].join("\n")
+      );
+    });
+  });
+
+  test("should support output as (non-previously existent) path", async (t) => {
+    const outputStylePath = path.join(TEST_OUTPUT_DIR, "output-path/style.css");
+
+    const outputBundle = await rollup({
+      input: "test/fixtures/output-path/index.js",
       plugins: [
         sass({
           output: outputStylePath,
-          options: sassOptions,
+          options: TEST_SASS_OPTIONS_DEFAULT,
         }),
       ],
-    }),
-    filePath = path.join(tmpDir, 'support_output_prev-non-exist.js');
-
-  await outputBundle.write({...outputOptions, file: filePath} as OutputOptions);
-
-  await fs.readFile(filePath)
-    .then((rslt) => {
-      t.is(squash(rslt.toString()), '');
-    })
-    .then(() => fs.readFile(outputStylePath))
-    .then((rslt) => {
-      t.not(squash(rslt.toString()).indexOf(expectA), -1);
-      t.not(squash(rslt.toString()).indexOf(expectB), -1);
+      onwarn,
     });
-});
 
-test('should support output as true', async t => {
-  const outputBundle = await rollup({
-      input: 'test/fixtures/output-true/index.js',
+    const outputFilePath = path.join(
+      TEST_OUTPUT_DIR,
+      "support_output_prev-non-exist.js"
+    );
+    await outputBundle.write({ ...TEST_OUTPUT_OPTIONS, file: outputFilePath });
+
+    const outputFileContent = await fs.readFile(outputFilePath);
+    t.is(stripNewLines(outputFileContent.toString()), "");
+
+    const outputStyleContent = await fs.readFile(outputStylePath);
+    t.true(stripNewLines(outputStyleContent.toString()).includes(expectA));
+    t.true(stripNewLines(outputStyleContent.toString()).includes(expectB));
+  });
+
+  test("should support output as true", async (t) => {
+    const outputBundle = await rollup({
+      input: "test/fixtures/output-true/index.js",
       plugins: [
         sass({
           output: true,
-          options: sassOptions,
+          options: TEST_SASS_OPTIONS_DEFAULT,
         }),
       ],
-    }),
-    filePath = path.join(tmpDir, 'support-output-as-true.js');
-
-  await outputBundle.write({...outputOptions, file: filePath} as OutputOptions);
-
-  await fs.readFile(filePath)
-    .then(rslt => t.is(squash(rslt.toString()), ''))
-    .then(() => fs.readFile(filePath.replace('.js', '.css')))
-    .then(rslt => squash(rslt.toString()))
-    .then(rslt => {
-      t.not(rslt.indexOf(expectA), -1);
-      t.not(rslt.indexOf(expectB), -1);
+      onwarn,
     });
-});
 
-test('should processor return as string', async t => {
+    const outputFilePath = path.join(
+      TEST_OUTPUT_DIR,
+      "support-output-as-true.js"
+    );
+    await outputBundle.write({ ...TEST_OUTPUT_OPTIONS, file: outputFilePath });
+
+    const outputFileContent = await fs.readFile(outputFilePath);
+    t.is(stripNewLines(outputFileContent.toString()), "");
+
+    const outputStylePath = outputFilePath.replace(".js", ".css");
+    const outputStyleContent = await fs.readFile(outputStylePath);
+    t.true(outputStyleContent.toString().includes(expectA));
+    t.true(outputStyleContent.toString().includes(expectB));
+  });
+}
+// #endregion
+
+// #region processor option
+test("should processor return as string", async (t) => {
+  const reverse = (str: string): string => str.split("").reverse().join("");
+
   const outputBundle = await rollup({
-      input: 'test/fixtures/processor-string/index.js',
-      plugins: [
-        sass({
-          processor: css => reverse(css),
-          options: sassOptions,
-        }),
-      ],
-    }),
-    {output} = await outputBundle.generate(generateOptions);
-
-  t.true(squash(unwrap(output)).indexOf(reverse(expectA)) > -1);
-  t.true(squash(unwrap(output)).indexOf(reverse(expectB)) > -1);
-});
-
-test('should processor return as object', async t => {
-  const outputBundle = await rollup({
-    input: 'test/fixtures/processor-object/index.js',
+    input: "test/fixtures/processor-string/index.js",
     plugins: [
       sass({
-        processor(css) {
-          return {
-            css,
-            foo: 'foo',
-            bar: 'bar',
+        processor: (css) => reverse(css),
+        options: TEST_SASS_OPTIONS_DEFAULT,
+      }),
+    ],
+  });
+  const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+  const result = getFirstChunkCode(output);
+
+  t.snapshot(result);
+});
+
+test("should processor return as object", async (t) => {
+  const outputBundle = await rollup({
+    input: "test/fixtures/processor-object/index.js",
+    plugins: [
+      sass({
+        processor: (css) => ({
+          css,
+          foo: "foo",
+          bar: "bar",
+        }),
+        options: TEST_SASS_OPTIONS_DEFAULT,
+      }),
+    ],
+  });
+  const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+  const result = getFirstChunkCode(output);
+
+  t.snapshot(result);
+});
+
+test("should support processor return type `Promise<string>`", async (t) => {
+  const outputBundle = await rollup({
+    input: "test/fixtures/processor-promise/index.js",
+    plugins: [
+      sass({
+        processor: (css) =>
+          new Promise((resolve) => setTimeout(() => resolve(css), 100)),
+        options: TEST_SASS_OPTIONS_DEFAULT,
+      }),
+    ],
+  });
+  const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+  const result = getFirstChunkCode(output);
+
+  t.snapshot(result);
+});
+
+test("should support processor return type `Promise<{css: string, icssExport: {}, icssImport: {}}}>", async (t) => {
+  const outputBundle = await rollup({
+    input: "test/fixtures/processor-promise/with-icss-exports.js",
+    plugins: [
+      sass({
+        processor: (css) => {
+          const pcssRootNodeRslt = postcss.parse(css);
+          const extractedIcss = extractICSS(pcssRootNodeRslt, true);
+          const cleanedCss = pcssRootNodeRslt.toString();
+          const out = {
+            ...extractedIcss.icssExports,
+            css: cleanedCss,
           };
+          // console.table(extractedIcss);
+          // console.log(out);
+          return out;
         },
-        options: sassOptions,
+        options: TEST_SASS_OPTIONS_DEFAULT,
       }),
     ],
   });
-  const {output} = await outputBundle.generate(generateOptions);
+  const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+  const result = getFirstChunkCode(output);
 
-  t.true(squash(unwrap(output)).indexOf(expectA) > -1);
-  t.true(squash(unwrap(output)).indexOf(expectB) > -1);
-  t.true(squash(unwrap(output)).indexOf('foo') > -1);
-  t.true(squash(unwrap(output)).indexOf('bar') > -1);
+  t.snapshot(result);
 });
 
-test('should support processor return type `Promise<string>`', async t => {
+test("should throw an error when processor returns an object type missing the `css` prop.", async (t) => {
+  const sassPlugin = sass({
+    // @ts-expect-error - Ignoring incorrect type (for test).
+    processor: () => ({}),
+    options: TEST_SASS_OPTIONS_DEFAULT,
+  });
+  const message =
+    "You need to return the styles using the `css` property. See https://github.com/differui/rollup-plugin-sass#processor";
+
+  await t.throwsAsync(
+    () =>
+      rollup({
+        input: "test/fixtures/processor-error/index.js",
+        plugins: [sassPlugin],
+      }),
+    { message }
+  );
+});
+// #endregion
+
+// #region node resolution
+test("should resolve ~ as node_modules", async (t) => {
   const outputBundle = await rollup({
-      input: 'test/fixtures/processor-promise/index.js',
-      plugins: [
-        sass({
-          processor: (css) => new Promise(resolve =>
-            setTimeout(() => resolve(css), 100)),
-          options: sassOptions,
-        }),
-      ],
-    }),
-    {output} = await outputBundle.generate(generateOptions);
-
-  t.true(squash(unwrap(output)).indexOf(expectA) > -1);
-  t.true(squash(unwrap(output)).indexOf(expectB) > -1);
-});
-
-test('should support processor return type `Promise<{css: string, icssExport: {}, icssImport: {}}}>', async t => {
-  const outputBundle = await rollup({
-      input: 'test/fixtures/processor-promise/with-icss-exports.js',
-      plugins: [
-        sass({
-          processor: (css) => new Promise((resolve) => {
-            const pcssRootNodeRslt = postcss.parse(css),
-              extractedIcss = extractICSS(pcssRootNodeRslt, true),
-              cleanedCss = pcssRootNodeRslt.toString(),
-              out = Object.assign({}, extractedIcss.icssExports, {
-                css: cleanedCss,
-              });
-            // console.table(extractedIcss);
-            // console.log(out);
-            resolve(out);
-          }),
-          options: sassOptions,
-        }),
-      ],
-    }),
-    {output} = await outputBundle.generate(generateOptions),
-    rslt = squash(unwrap(output));
-
-  t.true(rslt.includes(expectA2));
-  t.true(rslt.includes(expectB));
-});
-
-test('should throw an error when processor returns an object type missing the `css` prop.', async t => {
-  await t.throwsAsync(async () => rollup({
-    input: 'test/fixtures/processor-error/index.js',
+    input: "test/fixtures/import/index.js",
     plugins: [
       sass({
-        // @ts-ignore - Ignoring incorrect type (for test).
-        processor: () => ({}),
-        options: sassOptions,
+        options: TEST_SASS_OPTIONS_DEFAULT,
       }),
     ],
-  }), {
-    message: 'You need to return the styles using the `css` property. See https://github.com/differui/rollup-plugin-sass#processor',
   });
+  const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+  const result = getFirstChunkCode(output);
+
+  t.snapshot(result);
 });
 
-test('should resolve ~ as node_modules', async t => {
+test("should resolve ~ as node_modules and output javascript modules", async (t) => {
+  const outputFilePathES = path.join(
+    TEST_OUTPUT_DIR,
+    "import_scss_and_sass.es.js"
+  );
+  const outputFilePathCJS = path.join(
+    TEST_OUTPUT_DIR,
+    "import_scss_and_sass.cjs.js"
+  );
+
   const outputBundle = await rollup({
-    input: 'test/fixtures/import/index.js',
+    input: "test/fixtures/import/index.js",
     plugins: [
       sass({
-        options: sassOptions,
+        options: TEST_SASS_OPTIONS_DEFAULT,
       }),
     ],
   });
-  const {output} = await outputBundle.generate(generateOptions);
+  const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+  const result = getFirstChunkCode(output);
 
-  t.true(squash(unwrap(output)).indexOf(expectA) > -1);
-  t.true(squash(unwrap(output)).indexOf(expectB) > -1);
-  t.true(squash(unwrap(output)).indexOf(expectC) > -1);
-});
-
-test('should resolve ~ as node_modules and output javascript modules', async t => {
-  const outputBundle = await rollup({
-      input: 'test/fixtures/import/index.js',
-      plugins: [
-        sass({
-          options: sassOptions,
-        }),
-      ],
-    }),
-    outputFilePath = path.join(tmpDir, 'import_scss_and_sass.es.js'),
-    outputFilePath2 = path.join(tmpDir, 'import_scss_and_sass.cjs.js'),
-    expectedInOutput = `${expectA + expectB + expectC}`,
-    {output} = await outputBundle.generate(generateOptions),
-    outputRslt = squash(unwrap(output));
-
-  t.true(outputRslt.includes(expectedInOutput),
-    `${JSON.stringify(outputRslt)}.includes(\`${expectedInOutput}\`)`);
+  t.snapshot(result, "check output result code");
 
   // Test 'es' module output
   // ----
-  await Promise.all([
-    outputBundle.write({
-      format: 'es',
-      file: outputFilePath
-    })
-      .then(() => fs.readFile(outputFilePath))
-      .then(data => {
-        const rslt = squash(data.toString());
+  await outputBundle.write({
+    format: "es",
+    file: outputFilePathES,
+  });
 
-        // Ensure content exist in output file
-        t.true(rslt.includes(expectedInOutput),
-          `${JSON.stringify(rslt)}.includes(\`${expectedInOutput}\`)`)
-      }),
+  const esFileContent = await fs.readFile(outputFilePathES);
+  t.snapshot(
+    esFileContent.toString(),
+    "Ensure content exist in ESM output file"
+  );
 
-    // Test 'cjs' module output
-    // ----
-    outputBundle.write({
-      format: 'cjs',
-      file: outputFilePath2
-    })
-      .then(() => fs.readFile(outputFilePath2))
-      .then(data => {
-        const rslt = squash(data.toString());
+  // Test 'cjs' module output
+  // ----
+  await outputBundle.write({
+    format: "cjs",
+    file: outputFilePathCJS,
+  });
 
-        // Ensure content exist in output file
-        t.true(rslt.includes(expectedInOutput),
-          `${JSON.stringify(rslt)}.includes(\`${expectedInOutput}\`)`)
-      })
-  ]);
+  const cjsFileContent = await fs.readFile(outputFilePathCJS);
+  t.snapshot(
+    cjsFileContent.toString(),
+    "Ensure content exist in CJS output file"
+  );
 });
+// #endregion
 
-test('should support options.runtime', async t => {
+test("should support options.runtime", async (t) => {
   const outputBundle = await rollup({
-      input: 'test/fixtures/runtime/index.js',
-      plugins: [
-        sass({
-          runtime: sassJs,
-          options: sassOptions,
-        }),
-      ],
-    }),
-    {output} = await outputBundle.generate(generateOptions),
-    rslt = squash(unwrap(output));
+    input: "test/fixtures/runtime/index.js",
+    plugins: [
+      sass({
+        runtime: sassRuntime,
+        options: TEST_SASS_OPTIONS_DEFAULT,
+      }),
+    ],
+  });
+  const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+  const result = getFirstChunkCode(output);
 
-  t.true([expectA, expectB, expectC].every(xs => rslt.includes(xs)));
+  t.snapshot(result);
 });
 
-test('When `sourcemap` isn\'t set adjacent source map files should not be output, and ' +
-  'rollup output chunk shouldn\'t contain a `map` entry', async t => {
-  const outputFilePath = path.join(tmpDir, 'with-no-adjacent-source-map.js'),
+// #region sourcemap
+test("When `sourcemap` isn't set adjacent source map files should not be output, and rollup output chunk shouldn't contain a `map` entry", async (t) => {
+  const outputFilePath = path.join(
+    TEST_OUTPUT_DIR,
+    "with-no-adjacent-source-map.js"
+  );
 
-    bundle = await rollup({
-      input: 'test/fixtures/basic/index.js',
-      plugins: [
-        sass({
-          options: sassOptions
-        }),
-      ],
-    }),
-
-    sourceMapFilePath = `${outputFilePath}.map`;
+  const bundle = await rollup({
+    input: "test/fixtures/basic/index.js",
+    plugins: [
+      sass({
+        options: TEST_SASS_OPTIONS_DEFAULT,
+      }),
+    ],
+  });
+  const sourceMapFilePath = `${outputFilePath}.map`;
 
   // Run test
-  await bundle.write({file: outputFilePath, format: 'esm'})
-    .then((rslt: RollupOutput): Promise<any> => {
-      // Check for output chunk
-      t.true(rslt && rslt.output && !!rslt.output.length, 'output should contain an output chunk');
+  const writeResult = await bundle.write({
+    file: outputFilePath,
+    format: "esm",
+  });
 
-      // Check absence of 'map' entry in chunk
-      t.true(rslt.output[0].map === null || rslt.output[0].map === undefined,
-        'output chunk\'s `map` property should not be set.  It should equal `null` or `undefined`');
+  const writeResultOutput = writeResult.output;
 
-      // Check for absence of source map file
-      return fs.access(sourceMapFilePath, fsConstants.R_OK)
-        .then(() => t.false(true, `'${sourceMapFilePath}' should not exist.`),
-          () => t.true(true)
-        );
-    });
+  // Check for output chunk
+  t.true(!!writeResult.output?.length, "output should contain an output chunk");
+
+  // Check absence of 'map' entry in chunk
+  t.falsy(
+    writeResultOutput[0].map,
+    "output chunk's `map` property should not be set.  It should equal `null` or `undefined`"
+  );
+
+  // Check for absence of source map file
+  await fs.access(sourceMapFilePath, fsConstants.R_OK).then(
+    () => t.false(true, `'${sourceMapFilePath}' should not exist.`),
+    () => t.true(true)
+  );
 });
 
-test('When `sourcemap` is set, to `true`, adjacent source map file should be output, and ' +
-  'rollup output chunk should contain `map` entry', async t => {
-  const outputFilePath = path.join(tmpDir, 'with-adjacent-source-map.js'),
+test("When `sourcemap` is set, to `true`, adjacent source map file should be output, and rollup output chunk should contain `map` entry", async (t) => {
+  const outputFilePath = path.join(
+    TEST_OUTPUT_DIR,
+    "with-adjacent-source-map.js"
+  );
+  const bundle = await rollup({
+    input: "test/fixtures/basic/index.js",
+    plugins: [
+      sass({
+        options: TEST_SASS_OPTIONS_DEFAULT,
+      }),
+    ],
+  });
+  const sourceMapFilePath = `${outputFilePath}.map`;
 
-    bundle = await rollup({
-      input: 'test/fixtures/basic/index.js',
-      plugins: [
-        sass({
-          options: sassOptions
-        }),
-      ],
-    }),
+  const writeResult = await bundle.write({
+    file: outputFilePath,
+    sourcemap: true,
+    format: "esm",
+  });
 
-    sourceMapFilePath = `${outputFilePath}.map`;
+  // Check for output chunk
+  t.true(!!writeResult.output?.length, "output should contain an output chunk");
 
-  await bundle.write({file: outputFilePath, sourcemap: true, format: 'esm'})
-    .then((rslt: RollupOutput): Promise<any> => {
-      // Check for output chunk
-      t.true(rslt && rslt.output && !!rslt.output.length, 'output should contain an output chunk');
+  // Check for 'map' entry in chunk
+  t.true(
+    !!writeResult.output[0].map,
+    "rollup output output chunk's `map` property should be set"
+  );
 
-      // Check for 'map' entry in chunk
-      t.true(!!rslt.output[0].map, 'rollup output output chunk\'s `map` property should be set');
+  // Check for source map file
+  const contents = await fs.readFile(sourceMapFilePath);
 
-      // Check for source map file
-      return fs.readFile(sourceMapFilePath)
-        .then(contents => {
-          t.true(!!contents.toString(), `${sourceMapFilePath} should have been written.`);
-        });
-    });
+  t.true(
+    !!contents.toString(),
+    `${sourceMapFilePath} should have been written.`
+  );
 });
+// #endregion
 
-test('module stylesheets graph should be added to watch list', t => {
-  const inputFilePath = 'test/fixtures/dependencies/index.js';
+test("module stylesheets graph should be added to watch list", async (t) => {
+  const inputFilePath = "test/fixtures/dependencies/index.js";
 
   // Bundle our dependencies fixture module
   // ----
-  return rollup({
+  const bundle = await rollup({
     input: inputFilePath,
     plugins: [
       sass({
-        options: sassOptions
-      })
-    ]
-  })
-    // Load nested style sheet contents and return associated list of filename and content tuples
-    // ----
-    .then(bundle => {
-      return Promise.all([
-          'test/fixtures/dependencies/style1.scss',
-          'test/fixtures/dependencies/empty-style1.scss',
-          'test/fixtures/dependencies/style2.sass',
-          'test/fixtures/dependencies/style3.scss',
-          'test/fixtures/dependencies/empty-style3.scss',
-          'test/fixtures/dependencies/empty-style2.sass',
-        ]
-          .map(filePath => fs.readFile(filePath).then(buf => [filePath, squash(buf.toString())]))
-      )
-        // Run tests
-        // ----
-        .then(async nestedFilePathsAndContents => {
-          const expectedWatchedFiles = ['test/fixtures/dependencies/index.js']
-            .concat(nestedFilePathsAndContents.map(([fp]) => fp));
+        options: TEST_SASS_OPTIONS_DEFAULT,
+      }),
+    ],
+  });
 
-          // Check `watchFiles` count (watched ones plus 'index.js' one)
-          t.deepEqual(bundle.watchFiles.length, expectedWatchedFiles.length, 'should contain expected number of "watched" files');
+  // List of nested stylesheets paths
+  // ----
+  const nestedFilePaths = [
+    "test/fixtures/dependencies/style1.scss",
+    "test/fixtures/dependencies/empty-style1.scss",
+    "test/fixtures/dependencies/style2.sass",
+    "test/fixtures/dependencies/style3.scss",
+    "test/fixtures/dependencies/empty-style3.scss",
+    "test/fixtures/dependencies/empty-style2.sass",
+  ];
 
-          // Ensure 'index.js' module, and other files in dep tree are watched
-          bundle.watchFiles.forEach((filePath, i) => {
-            const expectedTail = expectedWatchedFiles[i];
-            t.true(filePath.endsWith(expectedTail), `${filePath} should end with ${expectedTail}`);
-          });
+  const expectedWatchedFiles = [
+    "test/fixtures/dependencies/index.js",
+    ...nestedFilePaths,
+  ];
 
-          // Get target module.
-          // ----
-          const targetModule = bundle?.cache?.modules[0];
-          t.true(!!targetModule, 'Expected bundle data');
+  // Run tests
+  // ----
 
-          // Ensure target module transform dependencies indeed end with expected file path tails.
-          // ----
-          t.true(targetModule.transformDependencies?.every(filePath => {
-            return !!expectedWatchedFiles.find(fp => filePath.endsWith(fp));
-          }), '`bundle.cache.modules[0].transformDependencies` entries should' +
-            ' each end with expected file-path tails');
+  // Check `watchFiles` count (watched ones plus 'index.js' one)
+  t.deepEqual(
+    bundle.watchFiles.length,
+    expectedWatchedFiles.length,
+    'should contain expected number of "watched" files'
+  );
 
-          // Test final content output
-          // ----
-          const expectedFinalContent = await fs.readFile('test/fixtures/dependencies/expected.js')
-            .then(x => x.toString());
+  // Ensure our initial 'index.js' module is being watched
+  t.true(
+    bundle.watchFiles[0].endsWith(inputFilePath),
+    'Expected `bundle.watchFiles[0]` to end with "index.js"'
+  );
 
-          t.is(targetModule.code.trim(), expectedFinalContent.trim());
-        });
-    });
+  // Ensure 'index.js' module, and other files in dep tree are watched
+  bundle.watchFiles.forEach((filePath, i) => {
+    const expectedTail = expectedWatchedFiles[i];
+    t.true(
+      filePath.endsWith(expectedTail),
+      `${filePath} should end with ${expectedTail}`
+    );
+  });
+
+  // Get target module.
+  // ----
+  const targetModule = bundle?.cache?.modules[0]!;
+  t.true(!!targetModule, "Expected bundle data");
+
+  // Ensure target module transform dependencies indeed end with expected file path tails.
+  // ----
+  t.true(
+    targetModule.transformDependencies?.every(
+      (filePath) => !!expectedWatchedFiles.find((fp) => filePath.endsWith(fp))
+    ),
+    "`bundle.cache.modules[0].transformDependencies` entries should each end with expected file-path tails"
+  );
+
+  // Test final content output
+  // ----
+  const expectedFinalContent = await fs.readFile(
+    "test/fixtures/dependencies/expected.js"
+  );
+  t.is(targetModule.code.trim(), expectedFinalContent.toString().trim());
 });
