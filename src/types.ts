@@ -1,4 +1,4 @@
-import {LegacyOptions, types} from 'sass';
+import type {LegacyOptions, LegacyResult, types} from 'sass';
 
 export interface IdAndContentObject {
   id?: string,
@@ -7,7 +7,14 @@ export interface IdAndContentObject {
 
 export type RollupPluginSassOutputFn = (styles: string, styleNodes: IdAndContentObject[]) => any;
 
-export type RollupPluginSassProcessorFn<T = string | {css: string}> = (styles: string, id: string) => Promise<T> | T;
+export type RollupPluginSassProcessorFnOutput =
+  string |
+  {
+    css: string,
+    // User processor might add additional exports
+    [key: string]: unknown
+  };
+export type RollupPluginSassProcessorFn<T = RollupPluginSassProcessorFnOutput> = (styles: string, id: string) => Promise<T> | T;
 
 export interface RollupPluginSassOptions {
   /**
@@ -83,6 +90,11 @@ export interface SassFunctionsObject {
  * @todo Update this if/when we update to the new sass API.
  */
 export type SassOptions = LegacyOptions<'async'>;
+
+/**
+ * @todo Update this if/when we update to the new sass API.
+ */
+export type SassRenderResult = LegacyResult;
 
 /**
  * Rollup's `AssetInfo` bundle type.

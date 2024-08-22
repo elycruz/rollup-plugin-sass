@@ -1,22 +1,33 @@
 {
+  "include": ["./src/*"],
   "compilerOptions": {
+    /* Language and Environment */
+    "target": "es2015",
+    "lib": ["es2015", "dom"],
+
+    /* Modules */
     "module": "CommonJS",
     "moduleResolution": "node",
-    "target": "es2015",
-    "outDir": "./dist",
+
+    /* Emit */
     "declaration": true,
     "declarationDir": "./dist",
-    "lib": ["es2015", "dom"],
-    "skipLibCheck": true,
+    "outDir": "./dist",
     "removeComments": true,
-    "preserveConstEnums": true,
-    "noImplicitAny": false,
-    "sourceMap": true,
-    "esModuleInterop": true,
-    "downlevelIteration": true,
     "importHelpers": false,
-    "typeRoots": ["node_modules/@types"]
-  },
-  "include": ["./src/*"],
-  "exclude": ["**/node_modules/**"]
+    "downlevelIteration": true,
+    "sourceMap": true,
+    "preserveConstEnums": true,
+
+    /* Interop Constraints */
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* Type Checking */
+    "strict": true,
+    "noImplicitAny": true,
+
+    /* Completeness */
+    "skipLibCheck": true /* Skip type checking all .d.ts files. */
+  }
 }

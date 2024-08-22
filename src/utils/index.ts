@@ -4,11 +4,11 @@ export const log = console.log.bind(console),  // Binding here to make sure this
 
   error = console.error.bind(console), // ""
 
-  isset = x => x !== null && x !== undefined,
+  isset = (x: unknown): boolean => x !== null && x !== undefined,
 
-  isString = x => isset(x) && x.constructor === String,
+  isString = (x: unknown): x is string => isset(x) && (x as object).constructor === String,
 
-  isObject = x => typeof x === 'object',
+  isObject = (x: unknown): x is object => typeof x === 'object',
 
-  isFunction = x => typeof x === 'function'
+  isFunction = (x: unknown): x is Function => typeof x === 'function'
 ;

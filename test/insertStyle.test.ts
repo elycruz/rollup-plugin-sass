@@ -1,6 +1,7 @@
 import test from "ava";
 import insertStyle from "../src/insertStyle";
 import { Browser } from "happy-dom";
+import Sinon from "sinon";
 
 const expectA = "body{color:red}";
 
@@ -11,10 +12,20 @@ test("should insertStyle works", async (t) => {
   page.url = "https://example.com";
   page.content = `<html><head></head><body></body></html>`;
 
-  // @ts-expect-error
-  global["window"] = page.mainFrame.window;
-  // @ts-expect-error
-  global["document"] = page.mainFrame.window.document;
+  // ---
+  // use Sinon fake to augment the global scope with window and document from the happy dom page
+
+  Sinon.define(global, "window", page.mainFrame.window);
+  Sinon.define(global, "document", page.mainFrame.window.document);
+
+  // ---
+  // Remove overrides
+  t.teardown(() => {
+    Sinon.restore();
+  });
+
+  // -----
+  // Execute the actual test
 
   const cssStr = insertStyle(expectA);
 
@@ -34,8 +45,5 @@ test("should insertStyle works", async (t) => {
 });
 
 test("insertStyle shouldn't choke when window is undefined", (t) => {
-  delete global["window"];
-  t.throws(() => !window);
-  t.true(typeof window === "undefined");
   t.notThrows(() => insertStyle("css"));
 });

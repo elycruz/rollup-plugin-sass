@@ -4,19 +4,30 @@ import * as sass from 'sass';
 import {dirname} from 'path';
 import * as fs from 'fs';
 import {createFilter} from '@rollup/pluginutils';
-import {
+import type {
   SassImporterResult,
   RollupAssetInfo,
   RollupChunkInfo,
   RollupPluginSassOptions,
   RollupPluginSassOutputFn,
-  SassOptions
+  SassOptions,
+  RollupPluginSassProcessorFnOutput,
+  SassRenderResult
 } from "./types";
 import {isFunction, isObject, isString, warn} from "./utils";
 
 // @note Rollup is added as a "devDependency" so no actual symbols should be imported.
 //  Interfaces and non-concrete types are ok.
 import {Plugin as RollupPlugin} from 'rollup';
+
+type PluginState = {
+  // Stores interim bundle objects
+  styles: { id?: string, content?: string }[],
+
+  // "";  Used, currently to ensure that we're not pushing style objects representing
+  // the same file-path into `pluginState.styles` more than once.
+  styleMaps:{ [index: string]: { id?: string, content?: string } }
+};
 
 const MATCH_SASS_FILENAME_RE = /\.sass$/,
 
@@ -43,7 +54,7 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
      * @note This importer may not work in dart-sass v2.0+ (which may be far off in the future, but is important to note: https://sass-lang.com/documentation/js-api/#legacy-api).
      * @returns {void}
      */
-    const importer1 = (url: string, prevUrl: string, done: (rslt: SassImporterResult) => void): void => {
+    const importer1 = (url: string, prevUrl: string, done: (rslt: SassImporterResult) => void): void | null => {
       if (!MATCH_NODE_MODULE_RE.test(url)) {
         return null;
       }
@@ -73,10 +84,10 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
       }
     };
 
-    return [importer1].concat(sassOptions.importer || []);
+    return [importer1].concat(sassOptions.importer as Extract<SassOptions['importer'], []> || []);
   },
 
-  processRenderResponse = (rollupOptions, file, state, inCss) => {
+  processRenderResponse = (rollupOptions: Pick<RollupPluginSassOptions, 'insert' | 'processor' | 'output'>, file: string, state: PluginState, inCss: string) => {
     if (!inCss) return Promise.resolve();
 
     const {processor} = rollupOptions;
@@ -85,7 +96,7 @@ const MATCH_SASS_FILENAME_RE = /\.sass$/,
       .then(() => !isFunction(processor) ? inCss + '' : processor(inCss, file))
 
       // Gather output requirements
-      .then(result => {
+      .then((result: Partial<RollupPluginSassProcessorFnOutput>) => {
         if (!isObject(result)) {
           return [result, ''];
         }
@@ -150,13 +161,9 @@ export = function plugin(options = {} as RollupPluginSassOptions): RollupPlugin 
 
     filter = createFilter(include || '', exclude || ''),
 
-    pluginState = {
-      // Stores interim bundle objects
-      styles: [] as {id?: string, content?: string}[],
-
-      // "";  Used, currently to ensure that we're not pushing style objects representing
-      // the same file-path into `pluginState.styles` more than once.
-      styleMaps: {} as {[index: string]: {id?: string, content?: string}}
+    pluginState: PluginState = {
+      styles: [],
+      styleMaps: {}
     };
 
   return {
@@ -190,10 +197,10 @@ export = function plugin(options = {} as RollupPluginSassOptions): RollupPlugin 
       }
 
       return promisify(sassRuntime.render.bind(sassRuntime))(resolvedOptions)
-        .then(res => processRenderResponse(pluginOptions, filePath, pluginState, res.css.toString().trim())
+        .then((res: SassRenderResult) => processRenderResponse(pluginOptions, filePath, pluginState, res.css.toString().trim())
           .then(result => [res, result])
         )
-        .then(([res, codeResult]) => {
+        .then(([res, codeResult]: [SassRenderResult, RollupPluginSassProcessorFnOutput]) => {
             // @todo Do we need to filter this call so it only occurs when rollup is in 'watch' mode?
             res.stats.includedFiles.forEach((filePath: string) => {
               this.addWatchFile(filePath);
