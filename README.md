@@ -84,13 +84,25 @@ sass({
 
 + Type: `Boolean` _(default: false)_
 
-If you specify `true`, the plugin will insert compiled CSS into `<head/>` tag.
+If you specify `true`, the plugin will insert compiled CSS into `<head/>` tag, via utility function that it will output
+in your build bundle.
 
 ```js
 sass({
   insert: true
 })
 ```
+
+**Usage caveat:**
+
+There is a utility function that handles injecting individual style payloads into the page's head, which is output as `___$insertStyle` by the rollup-plugin-sass plugin.
+
+This function is output to `./dist/node_modules/...`, in user-land builds, so you have to make sure that it isn't
+ignored by your build tool(s) (E.g., rollup, webpack etc.);  As a solution, you'll just have to make sure that the
+directory is "included"/not-"excluded" via your build tools facilities/added-plugins/etc.  
+
+Additionally, if you're publishing an app to an internal registry, or similar, you'll have to 
+make sure 'dist/node_modules' isn't ignored in this scenario as well.
 
 ### `processor`
 
