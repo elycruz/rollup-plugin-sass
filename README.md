@@ -93,16 +93,15 @@ sass({
 })
 ```
 
-**Usage caveat:**
+**Note:**
 
-There is a utility function that handles injecting individual style payloads into the page's head, which is output as `___$insertStyle` by the rollup-plugin-sass plugin.
+The utility function responsible for injecting style chunks into the page's head is output to
+`./dist/node_modules/rollup-plugin-sass/dist/...` 
 
-This function is output to `./dist/node_modules/...`, in user-land builds, so you have to make sure that it isn't
-ignored by your build tool(s) (E.g., rollup, webpack etc.);  As a solution, you'll just have to make sure that the
-directory is "included"/not-"excluded" via your build tools facilities/added-plugins/etc.  
-
-Additionally, if you're publishing an app to an internal registry, or similar, you'll have to 
-make sure 'dist/node_modules' isn't ignored in this scenario as well.
+- If publishing a package ensure the above mentioned directory (or similar) is
+listed in [`package.json.files`](https://docs.npmjs.com/cli/v10/configuring-npm/package-json#files) field.
+- Additionally, ensure the same directory is not excluded via your build tools (rollup, webpack, etc.), 
+  if you're getting errors related to the `___$insertStyle` function not being present.
 
 ### `processor`
 
