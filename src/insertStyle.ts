@@ -8,7 +8,9 @@
  *
  * @return css style
  */
-export default function insertStyle(css: string | undefined): string | undefined {
+export default function insertStyle(
+  css: string | undefined,
+): string | undefined {
   if (!css || typeof window === 'undefined') {
     return;
   }

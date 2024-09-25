@@ -20,7 +20,9 @@
     "coverage": "nyc report --reporter=text-lcov | coveralls",
     "output-coverage-lcov": "nyc report --reporter=text-lcov > coverage/tests.lcov",
     "test:rollup.config.spec.ts": "tsc --project tsconfig.spec.json --noEmit",
-    "commitlint": "commitlint --edit"
+    "commitlint": "commitlint --edit",
+    "format": "prettier . --check",
+    "format:fix": "prettier . --write"
   },
   "standard": {
     "ignore": [
@@ -51,7 +53,8 @@
   ],
   "ava": {
     "files": [
-      "./test/*.test.ts"
+      "./test/*.test.ts",
+      "!./test/rollup.config.test.ts"
     ],
     "extensions": [
       "ts"
@@ -82,6 +85,7 @@
     "icss-utils": "^5.1.0",
     "nyc": "^17.0.0",
     "postcss": "^8.4.16",
+    "prettier": "^3.3.3",
     "rollup": "^1 || ^2 || ^3",
     "sinon": "^18.0.0",
     "ts-node": "^10.9.1",

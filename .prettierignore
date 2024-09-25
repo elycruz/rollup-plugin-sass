@@ -1,0 +1,4 @@
+CHANGELOG.md
+test/assets/**
+test/fixtures/**
+test/snapshots/**
