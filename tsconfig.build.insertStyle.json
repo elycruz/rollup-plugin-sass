@@ -1,8 +1,0 @@
-/* @see insertStyle.ts for additional information */
-{
-  "extends": "./tsconfig.json",
-  "include": ["./src/insertStyle.ts"],
-  "compilerOptions": {
-    "module": "ES6"
-  }
-}
