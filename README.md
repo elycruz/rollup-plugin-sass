@@ -96,12 +96,17 @@ sass({
 **Note:**
 
 The utility function responsible for injecting style chunks into the page's head is output to
-`./dist/node_modules/rollup-plugin-sass/dist/...` 
+`./dist/node_modules/...` (depending on the build tool you're using) when using rollup-plugin-sass's
+`insert` feature. 
 
-- If publishing a package ensure the above mentioned directory (or similar) is
-listed in [`package.json.files`](https://docs.npmjs.com/cli/v10/configuring-npm/package-json#files) field.
-- Additionally, ensure the same directory is not excluded via your build tools (rollup, webpack, etc.), 
-  if you're getting errors related to the `___$insertStyle` function not being present.
+Due to this some caveats come up:
+
+1.  If you're publishing, and/or packaging-up, an app:
+- Ensure the `./{target-dist}/**/node_modules**/insertStyle.js` file is not listed in relevant `.*ignore` files.
+- Ensure the `./{target-dist}/**/insertStyle.js` file is listed in [`package.json.files`](https://docs.npmjs.com/cli/v10/configuring-npm/package-json#files) field.
+- Additionally, ensure the same directory is not excluded via your build tools (rollup, webpack, etc.). 
+- Optionally, if you're using typescript, you can list the `./{target-dist}/**/insertStyle` module 
+  in your `*tsconfig*`.
 
 ### `processor`
 
