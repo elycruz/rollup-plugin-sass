@@ -6,8 +6,6 @@ import * as fs from 'fs';
 import { createFilter } from '@rollup/pluginutils';
 import type {
   SassImporterResult,
-  RollupAssetInfo,
-  RollupChunkInfo,
   RollupPluginSassOptions,
   RollupPluginSassOutputFn,
   SassOptions,
@@ -15,6 +13,7 @@ import type {
   SassRenderResult,
 } from './types';
 import { isFunction, isObject, isString, warn } from './utils';
+import insertStyle from './insertStyle';
 
 // @note Rollup is added as a "devDependency" so no actual symbols should be imported.
 //  Interfaces and non-concrete types are ok.
@@ -26,13 +25,18 @@ type PluginState = {
 
   // "";  Used, currently to ensure that we're not pushing style objects representing
   // the same file-path into `pluginState.styles` more than once.
-  styleMaps: { [index: string]: { id?: string; content?: string } };
+  styleMaps: {
+    [index: string]: {
+      id?: string;
+      content?: string;
+    };
+  };
 };
 
 const MATCH_SASS_FILENAME_RE = /\.sass$/;
 const MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i;
 
-const insertFnName = '___$insertStyle';
+const INSERT_STYLE_ID = '___$insertStyle';
 
 /**
  * Returns a sass `importer` list:
@@ -147,12 +151,11 @@ const processRenderResponse = (
 
         if (rollupOptions.insert) {
           /**
-           * Add `insertStyle` import for handling "inserting"
-           * *.css into *.html `head`.
-           * @see insertStyle.ts for additional information
+           * Include import using {@link INSERT_STYLE_ID} as source.
+           * It will be resolved to insert style function using `resolvedID` and `load` hooks
            */
-          imports = `import ${insertFnName} from '${__dirname}/insertStyle.js';\n`;
-          defaultExport = `${insertFnName}(${out});`;
+          imports = `import ${INSERT_STYLE_ID} from '${INSERT_STYLE_ID}';\n`;
+          defaultExport = `${INSERT_STYLE_ID}(${out});`;
         } else if (!rollupOptions.output) {
           defaultExport = out;
         }
@@ -178,13 +181,16 @@ export = function plugin(
     },
     options,
   );
+
   const {
     include = defaultIncludes,
     exclude = defaultExcludes,
     runtime: sassRuntime,
     options: incomingSassOptions = {} as SassOptions,
   } = pluginOptions;
+
   const filter = createFilter(include || '', exclude || '');
+
   const pluginState: PluginState = {
     styles: [],
     styleMaps: {},
@@ -193,7 +199,21 @@ export = function plugin(
   return {
     name: 'rollup-plugin-sass',
 
-    transform(code: string, filePath: string): Promise<any> {
+    /** @see https://rollupjs.org/plugin-development/#resolveid */
+    resolveId(source) {
+      if (source === INSERT_STYLE_ID) {
+        return INSERT_STYLE_ID;
+      }
+    },
+
+    /** @see https://rollupjs.org/plugin-development/#load */
+    load(id) {
+      if (id === INSERT_STYLE_ID) {
+        return `export default ${insertStyle.toString()}`;
+      }
+    },
+
+    transform(code, filePath) {
       if (!filter(filePath)) {
         return Promise.resolve();
       }
@@ -245,11 +265,7 @@ export = function plugin(
         ); // @note do not `catch` here - let error propagate to rollup level.
     },
 
-    generateBundle(
-      generateOptions: { file?: string },
-      bundle: { [fileName: string]: RollupAssetInfo | RollupChunkInfo },
-      isWrite: boolean,
-    ): Promise<any> {
+    generateBundle(generateOptions, _, isWrite) {
       if (
         !isWrite ||
         (!pluginOptions.insert &&
@@ -284,5 +300,5 @@ export = function plugin(
 
       return Promise.resolve(css);
     },
-  } as RollupPlugin;
+  };
 };

@@ -1,10 +1,9 @@
 /**
  * Create a style tag and append to head tag
  *
- * @warning this file is not included directly in the source code!
- *          If user specifies inject option to true, an import to this file will be injected in rollup output.
- *          Due to this reason this file is compiled into a ESM module separated from other plugin source files.
- *          That is the reason of why there are two tsconfig.build files.
+ * @warning This function is injected inside rollup. According to this be sure
+ *          - to not include any side-effect
+ *          - do not import any library / other files content
  *
  * @return css style
  */
