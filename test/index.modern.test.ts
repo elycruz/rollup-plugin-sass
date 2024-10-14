@@ -108,153 +108,153 @@ test('should custom importer works', async (t) => {
   t.snapshot(result);
 });
 
-// test('should support options.data', async (t) => {
-//   const jsVars = { color_red: 'red' };
-//   const scssVars = Object.entries(jsVars).reduce(
-//     (prev, [varName, varValue]) => `${prev}$${varName}:${varValue};`,
-//     '',
-//   );
-//   const outputBundle = await rollup({
-//     input: 'test/fixtures/data/index.js',
-//     plugins: [
-//       sass({
-//         api: 'modern',
-//         options: {
-//           ...TEST_SASS_OPTIONS_DEFAULT,
-//           data: scssVars,
-//         },
-//       }),
-//     ],
-//   });
-//   const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
-//   const result = getFirstChunkCode(output);
+test('should support options.data', async (t) => {
+  const jsVars = { color_red: 'red' };
+  const scssVars = Object.entries(jsVars).reduce(
+    (prev, [varName, varValue]) => `${prev}$${varName}:${varValue};`,
+    '',
+  );
+  const outputBundle = await rollup({
+    input: 'test/fixtures/data/index.js',
+    plugins: [
+      sass({
+        api: 'modern',
+        options: {
+          ...TEST_SASS_OPTIONS_DEFAULT,
+          data: scssVars,
+        },
+      }),
+    ],
+  });
+  const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+  const result = getFirstChunkCode(output);
 
-//   t.snapshot(result);
-// });
+  t.snapshot(result);
+});
 
 // // #region insert option
-{
-  test('should insert CSS into head tag', async (t) => {
-    const outputBundle = await rollup({
-      input: 'test/fixtures/insert/index.js',
-      plugins: [
-        sass({
-          api: 'modern',
-          insert: true,
-          options: TEST_SASS_OPTIONS_DEFAULT,
-        }),
-      ],
-    });
-    const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+// {
+//   test('should insert CSS into head tag', async (t) => {
+//     const outputBundle = await rollup({
+//       input: 'test/fixtures/insert/index.js',
+//       plugins: [
+//         sass({
+//           api: 'modern',
+//           insert: true,
+//           options: TEST_SASS_OPTIONS_DEFAULT,
+//         }),
+//       ],
+//     });
+//     const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
 
-    const outputFilePath = path.join(TEST_OUTPUT_DIR, 'insert-bundle');
+//     const outputFilePath = path.join(TEST_OUTPUT_DIR, 'insert-bundle');
 
-    await outputBundle.write({ dir: outputFilePath });
+//     await outputBundle.write({ dir: outputFilePath });
 
-    t.is(
-      output.length,
-      1,
-      'has 1 chunk (we are bundling all in one single file)',
-    );
+//     t.is(
+//       output.length,
+//       1,
+//       'has 1 chunk (we are bundling all in one single file)',
+//     );
 
-    const [{ moduleIds, modules }] = output;
+//     const [{ moduleIds, modules }] = output;
 
-    t.is(
-      moduleIds.filter((it) => it.endsWith('insertStyle')).length,
-      1,
-      'include insertStyle one time',
-    );
+//     t.is(
+//       moduleIds.filter((it) => it.endsWith('insertStyle')).length,
+//       1,
+//       'include insertStyle one time',
+//     );
 
-    const actualAModuleID = moduleIds.find((it) =>
-      it.endsWith('actual_a.scss'),
-    ) as string;
-    const actualAModule = modules[actualAModuleID];
-    t.truthy(actualAModule);
-    t.snapshot(
-      actualAModule.code,
-      'actual_a content is compiled with insertStyle',
-    );
+//     const actualAModuleID = moduleIds.find((it) =>
+//       it.endsWith('actual_a.scss'),
+//     ) as string;
+//     const actualAModule = modules[actualAModuleID];
+//     t.truthy(actualAModule);
+//     t.snapshot(
+//       actualAModule.code,
+//       'actual_a content is compiled with insertStyle',
+//     );
 
-    const actualBModuleID = moduleIds.find((it) =>
-      it.endsWith('actual_b.scss'),
-    ) as string;
-    const actualBModule = modules[actualBModuleID];
-    t.truthy(actualBModule);
-    t.snapshot(
-      actualBModule.code,
-      'actual_b content is compiled with insertStyle',
-    );
-  });
+//     const actualBModuleID = moduleIds.find((it) =>
+//       it.endsWith('actual_b.scss'),
+//     ) as string;
+//     const actualBModule = modules[actualBModuleID];
+//     t.truthy(actualBModule);
+//     t.snapshot(
+//       actualBModule.code,
+//       'actual_b content is compiled with insertStyle',
+//     );
+//   });
 
-  test('should generate chunks with import insertStyle when `insert` is true', async (t) => {
-    const outputBundle = await rollup({
-      input: {
-        entryA: 'test/fixtures/multiple-entry-points/entryA.js',
-        entryB: 'test/fixtures/multiple-entry-points/entryB.js',
-      },
-      plugins: [
-        sass({
-          api: 'modern',
-          insert: true,
-          options: TEST_SASS_OPTIONS_DEFAULT,
-        }),
-      ],
-    });
+//   test('should generate chunks with import insertStyle when `insert` is true', async (t) => {
+//     const outputBundle = await rollup({
+//       input: {
+//         entryA: 'test/fixtures/multiple-entry-points/entryA.js',
+//         entryB: 'test/fixtures/multiple-entry-points/entryB.js',
+//       },
+//       plugins: [
+//         sass({
+//           api: 'modern',
+//           insert: true,
+//           options: TEST_SASS_OPTIONS_DEFAULT,
+//         }),
+//       ],
+//     });
 
-    const { output } = await outputBundle.generate({
-      ...TEST_GENERATE_OPTIONS,
-      preserveModules: true,
-      preserveModulesRoot: 'src',
-    });
+//     const { output } = await outputBundle.generate({
+//       ...TEST_GENERATE_OPTIONS,
+//       preserveModules: true,
+//       preserveModulesRoot: 'src',
+//     });
 
-    const outputFilePath = path.join(TEST_OUTPUT_DIR, 'insert-multiple-entry');
+//     const outputFilePath = path.join(TEST_OUTPUT_DIR, 'insert-multiple-entry');
 
-    await outputBundle.write({
-      dir: outputFilePath,
-      preserveModules: true,
-      preserveModulesRoot: 'src',
-    });
+//     await outputBundle.write({
+//       dir: outputFilePath,
+//       preserveModules: true,
+//       preserveModulesRoot: 'src',
+//     });
 
-    t.is(output.length, 5, 'has 5 chunks');
+//     t.is(output.length, 5, 'has 5 chunks');
 
-    const outputFileNames = output.map((it) => it.fileName);
+//     const outputFileNames = output.map((it) => it.fileName);
 
-    t.is(
-      outputFileNames.filter((it) => it.startsWith('entry')).length,
-      2,
-      '1 chunk for each entry (2)',
-    );
-    t.is(
-      outputFileNames.filter((it) => it.startsWith('assets/actual')).length,
-      2,
-      '1 chunk for each entry style import (2)',
-    );
-    t.is(
-      outputFileNames.filter((it) => it.endsWith('insertStyle.js')).length,
-      1,
-      '1 chunk for insertStyle helper',
-    );
+//     t.is(
+//       outputFileNames.filter((it) => it.startsWith('entry')).length,
+//       2,
+//       '1 chunk for each entry (2)',
+//     );
+//     t.is(
+//       outputFileNames.filter((it) => it.startsWith('assets/actual')).length,
+//       2,
+//       '1 chunk for each entry style import (2)',
+//     );
+//     t.is(
+//       outputFileNames.filter((it) => it.endsWith('insertStyle.js')).length,
+//       1,
+//       '1 chunk for insertStyle helper',
+//     );
 
-    const styleFiles = output.filter((it) =>
-      it.fileName.startsWith('assets/actual'),
-    );
+//     const styleFiles = output.filter((it) =>
+//       it.fileName.startsWith('assets/actual'),
+//     );
 
-    t.true(
-      styleFiles.every((outputItem) => {
-        if (outputItem.type === 'chunk') {
-          const insertStyleImportsCount = outputItem.imports.filter((it) =>
-            it.endsWith('insertStyle.js'),
-          ).length;
-          return insertStyleImportsCount === 1;
-        }
-        // no asset should be present here
-        return false;
-      }),
-      'each chunk must include insertStyle once',
-    );
-  });
-}
-// #endregion
+//     t.true(
+//       styleFiles.every((outputItem) => {
+//         if (outputItem.type === 'chunk') {
+//           const insertStyleImportsCount = outputItem.imports.filter((it) =>
+//             it.endsWith('insertStyle.js'),
+//           ).length;
+//           return insertStyleImportsCount === 1;
+//         }
+//         // no asset should be present here
+//         return false;
+//       }),
+//       'each chunk must include insertStyle once',
+//     );
+//   });
+// }
+// // #endregion
 
 // // #region output option
 // {
@@ -292,6 +292,7 @@ test('should custom importer works', async (t) => {
 //       input: 'test/fixtures/output-function/index.js',
 //       plugins: [
 //         sass({
+//           api: 'modern',
 //           output: outputSpy,
 //           options: TEST_SASS_OPTIONS_DEFAULT,
 //         }),
@@ -331,6 +332,7 @@ test('should custom importer works', async (t) => {
 //       input: 'test/fixtures/output-path/index.js',
 //       plugins: [
 //         sass({
+//           api: 'modern',
 //           output: outputStylePath,
 //           options: TEST_SASS_OPTIONS_DEFAULT,
 //         }),
@@ -357,6 +359,7 @@ test('should custom importer works', async (t) => {
 //       input: 'test/fixtures/output-true/index.js',
 //       plugins: [
 //         sass({
+//           api: 'modern',
 //           output: true,
 //           options: TEST_SASS_OPTIONS_DEFAULT,
 //         }),

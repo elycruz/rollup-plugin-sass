@@ -1,9 +1,10 @@
 import { dirname } from 'path';
 
-import type * as sass from 'sass';
+import { LegacyOptions, LegacyImporter, Options, Importer, FileImporter } from 'sass';
 import resolve from 'resolve';
 
-import { warn } from '.';
+import { warn } from './logger';
+import { pathToFileURL } from 'url';
 
 const MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i;
 
@@ -11,8 +12,8 @@ const MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i;
  * Returns a sass `importer` list:
  * @see https://sass-lang.com/documentation/js-api#importer
  */
-export const getLegacyImporterList = (
-  importOption: sass.LegacyOptions<'async'>['importer'],
+export const getImporterListLegacy = (
+  importOption: LegacyOptions<'async'>['importer'],
 ) => {
   // `Promise` to chain all `importer1` calls to;  E.g.,  subsequent `importer1` calls won't call `done` until previous `importer1` calls have called `done` (import order enforcement) - Required since importer below is actually 'async'.
   let lastResult = Promise.resolve();
@@ -27,7 +28,7 @@ export const getLegacyImporterList = (
    * @param done - Signals import completion.  Note: `LegacyImporterResult`, and `SassImporterResult`, are the same here - We've defined the type for our plugin, since older versions of sass don't have this type defined.
    * @note This importer may not work in dart-sass v2.0+ (which may be far off in the future, but is important to note: https://sass-lang.com/documentation/js-api/#legacy-api).
    */
-  const importer1: sass.LegacyImporter<'async'> = (url, prevUrl, done) => {
+  const importer1: LegacyImporter<'async'> = (url, prevUrl, done) => {
     if (!MATCH_NODE_MODULE_RE.test(url)) {
       return null;
     }
@@ -60,4 +61,38 @@ export const getLegacyImporterList = (
   };
 
   return [importer1].concat((importOption as never) || []);
+};
+
+/**
+ * Returns a sass `importer` list:
+ * @see https://sass-lang.com/documentation/js-api/interfaces/importer/
+ */
+export const getImporterListModern = (
+  importOption: Options<'async'>['importers'],
+) => {
+  const importer: FileImporter<'async'> = {
+    findFileUrl(url, context) {
+       if (!MATCH_NODE_MODULE_RE.test(url)) {
+        return null;
+      }
+
+      const moduleUrl = url.slice(1);
+      const resolveOptions = {
+        basedir: dirname(context.containingUrl!.toString()),
+        extensions: ['.scss', '.sass'],
+      };
+
+      // @todo This block should run as a promise instead, will help ensure we're not blocking the thread it is
+      //   running on, even though `sass` is probably already running the importer in one.
+      try {
+        const file = resolve.sync(moduleUrl, resolveOptions);
+        return pathToFileURL(file);
+      } catch (err) {
+        warn('[rollup-plugin-sass]: Recovered from error: ', err);
+        return null;
+      }
+    }
+  };
+
+  return [importer].concat((importOption as never) || []);
 };

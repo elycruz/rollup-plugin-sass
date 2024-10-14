@@ -1,4 +1,4 @@
-import { isFunction, isObject, isString } from "./index";
+import { isFunction, isObject, isString } from "./helpers";
 import { RollupPluginSassOptions, RollupPluginSassState, RollupPluginSassProcessorFnOutput } from "../types";
 
 export const INSERT_STYLE_ID = '___$insertStyle';
