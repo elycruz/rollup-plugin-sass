@@ -132,367 +132,373 @@ test('should support options.data', async (t) => {
   t.snapshot(result);
 });
 
-// // #region insert option
-// {
-//   test('should insert CSS into head tag', async (t) => {
-//     const outputBundle = await rollup({
-//       input: 'test/fixtures/insert/index.js',
-//       plugins: [
-//         sass({
-//           api: 'modern',
-//           insert: true,
-//           options: TEST_SASS_OPTIONS_DEFAULT,
-//         }),
-//       ],
-//     });
-//     const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+// #region insert option
+{
+  test('should insert CSS into head tag', async (t) => {
+    const outputBundle = await rollup({
+      input: 'test/fixtures/insert/index.js',
+      plugins: [
+        sass({
+          api: 'modern',
+          insert: true,
+          options: TEST_SASS_OPTIONS_DEFAULT,
+        }),
+      ],
+    });
+    const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
 
-//     const outputFilePath = path.join(TEST_OUTPUT_DIR, 'insert-bundle');
+    const outputFilePath = path.join(TEST_OUTPUT_DIR, 'insert-bundle');
 
-//     await outputBundle.write({ dir: outputFilePath });
+    await outputBundle.write({ dir: outputFilePath });
 
-//     t.is(
-//       output.length,
-//       1,
-//       'has 1 chunk (we are bundling all in one single file)',
-//     );
+    t.is(
+      output.length,
+      1,
+      'has 1 chunk (we are bundling all in one single file)',
+    );
 
-//     const [{ moduleIds, modules }] = output;
+    const [{ moduleIds, modules }] = output;
 
-//     t.is(
-//       moduleIds.filter((it) => it.endsWith('insertStyle')).length,
-//       1,
-//       'include insertStyle one time',
-//     );
+    t.is(
+      moduleIds.filter((it) => it.endsWith('insertStyle')).length,
+      1,
+      'include insertStyle one time',
+    );
 
-//     const actualAModuleID = moduleIds.find((it) =>
-//       it.endsWith('actual_a.scss'),
-//     ) as string;
-//     const actualAModule = modules[actualAModuleID];
-//     t.truthy(actualAModule);
-//     t.snapshot(
-//       actualAModule.code,
-//       'actual_a content is compiled with insertStyle',
-//     );
+    const actualAModuleID = moduleIds.find((it) =>
+      it.endsWith('actual_a.scss'),
+    ) as string;
+    const actualAModule = modules[actualAModuleID];
+    t.truthy(actualAModule);
+    t.snapshot(
+      actualAModule.code,
+      'actual_a content is compiled with insertStyle',
+    );
 
-//     const actualBModuleID = moduleIds.find((it) =>
-//       it.endsWith('actual_b.scss'),
-//     ) as string;
-//     const actualBModule = modules[actualBModuleID];
-//     t.truthy(actualBModule);
-//     t.snapshot(
-//       actualBModule.code,
-//       'actual_b content is compiled with insertStyle',
-//     );
-//   });
+    const actualBModuleID = moduleIds.find((it) =>
+      it.endsWith('actual_b.scss'),
+    ) as string;
+    const actualBModule = modules[actualBModuleID];
+    t.truthy(actualBModule);
+    t.snapshot(
+      actualBModule.code,
+      'actual_b content is compiled with insertStyle',
+    );
+  });
 
-//   test('should generate chunks with import insertStyle when `insert` is true', async (t) => {
-//     const outputBundle = await rollup({
-//       input: {
-//         entryA: 'test/fixtures/multiple-entry-points/entryA.js',
-//         entryB: 'test/fixtures/multiple-entry-points/entryB.js',
-//       },
-//       plugins: [
-//         sass({
-//           api: 'modern',
-//           insert: true,
-//           options: TEST_SASS_OPTIONS_DEFAULT,
-//         }),
-//       ],
-//     });
+  test('should generate chunks with import insertStyle when `insert` is true', async (t) => {
+    const outputBundle = await rollup({
+      input: {
+        entryA: 'test/fixtures/multiple-entry-points/entryA.js',
+        entryB: 'test/fixtures/multiple-entry-points/entryB.js',
+      },
+      plugins: [
+        sass({
+          api: 'modern',
+          insert: true,
+          options: TEST_SASS_OPTIONS_DEFAULT,
+        }),
+      ],
+    });
 
-//     const { output } = await outputBundle.generate({
-//       ...TEST_GENERATE_OPTIONS,
-//       preserveModules: true,
-//       preserveModulesRoot: 'src',
-//     });
+    const { output } = await outputBundle.generate({
+      ...TEST_GENERATE_OPTIONS,
+      preserveModules: true,
+      preserveModulesRoot: 'src',
+    });
 
-//     const outputFilePath = path.join(TEST_OUTPUT_DIR, 'insert-multiple-entry');
+    const outputFilePath = path.join(TEST_OUTPUT_DIR, 'insert-multiple-entry');
 
-//     await outputBundle.write({
-//       dir: outputFilePath,
-//       preserveModules: true,
-//       preserveModulesRoot: 'src',
-//     });
+    await outputBundle.write({
+      dir: outputFilePath,
+      preserveModules: true,
+      preserveModulesRoot: 'src',
+    });
 
-//     t.is(output.length, 5, 'has 5 chunks');
+    t.is(output.length, 5, 'has 5 chunks');
 
-//     const outputFileNames = output.map((it) => it.fileName);
+    const outputFileNames = output.map((it) => it.fileName);
 
-//     t.is(
-//       outputFileNames.filter((it) => it.startsWith('entry')).length,
-//       2,
-//       '1 chunk for each entry (2)',
-//     );
-//     t.is(
-//       outputFileNames.filter((it) => it.startsWith('assets/actual')).length,
-//       2,
-//       '1 chunk for each entry style import (2)',
-//     );
-//     t.is(
-//       outputFileNames.filter((it) => it.endsWith('insertStyle.js')).length,
-//       1,
-//       '1 chunk for insertStyle helper',
-//     );
+    t.is(
+      outputFileNames.filter((it) => it.startsWith('entry')).length,
+      2,
+      '1 chunk for each entry (2)',
+    );
+    t.is(
+      outputFileNames.filter((it) => it.startsWith('assets/actual')).length,
+      2,
+      '1 chunk for each entry style import (2)',
+    );
+    t.is(
+      outputFileNames.filter((it) => it.endsWith('insertStyle.js')).length,
+      1,
+      '1 chunk for insertStyle helper',
+    );
 
-//     const styleFiles = output.filter((it) =>
-//       it.fileName.startsWith('assets/actual'),
-//     );
+    const styleFiles = output.filter((it) =>
+      it.fileName.startsWith('assets/actual'),
+    );
 
-//     t.true(
-//       styleFiles.every((outputItem) => {
-//         if (outputItem.type === 'chunk') {
-//           const insertStyleImportsCount = outputItem.imports.filter((it) =>
-//             it.endsWith('insertStyle.js'),
-//           ).length;
-//           return insertStyleImportsCount === 1;
-//         }
-//         // no asset should be present here
-//         return false;
-//       }),
-//       'each chunk must include insertStyle once',
-//     );
-//   });
-// }
-// // #endregion
+    t.true(
+      styleFiles.every((outputItem) => {
+        if (outputItem.type === 'chunk') {
+          const insertStyleImportsCount = outputItem.imports.filter((it) =>
+            it.endsWith('insertStyle.js'),
+          ).length;
+          return insertStyleImportsCount === 1;
+        }
+        // no asset should be present here
+        return false;
+      }),
+      'each chunk must include insertStyle once',
+    );
+  });
+}
+// #endregion
 
-// // #region output option
-// {
-//   const onwarn: WarningHandlerWithDefault = (warning, defaultHandler) => {
-//     if (warning.code === 'EMPTY_BUNDLE') {
-//       return;
-//     }
-//     defaultHandler(warning);
-//   };
+// #region output option
+{
+  const onwarn: WarningHandlerWithDefault = (warning, defaultHandler) => {
+    if (warning.code === 'EMPTY_BUNDLE') {
+      return;
+    }
+    defaultHandler(warning);
+  };
 
-//   const [expectA, expectB] = [
-//     'test/assets/expect_a.css',
-//     'test/assets/expect_b.css',
-//   ].map((filePath) =>
-//     stripNewLines(readFileSync(filePath, { encoding: 'utf-8' })),
-//   );
+  const [expectA, expectB] = [
+    'test/assets/expect_a.css',
+    'test/assets/expect_b.css',
+  ].map((filePath) =>
+    stripNewLines(readFileSync(filePath, { encoding: 'utf-8' })),
+  );
 
-//   /**
-//    * @warning
-//    * Right now we can't use snapshot testing on this tests because sometimes rollup mess with the order of imports.
-//    * Detailed information can be found here: https://github.com/elycruz/rollup-plugin-sass/pull/143#issuecomment-2227274405
-//    */
+  /**
+   * @warning
+   * Right now we can't use snapshot testing on this tests because sometimes rollup mess with the order of imports.
+   * Detailed information can be found here: https://github.com/elycruz/rollup-plugin-sass/pull/143#issuecomment-2227274405
+   */
 
-//   test('should support output as function', async (t) => {
-//     const outputSpy = Sinon.spy() as Sinon.SinonSpy<
-//       Parameters<RollupPluginSassOutputFn>,
-//       ReturnType<RollupPluginSassOutputFn>
-//     >;
-//     const outputFilePath = path.join(
-//       TEST_OUTPUT_DIR,
-//       'support_output_function.js',
-//     );
+  test('should support output as function', async (t) => {
+    const outputSpy = Sinon.spy() as Sinon.SinonSpy<
+      Parameters<RollupPluginSassOutputFn>,
+      ReturnType<RollupPluginSassOutputFn>
+    >;
+    const outputFilePath = path.join(
+      TEST_OUTPUT_DIR,
+      'support_output_function.js',
+    );
 
-//     const outputBundle = await rollup({
-//       input: 'test/fixtures/output-function/index.js',
-//       plugins: [
-//         sass({
-//           api: 'modern',
-//           output: outputSpy,
-//           options: TEST_SASS_OPTIONS_DEFAULT,
-//         }),
-//       ],
-//       onwarn,
-//     });
+    const outputBundle = await rollup({
+      input: 'test/fixtures/output-function/index.js',
+      plugins: [
+        sass({
+          api: 'modern',
+          output: outputSpy,
+          options: TEST_SASS_OPTIONS_DEFAULT,
+        }),
+      ],
+      onwarn,
+    });
 
-//     await outputBundle.write({ ...TEST_OUTPUT_OPTIONS, file: outputFilePath });
+    await outputBundle.write({ ...TEST_OUTPUT_OPTIONS, file: outputFilePath });
 
-//     const result = await fs
-//       .readFile(outputFilePath)
-//       .catch(() =>
-//         t.true(false, `Trouble reading back written file "${outputFilePath}".`),
-//       );
+    const result = await fs
+      .readFile(outputFilePath)
+      .catch(() =>
+        t.true(false, `Trouble reading back written file "${outputFilePath}".`),
+      );
 
-//     t.is(stripNewLines(result.toString()), '', 'JS bundle mus be empty');
+    t.is(stripNewLines(result.toString()), '', 'JS bundle mus be empty');
 
-//     t.true(outputSpy.calledOnce, 'output function has been called');
+    t.true(outputSpy.calledOnce, 'output function has been called');
 
-//     const [actualCSSstring, ...otherOutputParams] = outputSpy.args[0];
+    const [actualCSSstring, ...otherOutputParams] = outputSpy.args[0];
 
-//     [expectA, expectB].forEach((expectedChunkCSS) => {
-//       t.true(
-//         actualCSSstring.includes(expectedChunkCSS),
-//         [
-//           `expect "${actualCSSstring}" to include "${expectedChunkCSS}"`,
-//           `Additional params are: ${JSON.stringify(otherOutputParams)}`,
-//         ].join('\n'),
-//       );
-//     });
-//   });
+    [expectA, expectB].forEach((expectedChunkCSS) => {
+      t.true(
+        actualCSSstring.includes(expectedChunkCSS),
+        [
+          `expect "${actualCSSstring}" to include "${expectedChunkCSS}"`,
+          `Additional params are: ${JSON.stringify(otherOutputParams)}`,
+        ].join('\n'),
+      );
+    });
+  });
 
-//   test('should support output as (non-previously existent) path', async (t) => {
-//     const outputStylePath = path.join(TEST_OUTPUT_DIR, 'output-path/style.css');
+  test('should support output as (non-previously existent) path', async (t) => {
+    const outputStylePath = path.join(TEST_OUTPUT_DIR, 'output-path/style.css');
 
-//     const outputBundle = await rollup({
-//       input: 'test/fixtures/output-path/index.js',
-//       plugins: [
-//         sass({
-//           api: 'modern',
-//           output: outputStylePath,
-//           options: TEST_SASS_OPTIONS_DEFAULT,
-//         }),
-//       ],
-//       onwarn,
-//     });
+    const outputBundle = await rollup({
+      input: 'test/fixtures/output-path/index.js',
+      plugins: [
+        sass({
+          api: 'modern',
+          output: outputStylePath,
+          options: TEST_SASS_OPTIONS_DEFAULT,
+        }),
+      ],
+      onwarn,
+    });
 
-//     const outputFilePath = path.join(
-//       TEST_OUTPUT_DIR,
-//       'support_output_prev-non-exist.js',
-//     );
-//     await outputBundle.write({ ...TEST_OUTPUT_OPTIONS, file: outputFilePath });
+    const outputFilePath = path.join(
+      TEST_OUTPUT_DIR,
+      'support_output_prev-non-exist.js',
+    );
+    await outputBundle.write({ ...TEST_OUTPUT_OPTIONS, file: outputFilePath });
 
-//     const outputFileContent = await fs.readFile(outputFilePath);
-//     t.is(stripNewLines(outputFileContent.toString()), '');
+    const outputFileContent = await fs.readFile(outputFilePath);
+    t.is(stripNewLines(outputFileContent.toString()), '');
 
-//     const outputStyleContent = await fs.readFile(outputStylePath);
-//     t.true(stripNewLines(outputStyleContent.toString()).includes(expectA));
-//     t.true(stripNewLines(outputStyleContent.toString()).includes(expectB));
-//   });
+    const outputStyleContent = await fs.readFile(outputStylePath);
+    t.true(stripNewLines(outputStyleContent.toString()).includes(expectA));
+    t.true(stripNewLines(outputStyleContent.toString()).includes(expectB));
+  });
 
-//   test('should support output as true', async (t) => {
-//     const outputBundle = await rollup({
-//       input: 'test/fixtures/output-true/index.js',
-//       plugins: [
-//         sass({
-//           api: 'modern',
-//           output: true,
-//           options: TEST_SASS_OPTIONS_DEFAULT,
-//         }),
-//       ],
-//       onwarn,
-//     });
+  test('should support output as true', async (t) => {
+    const outputBundle = await rollup({
+      input: 'test/fixtures/output-true/index.js',
+      plugins: [
+        sass({
+          api: 'modern',
+          output: true,
+          options: TEST_SASS_OPTIONS_DEFAULT,
+        }),
+      ],
+      onwarn,
+    });
 
-//     const outputFilePath = path.join(
-//       TEST_OUTPUT_DIR,
-//       'support-output-as-true.js',
-//     );
-//     await outputBundle.write({ ...TEST_OUTPUT_OPTIONS, file: outputFilePath });
+    const outputFilePath = path.join(
+      TEST_OUTPUT_DIR,
+      'support-output-as-true.js',
+    );
+    await outputBundle.write({ ...TEST_OUTPUT_OPTIONS, file: outputFilePath });
 
-//     const outputFileContent = await fs.readFile(outputFilePath);
-//     t.is(stripNewLines(outputFileContent.toString()), '');
+    const outputFileContent = await fs.readFile(outputFilePath);
+    t.is(stripNewLines(outputFileContent.toString()), '');
 
-//     const outputStylePath = outputFilePath.replace('.js', '.css');
-//     const outputStyleContent = await fs.readFile(outputStylePath);
-//     t.true(outputStyleContent.toString().includes(expectA));
-//     t.true(outputStyleContent.toString().includes(expectB));
-//   });
-// }
-// // #endregion
+    const outputStylePath = outputFilePath.replace('.js', '.css');
+    const outputStyleContent = await fs.readFile(outputStylePath);
+    t.true(outputStyleContent.toString().includes(expectA));
+    t.true(outputStyleContent.toString().includes(expectB));
+  });
+}
+// #endregion
 
-// // #region processor option
-// test('should processor return as string', async (t) => {
-//   const reverse = (str: string): string => str.split('').reverse().join('');
+// #region processor option
+test('should processor return as string', async (t) => {
+  const reverse = (str: string): string => str.split('').reverse().join('');
 
-//   const outputBundle = await rollup({
-//     input: 'test/fixtures/processor-string/index.js',
-//     plugins: [
-//       sass({
-//         processor: (css) => reverse(css),
-//         options: TEST_SASS_OPTIONS_DEFAULT,
-//       }),
-//     ],
-//   });
-//   const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
-//   const result = getFirstChunkCode(output);
+  const outputBundle = await rollup({
+    input: 'test/fixtures/processor-string/index.js',
+    plugins: [
+      sass({
+        api: 'modern',
+        processor: (css) => reverse(css),
+        options: TEST_SASS_OPTIONS_DEFAULT,
+      }),
+    ],
+  });
+  const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+  const result = getFirstChunkCode(output);
 
-//   t.snapshot(result);
-// });
+  t.snapshot(result);
+});
 
-// test('should processor return as object', async (t) => {
-//   const outputBundle = await rollup({
-//     input: 'test/fixtures/processor-object/index.js',
-//     plugins: [
-//       sass({
-//         processor: (css) => ({
-//           css,
-//           foo: 'foo',
-//           bar: 'bar',
-//         }),
-//         options: TEST_SASS_OPTIONS_DEFAULT,
-//       }),
-//     ],
-//   });
-//   const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
-//   const result = getFirstChunkCode(output);
+test('should processor return as object', async (t) => {
+  const outputBundle = await rollup({
+    input: 'test/fixtures/processor-object/index.js',
+    plugins: [
+      sass({
+        api: 'modern',
+        processor: (css) => ({
+          css,
+          foo: 'foo',
+          bar: 'bar',
+        }),
+        options: TEST_SASS_OPTIONS_DEFAULT,
+      }),
+    ],
+  });
+  const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+  const result = getFirstChunkCode(output);
 
-//   t.snapshot(result);
-// });
+  t.snapshot(result);
+});
 
-// test('should support processor return type `Promise<string>`', async (t) => {
-//   const outputBundle = await rollup({
-//     input: 'test/fixtures/processor-promise/index.js',
-//     plugins: [
-//       sass({
-//         processor: (css) =>
-//           new Promise((resolve) => setTimeout(() => resolve(css), 100)),
-//         options: TEST_SASS_OPTIONS_DEFAULT,
-//       }),
-//     ],
-//   });
-//   const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
-//   const result = getFirstChunkCode(output);
+test('should support processor return type `Promise<string>`', async (t) => {
+  const outputBundle = await rollup({
+    input: 'test/fixtures/processor-promise/index.js',
+    plugins: [
+      sass({
+        api: 'modern',
+        processor: (css) =>
+          new Promise((resolve) => setTimeout(() => resolve(css), 100)),
+        options: TEST_SASS_OPTIONS_DEFAULT,
+      }),
+    ],
+  });
+  const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+  const result = getFirstChunkCode(output);
 
-//   t.snapshot(result);
-// });
+  t.snapshot(result);
+});
 
-// test('should support processor return type `Promise<{css: string, icssExport: {}, icssImport: {}}}>', async (t) => {
-//   const outputBundle = await rollup({
-//     input: 'test/fixtures/processor-promise/with-icss-exports.js',
-//     plugins: [
-//       sass({
-//         processor: (css) => {
-//           const pcssRootNodeRslt = postcss.parse(css);
-//           const extractedIcss = extractICSS(pcssRootNodeRslt, true);
-//           const cleanedCss = pcssRootNodeRslt.toString();
-//           const out = {
-//             ...extractedIcss.icssExports,
-//             css: cleanedCss,
-//           };
-//           // console.table(extractedIcss);
-//           // console.log(out);
-//           return out;
-//         },
-//         options: TEST_SASS_OPTIONS_DEFAULT,
-//       }),
-//     ],
-//   });
-//   const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
-//   const result = getFirstChunkCode(output);
+test('should support processor return type `Promise<{css: string, icssExport: {}, icssImport: {}}}>', async (t) => {
+  const outputBundle = await rollup({
+    input: 'test/fixtures/processor-promise/with-icss-exports.js',
+    plugins: [
+      sass({
+        api: 'modern',
+        processor: (css) => {
+          const pcssRootNodeRslt = postcss.parse(css);
+          const extractedIcss = extractICSS(pcssRootNodeRslt, true);
+          const cleanedCss = pcssRootNodeRslt.toString();
+          const out = {
+            ...extractedIcss.icssExports,
+            css: cleanedCss,
+          };
+          // console.table(extractedIcss);
+          // console.log(out);
+          return out;
+        },
+        options: TEST_SASS_OPTIONS_DEFAULT,
+      }),
+    ],
+  });
+  const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+  const result = getFirstChunkCode(output);
 
-//   t.snapshot(result);
-// });
+  t.snapshot(result);
+});
 
-// test('should throw an error when processor returns an object type missing the `css` prop.', async (t) => {
-//   const sassPlugin = sass({
-//     // @ts-expect-error - Ignoring incorrect type (for test).
-//     processor: () => ({}),
-//     options: TEST_SASS_OPTIONS_DEFAULT,
-//   });
-//   const message =
-//     'You need to return the styles using the `css` property. See https://github.com/differui/rollup-plugin-sass#processor';
+test('should throw an error when processor returns an object type missing the `css` prop.', async (t) => {
+  const sassPlugin = sass({
+    api: 'modern',
+    // @ts-expect-error - Ignoring incorrect type (for test).
+    processor: () => ({}),
+    options: TEST_SASS_OPTIONS_DEFAULT,
+  });
+  const message =
+    'You need to return the styles using the `css` property. See https://github.com/differui/rollup-plugin-sass#processor';
 
-//   await t.throwsAsync(
-//     () =>
-//       rollup({
-//         input: 'test/fixtures/processor-error/index.js',
-//         plugins: [sassPlugin],
-//       }),
-//     { message },
-//   );
-// });
-// // #endregion
+  await t.throwsAsync(
+    () =>
+      rollup({
+        input: 'test/fixtures/processor-error/index.js',
+        plugins: [sassPlugin],
+      }),
+    { message },
+  );
+});
+// #endregion
 
-// // #region node resolution
+// #region node resolution
 // test('should resolve ~ as node_modules', async (t) => {
 //   const outputBundle = await rollup({
 //     input: 'test/fixtures/import/index.js',
 //     plugins: [
 //       sass({
+//         api: 'modern',
 //         options: TEST_SASS_OPTIONS_DEFAULT,
 //       }),
 //     ],
@@ -517,6 +523,7 @@ test('should support options.data', async (t) => {
 //     input: 'test/fixtures/import/index.js',
 //     plugins: [
 //       sass({
+//         api: 'modern',
 //         options: TEST_SASS_OPTIONS_DEFAULT,
 //       }),
 //     ],
@@ -552,7 +559,7 @@ test('should support options.data', async (t) => {
 //     'Ensure content exist in CJS output file',
 //   );
 // });
-// // #endregion
+// #endregion
 
 // test('should support options.runtime', async (t) => {
 //   const outputBundle = await rollup({
