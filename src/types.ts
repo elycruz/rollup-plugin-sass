@@ -3,14 +3,14 @@ import type {
   Options as SassOptions,
 } from 'sass';
 
-interface IdAndContentObject {
+interface StyleSheetIdAndContent {
   id?: string;
   content?: string;
 }
 
 export type RollupPluginSassOutputFn = (
   styles: string,
-  styleNodes: IdAndContentObject[],
+  styleNodes: StyleSheetIdAndContent[],
 ) => any;
 
 export type RollupPluginSassProcessorFnOutput =
@@ -76,11 +76,11 @@ export type RollupPluginSassOptions =
 
 export type RollupPluginSassState = {
   // Stores interim bundle objects
-  styles: { id?: string; content?: string }[];
+  styles: StyleSheetIdAndContent[];
 
   // "";  Used, currently to ensure that we're not pushing style objects representing
   // the same file-path into `pluginState.styles` more than once.
   styleMaps: {
-    [index: string]: IdAndContentObject;
+    [index: string]: StyleSheetIdAndContent;
   };
 };

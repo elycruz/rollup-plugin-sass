@@ -5,8 +5,12 @@ import { fileURLToPath, pathToFileURL } from 'url';
 
 import * as sass from 'sass';
 import { createFilter } from '@rollup/pluginutils';
-// @note Rollup is added as a "devDependency" so no actual symbols should be imported.
-//  Interfaces and non-concrete types are ok.
+
+/**
+ * @warning Rollup is added as a "devDependency",
+ *          so no actual symbols should be imported.
+ *          Interfaces and non-concrete types are ok.
+ */
 import { Plugin as RollupPlugin, TransformResult } from 'rollup';
 
 import type {
@@ -14,7 +18,10 @@ import type {
   RollupPluginSassOutputFn,
   RollupPluginSassState,
 } from './types';
-import { getImporterListLegacy, getImporterListModern } from './utils/getImporterList';
+import {
+  getImporterListLegacy,
+  getImporterListModern,
+} from './utils/getImporterList';
 import {
   processRenderResponse,
   INSERT_STYLE_ID,
@@ -46,7 +53,7 @@ export = function plugin(
     runtime: sassRuntime,
   } = pluginOptions;
 
-  const filter = createFilter(include || '', exclude || '');
+  const filter = createFilter(include, exclude);
 
   const pluginState: RollupPluginSassState = {
     styles: [],
@@ -72,8 +79,9 @@ export = function plugin(
 
     async transform(code, filePath) {
       if (!filter(filePath)) {
-        return Promise.resolve();
+        return;
       }
+
       const paths = [path.dirname(filePath), process.cwd()];
       const { styleMaps, styles } = pluginState;
 
@@ -92,7 +100,7 @@ export = function plugin(
         case 'modern': {
           const { options: incomingSassOptions } = pluginOptions;
 
-          const resolvedOptions: sass.StringOptions<'async'> = {
+          const compileOptions: sass.StringOptions<'async'> = {
             ...incomingSassOptions,
             syntax: path.extname(filePath) === '.sass' ? 'indented' : 'scss',
             loadPaths: (incomingSassOptions?.loadPaths || []).concat(paths),
@@ -100,13 +108,16 @@ export = function plugin(
             url: pathToFileURL(filePath),
           };
 
-          const source =
-            incomingSassOptions?.data ? `${incomingSassOptions.data}${code}` : code;
+          /**
+           * Using {@link compileStringAsync} to keep support of prepend information on each file,
+           * basically `data` option
+           */
+          const source = incomingSassOptions?.data
+            ? `${incomingSassOptions.data}${code}`
+            : code;
 
-          const compileResult = await sass.compileStringAsync(
-            source,
-            resolvedOptions,
-          );
+          const compileResult: sass.CompileResult =
+            await sassRuntime.compileStringAsync(source, compileOptions);
 
           const codeResult = await processRenderResponse(
             pluginOptions,
@@ -131,25 +142,22 @@ export = function plugin(
         default: {
           const { options: incomingSassOptions } = pluginOptions;
 
-          const resolvedOptions: sass.LegacyOptions<'async'> = Object.assign(
-            {},
-            incomingSassOptions,
-            {
-              file: filePath,
-              data:
-                incomingSassOptions?.data &&
-                `${incomingSassOptions.data}${code}`,
-              indentedSyntax: MATCH_SASS_FILENAME_RE.test(filePath),
-              includePaths: (incomingSassOptions?.includePaths || []).concat(
-                paths,
-              ),
-              importer: getImporterListLegacy(incomingSassOptions?.importer),
-            },
-          );
+          const renderOptions: sass.LegacyOptions<'async'> = {
+            ...incomingSassOptions,
+
+            file: filePath,
+            data:
+              incomingSassOptions?.data && `${incomingSassOptions.data}${code}`,
+            indentedSyntax: MATCH_SASS_FILENAME_RE.test(filePath),
+            includePaths: (incomingSassOptions?.includePaths || []).concat(
+              paths,
+            ),
+            importer: getImporterListLegacy(incomingSassOptions?.importer),
+          };
 
           const res: sass.LegacyResult = await promisify(
             sassRuntime.render.bind(sassRuntime),
-          )(resolvedOptions);
+          )(renderOptions);
 
           const codeResult = await processRenderResponse(
             pluginOptions,

@@ -66,15 +66,8 @@
   },
   "dependencies": {
     "@rollup/pluginutils": "^3 || ^4 || ^5",
-    "resolve": "^1.5.0"
-  },
-  "peerDependencies": {
+    "resolve": "^1.5.0",
     "sass": "^1.7.2"
-  },
-  "peerDependenciesMeta": {
-    "sass": {
-      "optional": true
-    }
   },
   "devDependencies": {
     "@ava/typescript": "^5.0.0",
