@@ -1,4 +1,9 @@
-import type { LegacyOptions, LegacyResult, types } from 'sass';
+import type {
+  LegacyOptions as SassLegacyOptions,
+  LegacyResult,
+  types,
+  Options as SassOptions,
+} from 'sass';
 
 export interface IdAndContentObject {
   id?: string;
@@ -20,7 +25,7 @@ export type RollupPluginSassProcessorFnOutput =
 export type RollupPluginSassProcessorFn<T = RollupPluginSassProcessorFnOutput> =
   (styles: string, id: string) => Promise<T> | T;
 
-export interface RollupPluginSassOptions {
+interface RollupPluginSassSharedOptions {
   /**
    * File globs to "exclude" from processing.  Default 'node_modules/**'.
    */
@@ -35,11 +40,6 @@ export interface RollupPluginSassOptions {
    * Controls whether to insert generated styles into a style tag on (html) page's `head` or not.
    */
   insert?: boolean;
-
-  /**
-   * Options to pass to resolved sass runtime instance (node-sass/sass etc.).
-   */
-  options?: SassOptions;
 
   processor?: RollupPluginSassProcessorFn;
 
@@ -63,6 +63,16 @@ export interface RollupPluginSassOptions {
    */
   runtime?: any;
 }
+
+export type RollupPluginSassOptions =
+  | (RollupPluginSassSharedOptions & {
+      api: 'modern';
+      options: SassOptions<'async'>;
+    })
+  | (RollupPluginSassSharedOptions & {
+      api?: 'legacy';
+      options: SassLegacyOptions<'async'>;
+    });
 
 export type SassImporterResult =
   | { file: string }
@@ -107,49 +117,10 @@ export interface SassFunctionsObject {
  *
  * @todo Update this if/when we update to the new sass API.
  */
-export type SassOptions = LegacyOptions<'async'>;
+export type SassOptionsOld = SassLegacyOptions<'async'>;
+export { SassOptionsOld as SassOptions };
 
 /**
  * @todo Update this if/when we update to the new sass API.
  */
 export type SassRenderResult = LegacyResult;
-
-/**
- * Rollup's `AssetInfo` bundle type.
- */
-export interface RollupAssetInfo {
-  fileName: string;
-  name?: string;
-  source: string | Uint8Array;
-  type: 'asset';
-}
-
-/**
- * Rollup's `ChunkInfo` bundle type.
- */
-export interface RollupChunkInfo {
-  code: string;
-  dynamicImports: string[];
-  exports: string[];
-  facadeModuleId: string | null;
-  fileName: string;
-  implicitlyLoadedBefore: string[];
-  imports: string[];
-  importedBindings: { [imported: string]: string[] };
-  isDynamicEntry: boolean;
-  isEntry: boolean;
-  isImplicitEntry: boolean;
-  map: { [index: string]: string } | null;
-  modules: {
-    [id: string]: {
-      renderedExports: string[];
-      removedExports: string[];
-      renderedLength: number;
-      originalLength: number;
-      code: string | null;
-    };
-  };
-  name: string;
-  referencedFiles: string[];
-  type: 'chunk';
-}
