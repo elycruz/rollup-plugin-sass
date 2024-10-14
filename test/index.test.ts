@@ -1,8 +1,8 @@
 import test from 'ava';
 import type { TitleFn } from 'ava';
 import Sinon from 'sinon';
-import { readFileSync, promises as fs, constants as fsConstants } from 'fs';
-import * as path from 'path';
+import fs from 'fs/promises';
+import path from 'path';
 import { rollup } from 'rollup';
 import type {
   OutputOptions,
@@ -16,7 +16,7 @@ import postcss from 'postcss';
 import { extractICSS } from 'icss-utils';
 
 import sass from '../src/index';
-import {
+import type {
   RollupPluginSassOutputFn,
   RollupPluginSassOptions,
   RollupPluginSassLegacyOptions,
@@ -408,12 +408,17 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
     defaultHandler(warning);
   };
 
-  const [expectA, expectB] = [
-    'test/assets/expect_a.css',
-    'test/assets/expect_b.css',
-  ].map((filePath) =>
-    stripNewLines(readFileSync(filePath, { encoding: 'utf-8' })),
-  );
+  let expectA: string;
+  let expectB: string;
+
+  test.before(async () => {
+    expectA = stripNewLines(
+      await fs.readFile('test/assets/expect_a.css', { encoding: 'utf-8' }),
+    );
+    expectB = stripNewLines(
+      await fs.readFile('test/assets/expect_b.css', { encoding: 'utf-8' }),
+    );
+  });
 
   /**
    * @warning
@@ -899,7 +904,7 @@ test('should support options.runtime with `sass-embedded`', async (t) => {
       );
 
       // Check for absence of source map file
-      await fs.access(sourceMapFilePath, fsConstants.R_OK).then(
+      await fs.access(sourceMapFilePath, fs.constants.R_OK).then(
         () => t.false(true, `'${sourceMapFilePath}' should not exist.`),
         () => t.true(true),
       );
@@ -911,59 +916,61 @@ test('should support options.runtime with `sass-embedded`', async (t) => {
   test(title, macro, 'modern');
 }
 
-// {
-//   const title =
-//     'When `sourcemap` is set, to `true`, adjacent source map file should be output, and rollup output chunk should contain `map` entry';
+{
+  const title =
+    'When `sourcemap` is set, to `true`, adjacent source map file should be output, and rollup output chunk should contain `map` entry';
 
-//   const macro = test.macro<[ApiValue]>({
-//     async exec(t, api) {
-//       const outputFilePath = path.join(
-//         TEST_OUTPUT_DIR[api],
-//         'with-adjacent-source-map.js',
-//       );
-//       const bundle = await rollup({
-//         input: 'test/fixtures/basic/index.js',
-//         plugins: [
-//           sass({
-//             api,
-//             options: TEST_SASS_OPTIONS_DEFAULT_RECORD[api] as never,
-//           }),
-//         ],
-//       });
-//       const sourceMapFilePath = `${outputFilePath}.map`;
+  const macro = test.macro<[ApiValue]>({
+    async exec(t, api) {
+      const outputFilePath = path.join(
+        TEST_OUTPUT_DIR[api],
+        'with-adjacent-source-map.js',
+      );
+      const bundle = await rollup({
+        input: 'test/fixtures/basic/index.js',
+        plugins: [
+          sass({
+            api,
+            options: {
+              ...TEST_SASS_OPTIONS_DEFAULT_RECORD[api],
+            } as never,
+          }),
+        ],
+      });
+      const sourceMapFilePath = `${outputFilePath}.map`;
 
-//       const writeResult = await bundle.write({
-//         file: outputFilePath,
-//         sourcemap: true,
-//         format: 'esm',
-//       });
+      const writeResult = await bundle.write({
+        file: outputFilePath,
+        sourcemap: true,
+        format: 'esm',
+      });
 
-//       // Check for output chunk
-//       t.true(
-//         !!writeResult.output?.length,
-//         'output should contain an output chunk',
-//       );
+      // Check for output chunk
+      t.true(
+        !!writeResult.output?.length,
+        'output should contain an output chunk',
+      );
 
-//       // Check for 'map' entry in chunk
-//       t.true(
-//         !!writeResult.output[0].map,
-//         "rollup output output chunk's `map` property should be set",
-//       );
+      // Check for 'map' entry in chunk
+      t.true(
+        !!writeResult.output[0].map,
+        "rollup output output chunk's `map` property should be set",
+      );
 
-//       // Check for source map file
-//       const contents = await fs.readFile(sourceMapFilePath);
+      // Check for source map file
+      const contents = await fs.readFile(sourceMapFilePath);
 
-//       t.true(
-//         !!contents.toString(),
-//         `${sourceMapFilePath} should have been written.`,
-//       );
-//     },
-//     title: createApiOptionTestCaseTitle,
-//   });
+      t.true(
+        !!contents.toString(),
+        `${sourceMapFilePath} should have been written.`,
+      );
+    },
+    title: createApiOptionTestCaseTitle,
+  });
 
-//   test(title, macro, 'legacy');
-//   test(title, macro, 'modern');
-// }
+  test(title, macro, 'legacy');
+  test(title, macro, 'modern');
+}
 // #endregion
 
 {

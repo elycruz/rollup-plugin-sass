@@ -11,7 +11,7 @@ import { createFilter } from '@rollup/pluginutils';
  *          so no actual symbols should be imported.
  *          Interfaces and non-concrete types are ok.
  */
-import { Plugin as RollupPlugin, TransformResult } from 'rollup';
+import type { Plugin as RollupPlugin, TransformResult } from 'rollup';
 
 import type {
   RollupPluginSassOptions,
@@ -106,6 +106,8 @@ export = function plugin(
             loadPaths: (incomingSassOptions?.loadPaths || []).concat(paths),
             importers: getImporterListModern(incomingSassOptions?.importers),
             url: pathToFileURL(filePath),
+            /** force sourceMap because right now rollup outputOptions are not available */
+            sourceMap: true,
           };
 
           /**
@@ -180,7 +182,7 @@ export = function plugin(
       }
     },
 
-    generateBundle(generateOptions, _, isWrite) {
+    generateBundle(outputOptions, _, isWrite) {
       const { styles } = pluginState;
       const { output, insert } = pluginOptions;
 
@@ -198,8 +200,8 @@ export = function plugin(
         return Promise.resolve(
           (output as RollupPluginSassOutputFn)(css, styles),
         );
-      } else if (!insert && generateOptions.file && output === true) {
-        let dest = generateOptions.file;
+      } else if (!insert && outputOptions.file && output === true) {
+        let dest = outputOptions.file;
 
         if (dest.endsWith('.js') || dest.endsWith('.ts')) {
           dest = dest.slice(0, -3);
