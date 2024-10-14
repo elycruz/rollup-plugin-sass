@@ -3,7 +3,7 @@ import type {
   Options as SassOptions,
 } from 'sass';
 
-export interface IdAndContentObject {
+interface IdAndContentObject {
   id?: string;
   content?: string;
 }
