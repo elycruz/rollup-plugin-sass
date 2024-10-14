@@ -31,6 +31,14 @@ const TEST_BASE_CONFIG = {
   ],
 };
 
+const TEST_BASE_CONFIG_MODERN = {
+  plugins: [
+    sass({
+      api: 'modern',
+    }),
+  ],
+};
+
 const TEST_GENERATE_OPTIONS = {
   format: 'es',
 } as OutputOptions;
@@ -47,6 +55,20 @@ function stripNewLines(str: string): string {
 function getFirstChunkCode(outputChunks: RollupOutput['output']): string {
   return outputChunks[0].code;
 }
+
+test('should import *.scss and *.sass files with modern syntax', async (t) => {
+  const outputBundle = await rollup({
+    input: 'test/fixtures/basic/index.js',
+    ...TEST_BASE_CONFIG_MODERN,
+  });
+  const { output } = await outputBundle.generate({
+    format: 'es',
+    file: path.join(TEST_OUTPUT_DIR, 'import_scss_and_sass.js'),
+  });
+  const result = getFirstChunkCode(output);
+
+  t.snapshot(result);
+});
 
 test('should import *.scss and *.sass files', async (t) => {
   const outputBundle = await rollup({
