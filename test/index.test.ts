@@ -1,17 +1,17 @@
 import test from 'ava';
 import type { TitleFn } from 'ava';
-import Sinon from 'sinon';
-import fs from 'fs/promises';
 import path from 'path';
+import fs from 'fs/promises';
+import { fileURLToPath, pathToFileURL } from 'url';
+
+import Sinon from 'sinon';
 import { rollup } from 'rollup';
 import type {
   OutputOptions,
-  Plugin,
   RollupOutput,
   WarningHandlerWithDefault,
 } from 'rollup';
 import * as sassRuntime from 'sass';
-import * as sassEmbeddedRuntime from 'sass-embedded';
 import postcss from 'postcss';
 import { extractICSS } from 'icss-utils';
 
@@ -19,37 +19,46 @@ import sass from '../src/index';
 import type {
   RollupPluginSassOutputFn,
   RollupPluginSassOptions,
-  RollupPluginSassLegacyOptions,
-  RollupPluginSassModernOptions,
 } from '../src/types';
-import { fileURLToPath, pathToFileURL } from 'url';
 
 type ApiValue = Extract<RollupPluginSassOptions['api'], string>;
+
+function normalizeAPIValue(value: RollupPluginSassOptions['api']): ApiValue {
+  return value ?? 'legacy';
+}
+
+function getTestOutputDir(value: RollupPluginSassOptions['api']) {
+  const repoRoot = path.join(__dirname, '../');
+
+  return path.join(repoRoot, `.tests-output`, normalizeAPIValue(value));
+}
 
 // ======================================
 
 const TEST_SASS_OPTIONS_DEFAULT_LEGACY = {
   outputStyle: 'compressed',
-  silenceDeprecations: ['legacy-js-api'],
+} as const;
+
+const TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY: RollupPluginSassOptions = {
+  options: TEST_SASS_OPTIONS_DEFAULT_LEGACY,
 };
+
+// ======================================
 
 const TEST_SASS_OPTIONS_DEFAULT_MODERN = { style: 'compressed' } as const;
 
-const TEST_SASS_OPTIONS_DEFAULT_RECORD = {
-  legacy: TEST_SASS_OPTIONS_DEFAULT_LEGACY as RollupPluginSassLegacyOptions,
-  modern: TEST_SASS_OPTIONS_DEFAULT_MODERN as RollupPluginSassModernOptions,
+const TEST_PLUGIN_OPTIONS_DEFAULT_MODERN: RollupPluginSassOptions = {
+  api: 'modern',
+  options: TEST_SASS_OPTIONS_DEFAULT_MODERN,
 };
 
-const repoRoot = path.join(__dirname, '../');
-
-const TEST_OUTPUT_DIR = {
-  legacy: path.join(repoRoot, `.tests-output`, 'legacy'),
-  modern: path.join(repoRoot, `.tests-output`, 'modern'),
-};
+// ======================================
 
 const TEST_GENERATE_OPTIONS = {
   format: 'es',
 } as OutputOptions;
+
+// ======================================
 
 function stripNewLines(str: string): string {
   return str.trim().replace(/[\n\r\f]/g, '');
@@ -59,22 +68,32 @@ function getFirstChunkCode(outputChunks: RollupOutput['output']): string {
   return outputChunks[0].code;
 }
 
+// ======================================
+
 test('should import *.scss and *.sass files with default option', async (t) => {
   const outputBundle = await rollup({
     input: 'test/fixtures/basic/index.js',
-    plugins: [
-      sass({
-        options: {
-          /** @todo find a way to silence this using sinon */
-          silenceDeprecations: ['legacy-js-api'],
-        },
-      }),
-    ],
+    plugins: [sass()],
   });
 
   const { output } = await outputBundle.generate({
     format: 'es',
-    file: path.join(TEST_OUTPUT_DIR.legacy, 'import_scss_and_sass.js'),
+    file: path.join(getTestOutputDir('legacy'), 'import_scss_and_sass.js'),
+  });
+  const result = getFirstChunkCode(output);
+
+  t.snapshot(result);
+});
+
+test('should import *.scss and *.sass files with api srt to `modern` and no option', async (t) => {
+  const outputBundle = await rollup({
+    input: 'test/fixtures/basic/index.js',
+    plugins: [sass({ api: 'modern' })],
+  });
+
+  const { output } = await outputBundle.generate({
+    format: 'es',
+    file: path.join(getTestOutputDir('modern'), 'import_scss_and_sass.js'),
   });
   const result = getFirstChunkCode(output);
 
@@ -88,39 +107,38 @@ test('should import *.scss and *.sass files with default option', async (t) => {
 {
   const title = 'should import *.scss and *.sass files';
 
-  const macro = test.macro<[ApiValue]>({
-    async exec(t, api) {
+  const macro = test.macro<[RollupPluginSassOptions]>({
+    async exec(t, pluginOptions) {
       // ...
     },
     title: createApiOptionTestCaseTitle,
   });
 
-  test(title, macro, 'legacy');
-  test(title, macro, 'modern');
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
 */
-const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
-  return `${title} using 'api' = '${api}'`.trim();
+const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
+  title,
+  { api },
+) => {
+  const apiTextValue = api ? `'${api}'` : "'legacy' (implicit)";
+  return `${title} using 'api' = ${apiTextValue}`.trim();
 };
 
 // #region basic tests
 {
   const title = 'should import *.scss and *.sass files';
 
-  const macro = test.macro<[ApiValue]>({
-    async exec(t, api) {
+  const macro = test.macro<[RollupPluginSassOptions]>({
+    async exec(t, pluginOptions) {
       const outputBundle = await rollup({
         input: 'test/fixtures/basic/index.js',
-        plugins: [
-          sass({
-            api,
-            options: TEST_SASS_OPTIONS_DEFAULT_RECORD[api] as never,
-          }),
-        ],
+        plugins: [sass(pluginOptions)],
       });
       const { output } = await outputBundle.generate({
         format: 'es',
-        file: TEST_OUTPUT_DIR[api],
+        file: getTestOutputDir(pluginOptions.api),
       });
       const result = getFirstChunkCode(output);
 
@@ -129,23 +147,18 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
     title: createApiOptionTestCaseTitle,
   });
 
-  test(title, macro, 'legacy');
-  test(title, macro, 'modern');
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
 
 {
   const title = 'should compress the dest CSS';
 
-  const macro = test.macro<[ApiValue]>({
-    async exec(t, api) {
+  const macro = test.macro<[RollupPluginSassOptions]>({
+    async exec(t, pluginOptions) {
       const outputBundle = await rollup({
         input: 'test/fixtures/compress/index.js',
-        plugins: [
-          sass({
-            api,
-            options: TEST_SASS_OPTIONS_DEFAULT_RECORD[api] as never,
-          }),
-        ],
+        plugins: [sass(pluginOptions)],
       });
       const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
       const result = getFirstChunkCode(output);
@@ -155,56 +168,18 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
     title: createApiOptionTestCaseTitle,
   });
 
-  test(title, macro, 'legacy');
-  test(title, macro, 'modern');
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
 
 {
   const title = 'should custom importer works';
 
-  const macro = test.macro<[ApiValue]>({
-    async exec(t, api) {
-      let plugin: Plugin;
-      if (api === 'legacy') {
-        plugin = sass({
-          options: {
-            ...TEST_SASS_OPTIONS_DEFAULT_RECORD[api],
-            importer: [
-              (url, _, done) => {
-                done({
-                  file: url.replace('${name}', 'actual_a'),
-                });
-              },
-            ],
-          },
-        });
-      } else {
-        plugin = sass({
-          api: 'modern',
-          options: {
-            ...TEST_SASS_OPTIONS_DEFAULT_RECORD[api],
-            importers: [
-              {
-                findFileUrl(url, context) {
-                  const folder = path.dirname(
-                    fileURLToPath(context.containingUrl!),
-                  );
-                  const filePath = path.join(
-                    folder,
-                    decodeURIComponent(url).replace('${name}', 'actual_a'),
-                  );
-
-                  return new URL(pathToFileURL(filePath));
-                },
-              },
-            ],
-          },
-        });
-      }
-
+  const macro = test.macro<[RollupPluginSassOptions]>({
+    async exec(t, pluginOptions) {
       const outputBundle = await rollup({
         input: 'test/fixtures/custom-importer/index.js',
-        plugins: [plugin],
+        plugins: [sass(pluginOptions)],
       });
       const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
       const result = getFirstChunkCode(output);
@@ -214,31 +189,47 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
     title: createApiOptionTestCaseTitle,
   });
 
-  test(title, macro, 'legacy');
-  test(title, macro, 'modern');
+  test(title, macro, {
+    options: {
+      ...TEST_SASS_OPTIONS_DEFAULT_LEGACY,
+      importer: [
+        (url, _, done) => {
+          done({
+            file: url.replace('${name}', 'actual_a'),
+          });
+        },
+      ],
+    },
+  });
+  test(title, macro, {
+    api: 'modern',
+    options: {
+      ...TEST_SASS_OPTIONS_DEFAULT_MODERN,
+      importers: [
+        {
+          findFileUrl(url, context) {
+            const folder = path.dirname(fileURLToPath(context.containingUrl!));
+            const filePath = path.join(
+              folder,
+              decodeURIComponent(url).replace('${name}', 'actual_a'),
+            );
+
+            return new URL(pathToFileURL(filePath));
+          },
+        },
+      ],
+    },
+  });
 }
 
 {
   const title = 'should support options.data';
 
-  const macro = test.macro<[ApiValue]>({
-    async exec(t, api) {
-      const jsVars = { color_red: 'red' };
-      const scssVars = Object.entries(jsVars).reduce(
-        (prev, [varName, varValue]) => `${prev}$${varName}:${varValue};`,
-        '',
-      );
+  const macro = test.macro<[RollupPluginSassOptions]>({
+    async exec(t, pluginOptions) {
       const outputBundle = await rollup({
         input: 'test/fixtures/data/index.js',
-        plugins: [
-          sass({
-            api,
-            options: {
-              ...TEST_SASS_OPTIONS_DEFAULT_RECORD[api],
-              data: scssVars,
-            } as never,
-          }),
-        ],
+        plugins: [sass(pluginOptions)],
       });
       const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
       const result = getFirstChunkCode(output);
@@ -248,8 +239,25 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
     title: createApiOptionTestCaseTitle,
   });
 
-  test(title, macro, 'legacy');
-  test(title, macro, 'modern');
+  const jsVars = { color_red: 'red' };
+  const scssVars = Object.entries(jsVars).reduce(
+    (prev, [varName, varValue]) => `${prev}$${varName}:${varValue};`,
+    '',
+  );
+
+  test(title, macro, {
+    options: {
+      ...TEST_SASS_OPTIONS_DEFAULT_LEGACY,
+      data: scssVars,
+    },
+  });
+  test(title, macro, {
+    api: 'modern',
+    options: {
+      ...TEST_SASS_OPTIONS_DEFAULT_MODERN,
+      data: scssVars,
+    },
+  });
 }
 // #endregion
 
@@ -257,21 +265,18 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
 {
   const title = 'should insert CSS into head tag';
 
-  const macro = test.macro<[ApiValue]>({
-    async exec(t, api) {
+  const macro = test.macro<[RollupPluginSassOptions]>({
+    async exec(t, pluginOptions) {
       const outputBundle = await rollup({
         input: 'test/fixtures/insert/index.js',
-        plugins: [
-          sass({
-            api,
-            insert: true,
-            options: TEST_SASS_OPTIONS_DEFAULT_RECORD[api] as never,
-          }),
-        ],
+        plugins: [sass({ ...pluginOptions, insert: true })],
       });
       const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
 
-      const outputFilePath = path.join(TEST_OUTPUT_DIR[api], 'insert-bundle');
+      const outputFilePath = path.join(
+        getTestOutputDir(pluginOptions.api),
+        'insert-bundle',
+      );
 
       await outputBundle.write({ dir: outputFilePath });
 
@@ -312,28 +317,22 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
     title: createApiOptionTestCaseTitle,
   });
 
-  test(title, macro, 'legacy');
-  test(title, macro, 'modern');
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
 
 {
   const title =
     'should generate chunks with import insertStyle when `insert` is true';
 
-  const macro = test.macro<[ApiValue]>({
-    async exec(t, api) {
+  const macro = test.macro<[RollupPluginSassOptions]>({
+    async exec(t, pluginOptions) {
       const outputBundle = await rollup({
         input: {
           entryA: 'test/fixtures/multiple-entry-points/entryA.js',
           entryB: 'test/fixtures/multiple-entry-points/entryB.js',
         },
-        plugins: [
-          sass({
-            api,
-            options: { ...TEST_SASS_OPTIONS_DEFAULT_RECORD[api] } as never,
-            insert: true,
-          }),
-        ],
+        plugins: [sass({ ...pluginOptions, insert: true })],
       });
 
       const { output } = await outputBundle.generate({
@@ -343,7 +342,7 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
       });
 
       const outputFilePath = path.join(
-        TEST_OUTPUT_DIR[api],
+        getTestOutputDir(pluginOptions.api),
         'insert-multiple-entry',
       );
 
@@ -394,8 +393,8 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
     title: createApiOptionTestCaseTitle,
   });
 
-  test(title, macro, 'legacy');
-  test(title, macro, 'modern');
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
 // #endregion
 
@@ -429,26 +428,20 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
   {
     const title = 'should support output as function';
 
-    const macro = test.macro<[ApiValue]>({
-      async exec(t, api) {
+    const macro = test.macro<[RollupPluginSassOptions]>({
+      async exec(t, pluginOptions) {
         const outputSpy = Sinon.spy() as Sinon.SinonSpy<
           Parameters<RollupPluginSassOutputFn>,
           ReturnType<RollupPluginSassOutputFn>
         >;
         const outputFilePath = path.join(
-          TEST_OUTPUT_DIR[api],
+          getTestOutputDir(pluginOptions.api),
           'support_output_function.js',
         );
 
         const outputBundle = await rollup({
           input: 'test/fixtures/output-function/index.js',
-          plugins: [
-            sass({
-              api,
-              output: outputSpy,
-              options: TEST_SASS_OPTIONS_DEFAULT_RECORD[api] as never,
-            }),
-          ],
+          plugins: [sass({ ...pluginOptions, output: outputSpy })],
           onwarn,
         });
 
@@ -485,17 +478,17 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
       title: createApiOptionTestCaseTitle,
     });
 
-    test(title, macro, 'legacy');
-    test(title, macro, 'modern');
+    test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+    test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
   }
 
   {
     const title = 'should support output as (non-previously existent) path';
 
-    const macro = test.macro<[ApiValue]>({
-      async exec(t, api) {
+    const macro = test.macro<[RollupPluginSassOptions]>({
+      async exec(t, pluginOptions) {
         const outputStylePath = path.join(
-          TEST_OUTPUT_DIR[api],
+          getTestOutputDir(pluginOptions.api),
           'output-path/style.css',
         );
 
@@ -503,16 +496,15 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
           input: 'test/fixtures/output-path/index.js',
           plugins: [
             sass({
-              api,
+              ...pluginOptions,
               output: outputStylePath,
-              options: TEST_SASS_OPTIONS_DEFAULT_RECORD[api] as never,
             }),
           ],
           onwarn,
         });
 
         const outputFilePath = path.join(
-          TEST_OUTPUT_DIR[api],
+          getTestOutputDir(pluginOptions.api),
           'support_output_prev-non-exist.js',
         );
         await outputBundle.write({
@@ -530,29 +522,23 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
       title: createApiOptionTestCaseTitle,
     });
 
-    test(title, macro, 'legacy');
-    test(title, macro, 'modern');
+    test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+    test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
   }
 
   {
     const title = 'should support output as true';
 
-    const macro = test.macro<[ApiValue]>({
-      async exec(t, api) {
+    const macro = test.macro<[RollupPluginSassOptions]>({
+      async exec(t, pluginOptions) {
         const outputBundle = await rollup({
           input: 'test/fixtures/output-true/index.js',
-          plugins: [
-            sass({
-              api,
-              output: true,
-              options: TEST_SASS_OPTIONS_DEFAULT_RECORD[api] as never,
-            }),
-          ],
+          plugins: [sass({ ...pluginOptions, output: true })],
           onwarn,
         });
 
         const outputFilePath = path.join(
-          TEST_OUTPUT_DIR[api],
+          getTestOutputDir(pluginOptions.api),
           'support-output-as-true.js',
         );
         await outputBundle.write({
@@ -571,8 +557,8 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
       title: createApiOptionTestCaseTitle,
     });
 
-    test(title, macro, 'legacy');
-    test(title, macro, 'modern');
+    test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+    test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
   }
 }
 // #endregion
@@ -581,19 +567,13 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
 {
   const title = 'should processor return as string';
 
-  const macro = test.macro<[ApiValue]>({
-    async exec(t, api) {
+  const macro = test.macro<[RollupPluginSassOptions]>({
+    async exec(t, pluginOptions) {
       const reverse = (str: string): string => str.split('').reverse().join('');
 
       const outputBundle = await rollup({
         input: 'test/fixtures/processor-string/index.js',
-        plugins: [
-          sass({
-            api,
-            options: TEST_SASS_OPTIONS_DEFAULT_RECORD[api] as never,
-            processor: (css) => reverse(css),
-          }),
-        ],
+        plugins: [sass({ ...pluginOptions, processor: (css) => reverse(css) })],
       });
       const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
       const result = getFirstChunkCode(output);
@@ -603,21 +583,20 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
     title: createApiOptionTestCaseTitle,
   });
 
-  test(title, macro, 'legacy');
-  test(title, macro, 'modern');
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
 
 {
   const title = 'should processor return as object';
 
-  const macro = test.macro<[ApiValue]>({
-    async exec(t, api) {
+  const macro = test.macro<[RollupPluginSassOptions]>({
+    async exec(t, pluginOptions) {
       const outputBundle = await rollup({
         input: 'test/fixtures/processor-object/index.js',
         plugins: [
           sass({
-            api,
-            options: TEST_SASS_OPTIONS_DEFAULT_RECORD[api] as never,
+            ...pluginOptions,
             processor: (css) => ({
               css,
               foo: 'foo',
@@ -634,21 +613,20 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
     title: createApiOptionTestCaseTitle,
   });
 
-  test(title, macro, 'legacy');
-  test(title, macro, 'modern');
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
 
 {
   const title = 'should support processor return type `Promise<string>`';
 
-  const macro = test.macro<[ApiValue]>({
-    async exec(t, api) {
+  const macro = test.macro<[RollupPluginSassOptions]>({
+    async exec(t, pluginOptions) {
       const outputBundle = await rollup({
         input: 'test/fixtures/processor-promise/index.js',
         plugins: [
           sass({
-            api,
-            options: TEST_SASS_OPTIONS_DEFAULT_RECORD[api] as never,
+            ...pluginOptions,
             processor: (css) =>
               new Promise((resolve) => setTimeout(() => resolve(css), 100)),
           }),
@@ -662,22 +640,21 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
     title: createApiOptionTestCaseTitle,
   });
 
-  test(title, macro, 'legacy');
-  test(title, macro, 'modern');
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
 
 {
   const title =
     'should support processor return type `Promise<{css: string, icssExport: {}, icssImport: {}}}>';
 
-  const macro = test.macro<[ApiValue]>({
-    async exec(t, api) {
+  const macro = test.macro<[RollupPluginSassOptions]>({
+    async exec(t, pluginOptions) {
       const outputBundle = await rollup({
         input: 'test/fixtures/processor-promise/with-icss-exports.js',
         plugins: [
           sass({
-            api,
-            options: TEST_SASS_OPTIONS_DEFAULT_RECORD[api] as never,
+            ...pluginOptions,
             processor: (css) => {
               const pcssRootNodeRslt = postcss.parse(css);
               const extractedIcss = extractICSS(pcssRootNodeRslt, true);
@@ -701,19 +678,18 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
     title: createApiOptionTestCaseTitle,
   });
 
-  test(title, macro, 'legacy');
-  test(title, macro, 'modern');
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
 
 {
   const title =
     'should throw an error when processor returns an object type missing the `css` prop.';
 
-  const macro = test.macro<[ApiValue]>({
-    async exec(t, api) {
+  const macro = test.macro<[RollupPluginSassOptions]>({
+    async exec(t, pluginOptions) {
       const sassPlugin = sass({
-        api,
-        options: TEST_SASS_OPTIONS_DEFAULT_RECORD[api],
+        ...pluginOptions,
         // @ts-expect-error - Ignoring incorrect type (for test).
         processor: () => ({}),
       });
@@ -732,8 +708,8 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
     title: createApiOptionTestCaseTitle,
   });
 
-  test(title, macro, 'legacy');
-  test(title, macro, 'modern');
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
 // #endregion
 
@@ -741,16 +717,11 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
 {
   const title = 'should resolve ~ as node_modules';
 
-  const macro = test.macro<[ApiValue]>({
-    async exec(t, api) {
+  const macro = test.macro<[RollupPluginSassOptions]>({
+    async exec(t, pluginOptions) {
       const outputBundle = await rollup({
         input: 'test/fixtures/import/index.js',
-        plugins: [
-          sass({
-            api,
-            options: TEST_SASS_OPTIONS_DEFAULT_RECORD[api] as never,
-          }),
-        ],
+        plugins: [sass(pluginOptions)],
       });
       const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
       const result = getFirstChunkCode(output);
@@ -760,33 +731,28 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
     title: createApiOptionTestCaseTitle,
   });
 
-  test(title, macro, 'legacy');
-  test(title, macro, 'modern');
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
 
 {
   const title =
     'should resolve ~ as node_modules and output javascript modules';
 
-  const macro = test.macro<[ApiValue]>({
-    async exec(t, api) {
+  const macro = test.macro<[RollupPluginSassOptions]>({
+    async exec(t, pluginOptions) {
       const outputFilePathES = path.join(
-        TEST_OUTPUT_DIR[api],
+        getTestOutputDir(pluginOptions.api),
         'import_scss_and_sass.es.js',
       );
       const outputFilePathCJS = path.join(
-        TEST_OUTPUT_DIR[api],
+        getTestOutputDir(pluginOptions.api),
         'import_scss_and_sass.cjs.js',
       );
 
       const outputBundle = await rollup({
         input: 'test/fixtures/import/index.js',
-        plugins: [
-          sass({
-            api,
-            options: TEST_SASS_OPTIONS_DEFAULT_RECORD[api] as never,
-          }),
-        ],
+        plugins: [sass(pluginOptions)],
       });
       const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
       const result = getFirstChunkCode(output);
@@ -822,64 +788,52 @@ const createApiOptionTestCaseTitle: TitleFn<[ApiValue]> = (title, api) => {
     title: createApiOptionTestCaseTitle,
   });
 
-  test(title, macro, 'legacy');
-  test(title, macro, 'modern');
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
 // #endregion
 
-test('should support options.runtime with ', async (t) => {
-  const outputBundle = await rollup({
-    input: 'test/fixtures/runtime/index.js',
-    plugins: [
-      sass({
-        runtime: sassRuntime,
-        options: TEST_SASS_OPTIONS_DEFAULT_RECORD.legacy,
-      }),
-    ],
+{
+  const title = 'should support options.runtime';
+
+  const macro = test.macro<[RollupPluginSassOptions]>({
+    async exec(t, pluginOptions) {
+      const outputBundle = await rollup({
+        input: 'test/fixtures/runtime/index.js',
+        plugins: [
+          sass({
+            ...pluginOptions,
+            runtime: sassRuntime,
+          }),
+        ],
+      });
+      const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+      const result = getFirstChunkCode(output);
+
+      t.snapshot(result);
+    },
+    title: createApiOptionTestCaseTitle,
   });
-  const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
-  const result = getFirstChunkCode(output);
 
-  t.snapshot(result);
-});
-
-test('should support options.runtime with `sass-embedded`', async (t) => {
-  const outputBundle = await rollup({
-    input: 'test/fixtures/runtime/index.js',
-    plugins: [
-      sass({
-        api: 'modern',
-        runtime: sassEmbeddedRuntime,
-        options: TEST_SASS_OPTIONS_DEFAULT_RECORD.modern,
-      }),
-    ],
-  });
-  const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
-  const result = getFirstChunkCode(output);
-
-  t.snapshot(result);
-});
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
+}
 
 // #region sourcemap
 {
   const title =
     "When `sourcemap` isn't set adjacent source map files should not be output, and rollup output chunk shouldn't contain a `map` entry";
 
-  const macro = test.macro<[ApiValue]>({
-    async exec(t, api) {
+  const macro = test.macro<[RollupPluginSassOptions]>({
+    async exec(t, pluginOptions) {
       const outputFilePath = path.join(
-        TEST_OUTPUT_DIR[api],
+        getTestOutputDir(pluginOptions.api),
         'with-no-adjacent-source-map.js',
       );
 
       const bundle = await rollup({
         input: 'test/fixtures/basic/index.js',
-        plugins: [
-          sass({
-            api,
-            options: TEST_SASS_OPTIONS_DEFAULT_RECORD[api] as never,
-          }),
-        ],
+        plugins: [sass(pluginOptions)],
       });
       const sourceMapFilePath = `${outputFilePath}.map`;
 
@@ -912,30 +866,23 @@ test('should support options.runtime with `sass-embedded`', async (t) => {
     title: createApiOptionTestCaseTitle,
   });
 
-  test(title, macro, 'legacy');
-  test(title, macro, 'modern');
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
 
 {
   const title =
     'When `sourcemap` is set, to `true`, adjacent source map file should be output, and rollup output chunk should contain `map` entry';
 
-  const macro = test.macro<[ApiValue]>({
-    async exec(t, api) {
+  const macro = test.macro<[RollupPluginSassOptions]>({
+    async exec(t, pluginOptions) {
       const outputFilePath = path.join(
-        TEST_OUTPUT_DIR[api],
+        getTestOutputDir(pluginOptions.api),
         'with-adjacent-source-map.js',
       );
       const bundle = await rollup({
         input: 'test/fixtures/basic/index.js',
-        plugins: [
-          sass({
-            api,
-            options: {
-              ...TEST_SASS_OPTIONS_DEFAULT_RECORD[api],
-            } as never,
-          }),
-        ],
+        plugins: [sass(pluginOptions)],
       });
       const sourceMapFilePath = `${outputFilePath}.map`;
 
@@ -968,28 +915,23 @@ test('should support options.runtime with `sass-embedded`', async (t) => {
     title: createApiOptionTestCaseTitle,
   });
 
-  test(title, macro, 'legacy');
-  test(title, macro, 'modern');
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
 // #endregion
 
 {
   const title = 'module stylesheets graph should be added to watch list';
 
-  const macro = test.macro<[ApiValue]>({
-    async exec(t, api) {
+  const macro = test.macro<[RollupPluginSassOptions]>({
+    async exec(t, pluginOptions) {
       const inputFilePath = 'test/fixtures/dependencies/index.js';
 
       // Bundle our dependencies fixture module
       // ----
       const bundle = await rollup({
         input: inputFilePath,
-        plugins: [
-          sass({
-            api,
-            options: TEST_SASS_OPTIONS_DEFAULT_RECORD[api] as never,
-          }),
-        ],
+        plugins: [sass(pluginOptions)],
       });
 
       // List of nested stylesheets paths
@@ -1057,6 +999,6 @@ test('should support options.runtime with `sass-embedded`', async (t) => {
     title: createApiOptionTestCaseTitle,
   });
 
-  test(title, macro, 'legacy');
-  test(title, macro, 'modern');
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }

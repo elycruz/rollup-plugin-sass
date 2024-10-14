@@ -1,11 +1,6 @@
 import { dirname } from 'path';
 
-import {
-  LegacyOptions,
-  LegacyImporter,
-  Options,
-  FileImporter,
-} from 'sass';
+import { LegacyOptions, LegacyImporter, Options, FileImporter } from 'sass';
 import resolve from 'resolve';
 
 import { warn } from './logger';
