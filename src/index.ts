@@ -1,7 +1,7 @@
 import { promisify } from 'util';
 import * as fs from 'fs';
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
+import path from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
 
 import * as sass from 'sass';
 import { createFilter } from '@rollup/pluginutils';
@@ -14,7 +14,7 @@ import type {
   RollupPluginSassOutputFn,
   RollupPluginSassState,
 } from './types';
-import { getLegacyImporterList } from './utils/getLegacyImporterList';
+import { getImporterListLegacy, getImporterListModern } from './utils/getImporterList';
 import {
   processRenderResponse,
   INSERT_STYLE_ID,
@@ -74,7 +74,7 @@ export = function plugin(
       if (!filter(filePath)) {
         return Promise.resolve();
       }
-      const paths = [dirname(filePath), process.cwd()];
+      const paths = [path.dirname(filePath), process.cwd()];
       const { styleMaps, styles } = pluginState;
 
       // Setup resolved css output bundle tracking, for use later in `generateBundle` method.
@@ -92,20 +92,19 @@ export = function plugin(
         case 'modern': {
           const { options: incomingSassOptions } = pluginOptions;
 
-          const importers: sass.Options<'async'>['importers'] = [
-            new sass.NodePackageImporter(),
-          ];
-          if (incomingSassOptions?.importers) {
-            importers.push(...incomingSassOptions?.importers);
-          }
-          const resolvedOptions: sass.Options<'async'> = {
+          const resolvedOptions: sass.StringOptions<'async'> = {
             ...incomingSassOptions,
+            syntax: path.extname(filePath) === '.sass' ? 'indented' : 'scss',
             loadPaths: (incomingSassOptions?.loadPaths || []).concat(paths),
-            importers,
+            importers: getImporterListModern(incomingSassOptions?.importers),
+            url: pathToFileURL(filePath),
           };
 
-          const compileResult = await sass.compileAsync(
-            filePath,
+          const source =
+            incomingSassOptions?.data ? `${incomingSassOptions.data}${code}` : code;
+
+          const compileResult = await sass.compileStringAsync(
+            source,
             resolvedOptions,
           );
 
@@ -144,7 +143,7 @@ export = function plugin(
               includePaths: (incomingSassOptions?.includePaths || []).concat(
                 paths,
               ),
-              importer: getLegacyImporterList(incomingSassOptions?.importer),
+              importer: getImporterListLegacy(incomingSassOptions?.importer),
             },
           );
 
@@ -185,7 +184,7 @@ export = function plugin(
 
       if (typeof output === 'string') {
         return fs.promises
-          .mkdir(dirname(output as string), { recursive: true })
+          .mkdir(path.dirname(output as string), { recursive: true })
           .then(() => fs.promises.writeFile(output as string, css));
       } else if (typeof output === 'function') {
         return Promise.resolve(
@@ -199,7 +198,7 @@ export = function plugin(
         }
         dest = `${dest}.css`;
         return fs.promises
-          .mkdir(dirname(dest), { recursive: true })
+          .mkdir(path.dirname(dest), { recursive: true })
           .then(() => fs.promises.writeFile(dest, css));
       }
 
