@@ -493,249 +493,249 @@ test('should throw an error when processor returns an object type missing the `c
 });
 // #endregion
 
-// // #region node resolution
-// test('should resolve ~ as node_modules', async (t) => {
-//   const outputBundle = await rollup({
-//     input: 'test/fixtures/import/index.js',
-//     plugins: [
-//       sass({
-//         api: 'modern',
-//         options: TEST_SASS_OPTIONS_DEFAULT,
-//       }),
-//     ],
-//   });
-//   const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
-//   const result = getFirstChunkCode(output);
+// #region node resolution
+test('should resolve ~ as node_modules', async (t) => {
+  const outputBundle = await rollup({
+    input: 'test/fixtures/import/index.js',
+    plugins: [
+      sass({
+        api: 'modern',
+        options: TEST_SASS_OPTIONS_DEFAULT,
+      }),
+    ],
+  });
+  const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+  const result = getFirstChunkCode(output);
 
-//   t.snapshot(result);
-// });
+  t.snapshot(result);
+});
 
-// test('should resolve ~ as node_modules and output javascript modules', async (t) => {
-//   const outputFilePathES = path.join(
-//     TEST_OUTPUT_DIR,
-//     'import_scss_and_sass.es.js',
-//   );
-//   const outputFilePathCJS = path.join(
-//     TEST_OUTPUT_DIR,
-//     'import_scss_and_sass.cjs.js',
-//   );
+test('should resolve ~ as node_modules and output javascript modules', async (t) => {
+  const outputFilePathES = path.join(
+    TEST_OUTPUT_DIR,
+    'import_scss_and_sass.es.js',
+  );
+  const outputFilePathCJS = path.join(
+    TEST_OUTPUT_DIR,
+    'import_scss_and_sass.cjs.js',
+  );
 
-//   const outputBundle = await rollup({
-//     input: 'test/fixtures/import/index.js',
-//     plugins: [
-//       sass({
-//         api: 'modern',
-//         options: TEST_SASS_OPTIONS_DEFAULT,
-//       }),
-//     ],
-//   });
-//   const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
-//   const result = getFirstChunkCode(output);
+  const outputBundle = await rollup({
+    input: 'test/fixtures/import/index.js',
+    plugins: [
+      sass({
+        api: 'modern',
+        options: TEST_SASS_OPTIONS_DEFAULT,
+      }),
+    ],
+  });
+  const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+  const result = getFirstChunkCode(output);
 
-//   t.snapshot(result, 'check output result code');
+  t.snapshot(result, 'check output result code');
 
-//   // Test 'es' module output
-//   // ----
-//   await outputBundle.write({
-//     format: 'es',
-//     file: outputFilePathES,
-//   });
+  // Test 'es' module output
+  // ----
+  await outputBundle.write({
+    format: 'es',
+    file: outputFilePathES,
+  });
 
-//   const esFileContent = await fs.readFile(outputFilePathES);
-//   t.snapshot(
-//     esFileContent.toString(),
-//     'Ensure content exist in ESM output file',
-//   );
+  const esFileContent = await fs.readFile(outputFilePathES);
+  t.snapshot(
+    esFileContent.toString(),
+    'Ensure content exist in ESM output file',
+  );
 
-//   // Test 'cjs' module output
-//   // ----
-//   await outputBundle.write({
-//     format: 'cjs',
-//     file: outputFilePathCJS,
-//   });
+  // Test 'cjs' module output
+  // ----
+  await outputBundle.write({
+    format: 'cjs',
+    file: outputFilePathCJS,
+  });
 
-//   const cjsFileContent = await fs.readFile(outputFilePathCJS);
-//   t.snapshot(
-//     cjsFileContent.toString(),
-//     'Ensure content exist in CJS output file',
-//   );
-// });
-// // #endregion
+  const cjsFileContent = await fs.readFile(outputFilePathCJS);
+  t.snapshot(
+    cjsFileContent.toString(),
+    'Ensure content exist in CJS output file',
+  );
+});
+// #endregion
 
-// test('should support options.runtime', async (t) => {
-//   const outputBundle = await rollup({
-//     input: 'test/fixtures/runtime/index.js',
-//     plugins: [
-//       sass({
-//         api: 'modern',
-//         runtime: sassEmbeddedRuntime,
-//         options: TEST_SASS_OPTIONS_DEFAULT,
-//       }),
-//     ],
-//   });
-//   const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
-//   const result = getFirstChunkCode(output);
+test('should support options.runtime', async (t) => {
+  const outputBundle = await rollup({
+    input: 'test/fixtures/runtime/index.js',
+    plugins: [
+      sass({
+        api: 'modern',
+        runtime: sassEmbeddedRuntime,
+        options: TEST_SASS_OPTIONS_DEFAULT,
+      }),
+    ],
+  });
+  const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+  const result = getFirstChunkCode(output);
 
-//   t.snapshot(result);
-// });
+  t.snapshot(result);
+});
 
-// // #region sourcemap
-// test("When `sourcemap` isn't set adjacent source map files should not be output, and rollup output chunk shouldn't contain a `map` entry", async (t) => {
-//   const outputFilePath = path.join(
-//     TEST_OUTPUT_DIR,
-//     'with-no-adjacent-source-map.js',
-//   );
+// #region sourcemap
+test("When `sourcemap` isn't set adjacent source map files should not be output, and rollup output chunk shouldn't contain a `map` entry", async (t) => {
+  const outputFilePath = path.join(
+    TEST_OUTPUT_DIR,
+    'with-no-adjacent-source-map.js',
+  );
 
-//   const bundle = await rollup({
-//     input: 'test/fixtures/basic/index.js',
-//     plugins: [
-//       sass({
-//         api: 'modern',
-//         options: TEST_SASS_OPTIONS_DEFAULT,
-//       }),
-//     ],
-//   });
-//   const sourceMapFilePath = `${outputFilePath}.map`;
+  const bundle = await rollup({
+    input: 'test/fixtures/basic/index.js',
+    plugins: [
+      sass({
+        api: 'modern',
+        options: TEST_SASS_OPTIONS_DEFAULT,
+      }),
+    ],
+  });
+  const sourceMapFilePath = `${outputFilePath}.map`;
 
-//   // Run test
-//   const writeResult = await bundle.write({
-//     file: outputFilePath,
-//     format: 'esm',
-//   });
+  // Run test
+  const writeResult = await bundle.write({
+    file: outputFilePath,
+    format: 'esm',
+  });
 
-//   const writeResultOutput = writeResult.output;
+  const writeResultOutput = writeResult.output;
 
-//   // Check for output chunk
-//   t.true(!!writeResult.output?.length, 'output should contain an output chunk');
+  // Check for output chunk
+  t.true(!!writeResult.output?.length, 'output should contain an output chunk');
 
-//   // Check absence of 'map' entry in chunk
-//   t.falsy(
-//     writeResultOutput[0].map,
-//     "output chunk's `map` property should not be set.  It should equal `null` or `undefined`",
-//   );
+  // Check absence of 'map' entry in chunk
+  t.falsy(
+    writeResultOutput[0].map,
+    "output chunk's `map` property should not be set.  It should equal `null` or `undefined`",
+  );
 
-//   // Check for absence of source map file
-//   await fs.access(sourceMapFilePath, fsConstants.R_OK).then(
-//     () => t.false(true, `'${sourceMapFilePath}' should not exist.`),
-//     () => t.true(true),
-//   );
-// });
+  // Check for absence of source map file
+  await fs.access(sourceMapFilePath, fsConstants.R_OK).then(
+    () => t.false(true, `'${sourceMapFilePath}' should not exist.`),
+    () => t.true(true),
+  );
+});
 
-// test('When `sourcemap` is set, to `true`, adjacent source map file should be output, and rollup output chunk should contain `map` entry', async (t) => {
-//   const outputFilePath = path.join(
-//     TEST_OUTPUT_DIR,
-//     'with-adjacent-source-map.js',
-//   );
-//   const bundle = await rollup({
-//     input: 'test/fixtures/basic/index.js',
-//     plugins: [
-//       sass({
-//         api: 'modern',
-//         options: TEST_SASS_OPTIONS_DEFAULT,
-//       }),
-//     ],
-//   });
-//   const sourceMapFilePath = `${outputFilePath}.map`;
+test('When `sourcemap` is set, to `true`, adjacent source map file should be output, and rollup output chunk should contain `map` entry', async (t) => {
+  const outputFilePath = path.join(
+    TEST_OUTPUT_DIR,
+    'with-adjacent-source-map.js',
+  );
+  const bundle = await rollup({
+    input: 'test/fixtures/basic/index.js',
+    plugins: [
+      sass({
+        api: 'modern',
+        options: TEST_SASS_OPTIONS_DEFAULT,
+      }),
+    ],
+  });
+  const sourceMapFilePath = `${outputFilePath}.map`;
 
-//   const writeResult = await bundle.write({
-//     file: outputFilePath,
-//     sourcemap: true,
-//     format: 'esm',
-//   });
+  const writeResult = await bundle.write({
+    file: outputFilePath,
+    sourcemap: true,
+    format: 'esm',
+  });
 
-//   // Check for output chunk
-//   t.true(!!writeResult.output?.length, 'output should contain an output chunk');
+  // Check for output chunk
+  t.true(!!writeResult.output?.length, 'output should contain an output chunk');
 
-//   // Check for 'map' entry in chunk
-//   t.true(
-//     !!writeResult.output[0].map,
-//     "rollup output output chunk's `map` property should be set",
-//   );
+  // Check for 'map' entry in chunk
+  t.true(
+    !!writeResult.output[0].map,
+    "rollup output output chunk's `map` property should be set",
+  );
 
-//   // Check for source map file
-//   const contents = await fs.readFile(sourceMapFilePath);
+  // Check for source map file
+  const contents = await fs.readFile(sourceMapFilePath);
 
-//   t.true(
-//     !!contents.toString(),
-//     `${sourceMapFilePath} should have been written.`,
-//   );
-// });
-// // #endregion
+  t.true(
+    !!contents.toString(),
+    `${sourceMapFilePath} should have been written.`,
+  );
+});
+// #endregion
 
-// test('module stylesheets graph should be added to watch list', async (t) => {
-//   const inputFilePath = 'test/fixtures/dependencies/index.js';
+test('module stylesheets graph should be added to watch list', async (t) => {
+  const inputFilePath = 'test/fixtures/dependencies/index.js';
 
-//   // Bundle our dependencies fixture module
-//   // ----
-//   const bundle = await rollup({
-//     input: inputFilePath,
-//     plugins: [
-//       sass({
-//         api: 'modern',
-//         options: TEST_SASS_OPTIONS_DEFAULT,
-//       }),
-//     ],
-//   });
+  // Bundle our dependencies fixture module
+  // ----
+  const bundle = await rollup({
+    input: inputFilePath,
+    plugins: [
+      sass({
+        api: 'modern',
+        options: TEST_SASS_OPTIONS_DEFAULT,
+      }),
+    ],
+  });
 
-//   // List of nested stylesheets paths
-//   // ----
-//   const nestedFilePaths = [
-//     'test/fixtures/dependencies/style1.scss',
-//     'test/fixtures/dependencies/empty-style1.scss',
-//     'test/fixtures/dependencies/style2.sass',
-//     'test/fixtures/dependencies/style3.scss',
-//     'test/fixtures/dependencies/empty-style3.scss',
-//     'test/fixtures/dependencies/empty-style2.sass',
-//   ];
+  // List of nested stylesheets paths
+  // ----
+  const nestedFilePaths = [
+    'test/fixtures/dependencies/style1.scss',
+    'test/fixtures/dependencies/empty-style1.scss',
+    'test/fixtures/dependencies/style2.sass',
+    'test/fixtures/dependencies/style3.scss',
+    'test/fixtures/dependencies/empty-style3.scss',
+    'test/fixtures/dependencies/empty-style2.sass',
+  ];
 
-//   const expectedWatchedFiles = [
-//     'test/fixtures/dependencies/index.js',
-//     ...nestedFilePaths,
-//   ];
+  const expectedWatchedFiles = [
+    'test/fixtures/dependencies/index.js',
+    ...nestedFilePaths,
+  ];
 
-//   // Run tests
-//   // ----
+  // Run tests
+  // ----
 
-//   // Check `watchFiles` count (watched ones plus 'index.js' one)
-//   t.deepEqual(
-//     bundle.watchFiles.length,
-//     expectedWatchedFiles.length,
-//     'should contain expected number of "watched" files',
-//   );
+  // Check `watchFiles` count (watched ones plus 'index.js' one)
+  t.deepEqual(
+    bundle.watchFiles.length,
+    expectedWatchedFiles.length,
+    'should contain expected number of "watched" files',
+  );
 
-//   // Ensure our initial 'index.js' module is being watched
-//   t.true(
-//     bundle.watchFiles[0].endsWith(inputFilePath),
-//     'Expected `bundle.watchFiles[0]` to end with "index.js"',
-//   );
+  // Ensure our initial 'index.js' module is being watched
+  t.true(
+    bundle.watchFiles[0].endsWith(inputFilePath),
+    'Expected `bundle.watchFiles[0]` to end with "index.js"',
+  );
 
-//   // Ensure 'index.js' module, and other files in dep tree are watched
-//   bundle.watchFiles.forEach((filePath, i) => {
-//     const expectedTail = expectedWatchedFiles[i];
-//     t.true(
-//       filePath.endsWith(expectedTail),
-//       `${filePath} should end with ${expectedTail}`,
-//     );
-//   });
+  // Ensure 'index.js' module, and other files in dep tree are watched
+  bundle.watchFiles.forEach((filePath, i) => {
+    const expectedTail = expectedWatchedFiles[i];
+    t.true(
+      filePath.endsWith(expectedTail),
+      `${filePath} should end with ${expectedTail}`,
+    );
+  });
 
-//   // Get target module.
-//   // ----
-//   const targetModule = bundle?.cache?.modules[0]!;
-//   t.true(!!targetModule, 'Expected bundle data');
+  // Get target module.
+  // ----
+  const targetModule = bundle?.cache?.modules[0]!;
+  t.true(!!targetModule, 'Expected bundle data');
 
-//   // Ensure target module transform dependencies indeed end with expected file path tails.
-//   // ----
-//   t.true(
-//     targetModule.transformDependencies?.every(
-//       (filePath) => !!expectedWatchedFiles.find((fp) => filePath.endsWith(fp)),
-//     ),
-//     '`bundle.cache.modules[0].transformDependencies` entries should each end with expected file-path tails',
-//   );
+  // Ensure target module transform dependencies indeed end with expected file path tails.
+  // ----
+  t.true(
+    targetModule.transformDependencies?.every(
+      (filePath) => !!expectedWatchedFiles.find((fp) => filePath.endsWith(fp)),
+    ),
+    '`bundle.cache.modules[0].transformDependencies` entries should each end with expected file-path tails',
+  );
 
-//   // Test final content output
-//   // ----
-//   const expectedFinalContent = await fs.readFile(
-//     'test/fixtures/dependencies/expected.js',
-//   );
-//   t.is(targetModule.code.trim(), expectedFinalContent.toString().trim());
-// });
+  // Test final content output
+  // ----
+  const expectedFinalContent = await fs.readFile(
+    'test/fixtures/dependencies/expected.js',
+  );
+  t.is(targetModule.code.trim(), expectedFinalContent.toString().trim());
+});
