@@ -67,11 +67,11 @@ interface RollupPluginSassSharedOptions {
 export type RollupPluginSassOptions =
   | (RollupPluginSassSharedOptions & {
       api: 'modern';
-      options: SassOptions<'async'>;
+      options?: SassOptions<'async'>;
     })
   | (RollupPluginSassSharedOptions & {
       api?: 'legacy';
-      options: SassLegacyOptions<'async'>;
+      options?: SassLegacyOptions<'async'>;
     });
 
 export type SassImporterResult =

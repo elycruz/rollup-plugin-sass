@@ -22,6 +22,7 @@ import {
   NormalizedOutputOptions as RollupNormalizedOutputOptions,
   OutputBundle as RollupOutputBundle,
 } from 'rollup';
+import { fileURLToPath } from 'url';
 
 type PluginState = {
   // Stores interim bundle objects
@@ -216,42 +217,83 @@ export = function plugin(
       }
     },
 
-    transform(code, filePath) {
+    async transform(code, filePath) {
       if (!filter(filePath)) {
         return Promise.resolve();
       }
       const paths = [dirname(filePath), process.cwd()];
       const { styleMaps, styles } = pluginState;
 
+      // Setup resolved css output bundle tracking, for use later in `generateBundle` method.
+      // ----
+      if (!styleMaps[filePath]) {
+        const mapEntry = {
+          id: filePath,
+          content: '', // Populated after sass compilation
+        };
+        styleMaps[filePath] = mapEntry;
+        styles.push(mapEntry);
+      }
+
       switch (pluginOptions.api) {
-        case 'modern':
-          break;
+        case 'modern': {
+          const { options: incomingSassOptions } = pluginOptions;
+
+          const importers: sass.Options<'async'>['importers'] = [
+            new sass.NodePackageImporter(),
+          ];
+          if (incomingSassOptions?.importers) {
+            importers.push(...incomingSassOptions?.importers);
+          }
+          const resolvedOptions: sass.Options<'async'> = {
+            ...incomingSassOptions,
+            loadPaths: (incomingSassOptions?.loadPaths || []).concat(paths),
+            importers,
+          };
+
+          const compileResult = await sass.compileAsync(
+            filePath,
+            resolvedOptions,
+          );
+
+          const codeResult = await processRenderResponse(
+            pluginOptions,
+            filePath,
+            pluginState,
+            compileResult.css.toString().trim(),
+          );
+
+          const { loadedUrls, sourceMap } = compileResult;
+
+          loadedUrls.forEach((filePath) => {
+            this.addWatchFile(fileURLToPath(filePath));
+          });
+
+          return {
+            code: codeResult || '',
+            map: sourceMap ? sourceMap : undefined,
+          };
+        }
 
         case 'legacy':
         default: {
           const { options: incomingSassOptions } = pluginOptions;
 
-          const resolvedOptions = Object.assign({}, incomingSassOptions, {
-            file: filePath,
-            data:
-              incomingSassOptions?.data && `${incomingSassOptions.data}${code}`,
-            indentedSyntax: MATCH_SASS_FILENAME_RE.test(filePath),
-            includePaths: (incomingSassOptions?.includePaths || []).concat(
-              paths,
-            ),
-            importer: getImporterList(incomingSassOptions?.importer),
-          });
-
-          // Setup resolved css output bundle tracking, for use later in `generateBundle` method.
-          // ----
-          if (!styleMaps[filePath]) {
-            const mapEntry = {
-              id: filePath,
-              content: '', // Populated after `sass.render`
-            };
-            styleMaps[filePath] = mapEntry;
-            styles.push(mapEntry);
-          }
+          const resolvedOptions: sass.LegacyOptions<'async'> = Object.assign(
+            {},
+            incomingSassOptions,
+            {
+              file: filePath,
+              data:
+                incomingSassOptions?.data &&
+                `${incomingSassOptions.data}${code}`,
+              indentedSyntax: MATCH_SASS_FILENAME_RE.test(filePath),
+              includePaths: (incomingSassOptions?.includePaths || []).concat(
+                paths,
+              ),
+              importer: getImporterList(incomingSassOptions?.importer),
+            },
+          );
 
           return promisify(sassRuntime.render.bind(sassRuntime))(
             resolvedOptions,
