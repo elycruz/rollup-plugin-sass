@@ -7,107 +7,21 @@ import * as sass from 'sass';
 import { createFilter } from '@rollup/pluginutils';
 // @note Rollup is added as a "devDependency" so no actual symbols should be imported.
 //  Interfaces and non-concrete types are ok.
-import {
-  Plugin as RollupPlugin,
-  NormalizedOutputOptions as RollupNormalizedOutputOptions,
-  OutputBundle as RollupOutputBundle,
-} from 'rollup';
+import { Plugin as RollupPlugin, TransformResult } from 'rollup';
 
 import type {
   RollupPluginSassOptions,
   RollupPluginSassOutputFn,
-  RollupPluginSassProcessorFnOutput,
+  RollupPluginSassState,
 } from './types';
 import { getLegacyImporterList } from './utils/getLegacyImporterList';
-import { isFunction, isObject, isString } from './utils';
+import {
+  processRenderResponse,
+  INSERT_STYLE_ID,
+} from './utils/processRenderResponse';
 import insertStyle from './insertStyle';
 
-type PluginState = {
-  // Stores interim bundle objects
-  styles: { id?: string; content?: string }[];
-
-  // "";  Used, currently to ensure that we're not pushing style objects representing
-  // the same file-path into `pluginState.styles` more than once.
-  styleMaps: {
-    [index: string]: {
-      id?: string;
-      content?: string;
-    };
-  };
-};
-
 const MATCH_SASS_FILENAME_RE = /\.sass$/;
-
-const INSERT_STYLE_ID = '___$insertStyle';
-
-const processRenderResponse = (
-  rollupOptions: Pick<
-    RollupPluginSassOptions,
-    'insert' | 'processor' | 'output'
-  >,
-  file: string,
-  state: PluginState,
-  inCss: string,
-) => {
-  if (!inCss) return Promise.resolve();
-
-  const { processor } = rollupOptions;
-
-  return (
-    Promise.resolve()
-      .then(() =>
-        !isFunction(processor) ? inCss + '' : processor(inCss, file),
-      )
-      // Gather output requirements
-      .then((result: Partial<RollupPluginSassProcessorFnOutput>) => {
-        if (!isObject(result)) {
-          return [result, ''];
-        }
-        if (!isString(result.css)) {
-          throw new Error(
-            'You need to return the styles using the `css` property. ' +
-              'See https://github.com/differui/rollup-plugin-sass#processor',
-          );
-        }
-        const outCss = result.css;
-        delete result.css;
-        const restExports = Object.keys(result).reduce(
-          (agg, name) =>
-            agg + `export const ${name} = ${JSON.stringify(result[name])};\n`,
-          '',
-        );
-        return [outCss, restExports];
-      })
-
-      // Compose output
-      .then(([resolvedCss, restExports]) => {
-        const { styleMaps } = state;
-
-        // Update bundle tracking entry with resolved content
-        styleMaps[file].content = resolvedCss;
-
-        const out = JSON.stringify(resolvedCss);
-
-        let defaultExport = `""`;
-        let imports = '';
-
-        if (rollupOptions.insert) {
-          /**
-           * Include import using {@link INSERT_STYLE_ID} as source.
-           * It will be resolved to insert style function using `resolvedID` and `load` hooks;
-           * e.g., the path will completely replaced, and re-generated (as a relative path)
-           * by rollup.
-           */
-          imports = `import ${INSERT_STYLE_ID} from '${INSERT_STYLE_ID}';\n`;
-          defaultExport = `${INSERT_STYLE_ID}(${out});`;
-        } else if (!rollupOptions.output) {
-          defaultExport = out;
-        }
-
-        return `${imports}export default ${defaultExport};\n${restExports}`;
-      })
-  ); // @note do not `catch` here - let error propagate to rollup level
-};
 
 const defaultIncludes = ['**/*.sass', '**/*.scss'];
 const defaultExcludes = 'node_modules/**';
@@ -134,7 +48,7 @@ export = function plugin(
 
   const filter = createFilter(include || '', exclude || '');
 
-  const pluginState: PluginState = {
+  const pluginState: RollupPluginSassState = {
     styles: [],
     styleMaps: {},
   };
@@ -259,11 +173,7 @@ export = function plugin(
       }
     },
 
-    generateBundle(
-      generateOptions: RollupNormalizedOutputOptions,
-      _: RollupOutputBundle,
-      isWrite: boolean,
-    ) {
+    generateBundle(generateOptions, _, isWrite) {
       const { styles } = pluginState;
       const { output, insert } = pluginOptions;
 

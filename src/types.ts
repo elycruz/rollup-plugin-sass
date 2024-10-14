@@ -1,7 +1,5 @@
 import type {
   LegacyOptions as SassLegacyOptions,
-  LegacyResult,
-  types,
   Options as SassOptions,
 } from 'sass';
 
@@ -67,60 +65,22 @@ interface RollupPluginSassSharedOptions {
 export type RollupPluginSassOptions =
   | (RollupPluginSassSharedOptions & {
       api: 'modern';
-      options?: SassOptions<'async'>;
+      options?: SassOptions<'async'> & {
+        data?: string;
+      };
     })
   | (RollupPluginSassSharedOptions & {
       api?: 'legacy';
       options?: SassLegacyOptions<'async'>;
     });
 
-export type SassImporterResult =
-  | { file: string }
-  | { contents: string }
-  | Error
-  | null;
+export type RollupPluginSassState = {
+  // Stores interim bundle objects
+  styles: { id?: string; content?: string }[];
 
-export type SassDoneFn<T extends SassImporterResult = SassImporterResult> = (
-  result: T,
-) => void | T;
-
-/**
- * @deprecated - Use types directly from `sass` package instead.
- */
-export type SassImporter<T extends SassImporterResult = SassImporterResult> = (
-  url: string,
-  prev: string,
-  done: SassDoneFn<T>,
-) => void | T;
-
-/**
- * @deprecated - Use types directly from `sass` package instead.
- */
-export interface SassFunctionsObject {
-  [index: string]:
-    | types.Color
-    | types.Number
-    | types.String
-    | types.List
-    | types.Map
-    | types.Null;
-}
-
-/**
- * All option types taken from https://github.com/sass/node-sass#options -
- * **Note 1:** As noted by dart-sass project "When installed via npm, Dart Sass supports a JavaScript API that's
- * fully compatible with Node Sass (with a few exceptions listed below) ...".  See the (dart) sass npm page for more:
- * https://www.npmjs.com/package/sass
- *
- * **Note 2:** Our plugin only uses the "legacy" (async) API (internally) so `SassOptions` type below, for now,
- *  is the legacy type.
- *
- * @todo Update this if/when we update to the new sass API.
- */
-export type SassOptionsOld = SassLegacyOptions<'async'>;
-export { SassOptionsOld as SassOptions };
-
-/**
- * @todo Update this if/when we update to the new sass API.
- */
-export type SassRenderResult = LegacyResult;
+  // "";  Used, currently to ensure that we're not pushing style objects representing
+  // the same file-path into `pluginState.styles` more than once.
+  styleMaps: {
+    [index: string]: IdAndContentObject;
+  };
+};
