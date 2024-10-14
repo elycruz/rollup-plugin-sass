@@ -62,13 +62,16 @@ interface RollupPluginSassSharedOptions {
   runtime?: any;
 }
 
-export type RollupPluginSassModernOptions = SassOptions<'async'> & {
+export type RollupPluginSassModernOptions = Omit<
+  SassOptions<'async'>,
+  'sourceMap' // sourcemaps are handled by rollup
+> & {
   data?: string;
 };
 
 export type RollupPluginSassLegacyOptions = Omit<
   SassLegacyOptions<'async'>,
-  'data'
+  'data' // data is assembled and always passed via plugin `transform`
 > & {
   data?: string;
 };
