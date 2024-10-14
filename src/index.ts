@@ -46,7 +46,7 @@ const INSERT_STYLE_ID = '___$insertStyle';
  * Returns a sass `importer` list:
  * @see https://sass-lang.com/documentation/js-api#importer
  */
-const getImporterList = (sassOptions: SassOptions) => {
+const getImporterList = (importOption: SassOptions['importer']) => {
   // `Promise` to chain all `importer1` calls to;  E.g.,  subsequent `importer1` calls won't call `done` until previous `importer1` calls have called `done` (import order enforcement) - Required since importer below is actually 'async'.
   let lastResult = Promise.resolve();
 
@@ -85,7 +85,7 @@ const getImporterList = (sassOptions: SassOptions) => {
       warn('[rollup-plugin-sass]: Recovered from error: ', err);
       // If importer has sibling importers then exit and allow one of the other
       //  importers to attempt file path resolution.
-      if (sassOptions.importer && sassOptions.importer.length > 1) {
+      if (Array.isArray(importOption) && importOption.length > 1) {
         lastResult = lastResult.then(() => done(null));
         return;
       }
@@ -97,9 +97,7 @@ const getImporterList = (sassOptions: SassOptions) => {
     }
   };
 
-  return [importer1].concat(
-    (sassOptions.importer as Extract<SassOptions['importer'], []>) || [],
-  );
+  return [importer1].concat((importOption as never) || []);
 };
 
 const processRenderResponse = (
@@ -192,7 +190,6 @@ export = function plugin(
     include = defaultIncludes,
     exclude = defaultExcludes,
     runtime: sassRuntime,
-    options: incomingSassOptions = {} as SassOptions,
   } = pluginOptions;
 
   const filter = createFilter(include || '', exclude || '');
@@ -225,50 +222,66 @@ export = function plugin(
       }
       const paths = [dirname(filePath), process.cwd()];
       const { styleMaps, styles } = pluginState;
-      const resolvedOptions = Object.assign({}, incomingSassOptions, {
-        file: filePath,
-        data: incomingSassOptions.data && `${incomingSassOptions.data}${code}`,
-        indentedSyntax: MATCH_SASS_FILENAME_RE.test(filePath),
-        includePaths: (incomingSassOptions.includePaths || []).concat(paths),
-        importer: getImporterList(incomingSassOptions),
-      });
 
-      // Setup resolved css output bundle tracking, for use later in `generateBundle` method.
-      // ----
-      if (!styleMaps[filePath]) {
-        const mapEntry = {
-          id: filePath,
-          content: '', // Populated after `sass.render`
-        };
-        styleMaps[filePath] = mapEntry;
-        styles.push(mapEntry);
-      }
+      switch (pluginOptions.api) {
+        case 'modern':
+          break;
 
-      return promisify(sassRuntime.render.bind(sassRuntime))(resolvedOptions)
-        .then((res: SassRenderResult) =>
-          processRenderResponse(
-            pluginOptions,
-            filePath,
-            pluginState,
-            res.css.toString().trim(),
-          ).then((result) => [res, result]),
-        )
-        .then(
-          ([res, codeResult]: [
-            SassRenderResult,
-            RollupPluginSassProcessorFnOutput,
-          ]) => {
-            // @todo Do we need to filter this call so it only occurs when rollup is in 'watch' mode?
-            res.stats.includedFiles.forEach((filePath: string) => {
-              this.addWatchFile(filePath);
-            });
+        case 'legacy':
+        default: {
+          const { options: incomingSassOptions } = pluginOptions;
 
-            return {
-              code: codeResult || '',
-              map: { mappings: res.map ? res.map.toString() : '' },
+          const resolvedOptions = Object.assign({}, incomingSassOptions, {
+            file: filePath,
+            data:
+              incomingSassOptions?.data && `${incomingSassOptions.data}${code}`,
+            indentedSyntax: MATCH_SASS_FILENAME_RE.test(filePath),
+            includePaths: (incomingSassOptions?.includePaths || []).concat(
+              paths,
+            ),
+            importer: getImporterList(incomingSassOptions?.importer),
+          });
+
+          // Setup resolved css output bundle tracking, for use later in `generateBundle` method.
+          // ----
+          if (!styleMaps[filePath]) {
+            const mapEntry = {
+              id: filePath,
+              content: '', // Populated after `sass.render`
             };
-          },
-        ); // @note do not `catch` here - let error propagate to rollup level.
+            styleMaps[filePath] = mapEntry;
+            styles.push(mapEntry);
+          }
+
+          return promisify(sassRuntime.render.bind(sassRuntime))(
+            resolvedOptions,
+          )
+            .then((res: SassRenderResult) =>
+              processRenderResponse(
+                pluginOptions,
+                filePath,
+                pluginState,
+                res.css.toString().trim(),
+              ).then((result) => [res, result]),
+            )
+            .then(
+              ([res, codeResult]: [
+                SassRenderResult,
+                RollupPluginSassProcessorFnOutput,
+              ]) => {
+                // @todo Do we need to filter this call so it only occurs when rollup is in 'watch' mode?
+                res.stats.includedFiles.forEach((filePath: string) => {
+                  this.addWatchFile(filePath);
+                });
+
+                return {
+                  code: codeResult || '',
+                  map: { mappings: res.map ? res.map.toString() : '' },
+                };
+              },
+            ); // @note do not `catch` here - let error propagate to rollup level.
+        }
+      }
     },
 
     generateBundle(

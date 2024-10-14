@@ -66,8 +66,15 @@
   },
   "dependencies": {
     "@rollup/pluginutils": "^3 || ^4 || ^5",
-    "resolve": "^1.5.0",
+    "resolve": "^1.5.0"
+  },
+  "peerDependencies": {
     "sass": "^1.7.2"
+  },
+  "peerDependenciesMeta": {
+    "sass": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@ava/typescript": "^5.0.0",
@@ -87,6 +94,7 @@
     "postcss": "^8.4.16",
     "prettier": "^3.3.3",
     "rollup": "^1 || ^2 || ^3",
+    "sass": "1.79.5",
     "sinon": "^18.0.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.5.4"
