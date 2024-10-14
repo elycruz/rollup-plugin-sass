@@ -13,15 +13,17 @@ import postcss from 'postcss';
 import { extractICSS } from 'icss-utils';
 
 import sass from '../src/index';
-import { RollupPluginSassOutputFn, SassOptions } from '../src/types';
+import { RollupPluginSassOutputFn } from '../src/types';
+
+type SassLegacyOptions = sassRuntime.LegacyOptions<'async'>;
 
 const repoRoot = path.join(__dirname, '../');
 
-const TEST_OUTPUT_DIR = path.join(repoRoot, '.tests-output/');
+const TEST_OUTPUT_DIR = path.join(repoRoot, '.tests-output/legacy');
 
 const TEST_SASS_OPTIONS_DEFAULT = {
   outputStyle: 'compressed',
-} as SassOptions;
+} as SassLegacyOptions;
 
 const TEST_BASE_CONFIG = {
   plugins: [
@@ -123,7 +125,7 @@ test('should custom importer works', async (t) => {
               });
             },
           ],
-        } as SassOptions,
+        } as SassLegacyOptions,
       }),
     ],
   });
