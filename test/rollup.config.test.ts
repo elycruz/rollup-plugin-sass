@@ -6,11 +6,11 @@ import sass from '../src/index';
 sass();
 
 // should default to legacy when `api` is not specified
-sass({ options: { data: '', outputStyle: 'compact' } });
+sass({ options: { outputStyle: 'compact' } });
 
 // should error when LegacyOptions are used with `api: 'modern'`
 // @ts-expect-error
-sass({ api: 'modern', options: { data: '', outputStyle: 'compact' } });
+sass({ api: 'modern', options: { outputStyle: 'compact' } });
 
 // should only accept api parameter
 sass({ api: 'modern' });

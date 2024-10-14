@@ -62,16 +62,25 @@ interface RollupPluginSassSharedOptions {
   runtime?: any;
 }
 
+export type RollupPluginSassModernOptions = SassOptions<'async'> & {
+  data?: string;
+};
+
+export type RollupPluginSassLegacyOptions = Omit<
+  SassLegacyOptions<'async'>,
+  'data'
+> & {
+  data?: string;
+};
+
 export type RollupPluginSassOptions =
   | (RollupPluginSassSharedOptions & {
       api: 'modern';
-      options?: SassOptions<'async'> & {
-        data?: string;
-      };
+      options?: RollupPluginSassModernOptions;
     })
   | (RollupPluginSassSharedOptions & {
       api?: 'legacy';
-      options?: SassLegacyOptions<'async'>;
+      options?: RollupPluginSassLegacyOptions;
     });
 
 export type RollupPluginSassState = {
