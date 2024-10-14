@@ -9,6 +9,7 @@ import type {
   WarningHandlerWithDefault,
 } from 'rollup';
 import * as sassRuntime from 'sass';
+import * as sassEmbeddedRuntime from 'sass-embedded';
 import postcss from 'postcss';
 import { extractICSS } from 'icss-utils';
 
@@ -492,7 +493,7 @@ test('should throw an error when processor returns an object type missing the `c
 });
 // #endregion
 
-// #region node resolution
+// // #region node resolution
 // test('should resolve ~ as node_modules', async (t) => {
 //   const outputBundle = await rollup({
 //     input: 'test/fixtures/import/index.js',
@@ -559,14 +560,15 @@ test('should throw an error when processor returns an object type missing the `c
 //     'Ensure content exist in CJS output file',
 //   );
 // });
-// #endregion
+// // #endregion
 
 // test('should support options.runtime', async (t) => {
 //   const outputBundle = await rollup({
 //     input: 'test/fixtures/runtime/index.js',
 //     plugins: [
 //       sass({
-//         runtime: sassRuntime,
+//         api: 'modern',
+//         runtime: sassEmbeddedRuntime,
 //         options: TEST_SASS_OPTIONS_DEFAULT,
 //       }),
 //     ],
@@ -588,6 +590,7 @@ test('should throw an error when processor returns an object type missing the `c
 //     input: 'test/fixtures/basic/index.js',
 //     plugins: [
 //       sass({
+//         api: 'modern',
 //         options: TEST_SASS_OPTIONS_DEFAULT,
 //       }),
 //     ],
@@ -627,6 +630,7 @@ test('should throw an error when processor returns an object type missing the `c
 //     input: 'test/fixtures/basic/index.js',
 //     plugins: [
 //       sass({
+//         api: 'modern',
 //         options: TEST_SASS_OPTIONS_DEFAULT,
 //       }),
 //     ],
@@ -667,6 +671,7 @@ test('should throw an error when processor returns an object type missing the `c
 //     input: inputFilePath,
 //     plugins: [
 //       sass({
+//         api: 'modern',
 //         options: TEST_SASS_OPTIONS_DEFAULT,
 //       }),
 //     ],

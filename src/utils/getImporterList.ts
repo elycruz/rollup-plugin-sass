@@ -1,10 +1,15 @@
 import { dirname } from 'path';
 
-import { LegacyOptions, LegacyImporter, Options, Importer, FileImporter } from 'sass';
+import {
+  LegacyOptions,
+  LegacyImporter,
+  Options,
+  FileImporter,
+} from 'sass';
 import resolve from 'resolve';
 
 import { warn } from './logger';
-import { pathToFileURL } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 
 const MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i;
 
@@ -72,26 +77,25 @@ export const getImporterListModern = (
 ) => {
   const importer: FileImporter<'async'> = {
     findFileUrl(url, context) {
-       if (!MATCH_NODE_MODULE_RE.test(url)) {
+      if (!MATCH_NODE_MODULE_RE.test(url)) {
         return null;
       }
 
       const moduleUrl = url.slice(1);
+
       const resolveOptions = {
-        basedir: dirname(context.containingUrl!.toString()),
+        basedir: dirname(fileURLToPath(context.containingUrl!)),
         extensions: ['.scss', '.sass'],
       };
 
-      // @todo This block should run as a promise instead, will help ensure we're not blocking the thread it is
-      //   running on, even though `sass` is probably already running the importer in one.
       try {
         const file = resolve.sync(moduleUrl, resolveOptions);
         return pathToFileURL(file);
       } catch (err) {
-        warn('[rollup-plugin-sass]: Recovered from error: ', err);
+        warn('[rollup-plugin-sass]: error resolving import path: ', err);
         return null;
       }
-    }
+    },
   };
 
   return [importer].concat((importOption as never) || []);
