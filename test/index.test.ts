@@ -136,21 +136,6 @@ test('should support options.data', async (t) => {
 
 // #region insert option
 {
-  /**
-   * In unit tests we are targeting `src` folder,
-   * so there is no `insertStyle.js` file so `rollup` issues a warning
-   * that we can silence.
-   */
-  const onwarn: WarningHandlerWithDefault = (warning, defaultHandler) => {
-    if (
-      warning.code === 'UNRESOLVED_IMPORT' &&
-      warning.exporter?.includes('insertStyle.js')
-    ) {
-      return;
-    }
-    defaultHandler(warning);
-  };
-
   test('should insert CSS into head tag', async (t) => {
     const outputBundle = await rollup({
       input: 'test/fixtures/insert/index.js',
@@ -160,12 +145,46 @@ test('should support options.data', async (t) => {
           options: TEST_SASS_OPTIONS_DEFAULT,
         }),
       ],
-      onwarn,
     });
     const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
-    const result = getFirstChunkCode(output);
 
-    t.snapshot(result);
+    const outputFilePath = path.join(TEST_OUTPUT_DIR, 'insert-bundle');
+
+    await outputBundle.write({ dir: outputFilePath });
+
+    t.is(
+      output.length,
+      1,
+      'has 1 chunk (we are bundling all in one single file)',
+    );
+
+    const [{ moduleIds, modules }] = output;
+
+    t.is(
+      moduleIds.filter((it) => it.endsWith('insertStyle')).length,
+      1,
+      'include insertStyle one time',
+    );
+
+    const actualAModuleID = moduleIds.find((it) =>
+      it.endsWith('actual_a.scss'),
+    ) as string;
+    const actualAModule = modules[actualAModuleID];
+    t.truthy(actualAModule);
+    t.snapshot(
+      actualAModule.code,
+      'actual_a content is compiled with insertStyle',
+    );
+
+    const actualBModuleID = moduleIds.find((it) =>
+      it.endsWith('actual_b.scss'),
+    ) as string;
+    const actualBModule = modules[actualBModuleID];
+    t.truthy(actualBModule);
+    t.snapshot(
+      actualBModule.code,
+      'actual_b content is compiled with insertStyle',
+    );
   });
 
   test('should generate chunks with import insertStyle when `insert` is true', async (t) => {
@@ -180,26 +199,56 @@ test('should support options.data', async (t) => {
           options: TEST_SASS_OPTIONS_DEFAULT,
         }),
       ],
-      output: {
-        preserveModules: true,
-        preserveModulesRoot: 'src',
-      },
-      onwarn,
     });
 
-    const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+    const { output } = await outputBundle.generate({
+      ...TEST_GENERATE_OPTIONS,
+      preserveModules: true,
+      preserveModulesRoot: 'src',
+    });
 
-    t.is(output.length, 2, 'has 2 chunks');
+    const outputFilePath = path.join(TEST_OUTPUT_DIR, 'insert-multiple-entry');
+
+    await outputBundle.write({
+      dir: outputFilePath,
+      preserveModules: true,
+      preserveModulesRoot: 'src',
+    });
+
+    t.is(output.length, 5, 'has 5 chunks');
+
+    const outputFileNames = output.map((it) => it.fileName);
+
+    t.is(
+      outputFileNames.filter((it) => it.startsWith('entry')).length,
+      2,
+      '1 chunk for each entry (2)',
+    );
+    t.is(
+      outputFileNames.filter((it) => it.startsWith('assets/actual')).length,
+      2,
+      '1 chunk for each entry style import (2)',
+    );
+    t.is(
+      outputFileNames.filter((it) => it.endsWith('insertStyle.js')).length,
+      1,
+      '1 chunk for insertStyle helper',
+    );
+
+    const styleFiles = output.filter((it) =>
+      it.fileName.startsWith('assets/actual'),
+    );
+
     t.true(
-      output.every((outputItem) => {
+      styleFiles.every((outputItem) => {
         if (outputItem.type === 'chunk') {
           const insertStyleImportsCount = outputItem.imports.filter((it) =>
-            it.includes('/insertStyle.js'),
+            it.endsWith('insertStyle.js'),
           ).length;
           return insertStyleImportsCount === 1;
         }
-        // if is an assets there is no need to check imports
-        return true;
+        // no asset should be present here
+        return false;
       }),
       'each chunk must include insertStyle once',
     );
