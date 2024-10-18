@@ -1,6 +1,0 @@
-/* @see insertStyle.ts for additional information */
-{
-  "extends": "./tsconfig.json",
-  "include": ["./src/*"],
-  "exclude": ["./src/insertStyle.ts"]
-}
