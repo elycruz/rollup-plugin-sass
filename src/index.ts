@@ -17,7 +17,11 @@ import insertStyle from './insertStyle';
 
 // @note Rollup is added as a "devDependency" so no actual symbols should be imported.
 //  Interfaces and non-concrete types are ok.
-import { Plugin as RollupPlugin } from 'rollup';
+import {
+  Plugin as RollupPlugin,
+  NormalizedOutputOptions as RollupNormalizedOutputOptions,
+  OutputBundle as RollupOutputBundle,
+} from 'rollup';
 
 type PluginState = {
   // Stores interim bundle objects
@@ -265,18 +269,19 @@ export = function plugin(
         ); // @note do not `catch` here - let error propagate to rollup level.
     },
 
-    generateBundle(generateOptions, _, isWrite) {
-      if (
-        !isWrite ||
-        (!pluginOptions.insert &&
-          (!pluginState.styles.length || pluginOptions.output === false))
-      ) {
+    generateBundle(
+      generateOptions: RollupNormalizedOutputOptions,
+      _: RollupOutputBundle,
+      isWrite: boolean,
+    ) {
+      const { styles } = pluginState;
+      const { output, insert } = pluginOptions;
+
+      if (!isWrite || (!insert && (!styles.length || output === false))) {
         return Promise.resolve();
       }
 
-      const { styles } = pluginState;
       const css = styles.map((style) => style.content).join('');
-      const { output, insert } = pluginOptions;
 
       if (typeof output === 'string') {
         return fs.promises
