@@ -1,17 +1,16 @@
 # This workflow performs a clean install of node dependencies, cache/restore them, build the source code and run tests across different versions of node
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
 
-name: Build and Test
+name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main, dev ]
+    branches: [main, dev]
 
 jobs:
   build-and-test:
-
     runs-on: ubuntu-latest
 
     strategy:
@@ -20,19 +19,41 @@ jobs:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
       - run: npm ci
+
       - run: npm run output-coverage-lcov
 
       - name: Coveralls
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          file: "coverage/tests.lcov"
+          file: 'coverage/tests.lcov'
+
+  code-check:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        script: ['format']
+
+    name: Code check (${{ matrix.script }})
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - run: npm ci --ignore-scripts
+
+      - run: npm run ${{matrix.script}}

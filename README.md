@@ -1,5 +1,4 @@
-rollup-plugin-sass [![Build and Test](https://github.com/elycruz/rollup-plugin-sass/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/elycruz/rollup-plugin-sass/actions/workflows/build-and-test.yml) [![issues](https://img.shields.io/github/issues/elycruz/rollup-plugin-sass.svg?style=flat-square)](https://www.npmjs.com/package/rollup-plugin-sass) [![npm](https://img.shields.io/npm/v/rollup-plugin-sass.svg?style=flat-square)](https://www.npmjs.com/package/rollup-plugin-sass) [![mit](https://img.shields.io/npm/l/rollup-plugin-sass.svg?style=flat-square)](https://opensource.org/licenses/MIT) [![Coverage Status](https://coveralls.io/repos/github/elycruz/rollup-plugin-sass/badge.svg?branch=main)](https://coveralls.io/github/elycruz/rollup-plugin-sass?branch=main)
-=====
+# rollup-plugin-sass [![CI](https://github.com/elycruz/rollup-plugin-sass/actions/workflows/CI.yml/badge.svg)](https://github.com/elycruz/rollup-plugin-sass/actions/workflows/CI.yml) [![issues](https://img.shields.io/github/issues/elycruz/rollup-plugin-sass.svg?style=flat-square)](https://www.npmjs.com/package/rollup-plugin-sass) [![npm](https://img.shields.io/npm/v/rollup-plugin-sass.svg?style=flat-square)](https://www.npmjs.com/package/rollup-plugin-sass) [![mit](https://img.shields.io/npm/l/rollup-plugin-sass.svg?style=flat-square)](https://opensource.org/licenses/MIT) [![Coverage Status](https://coveralls.io/repos/github/elycruz/rollup-plugin-sass/badge.svg?branch=main)](https://coveralls.io/github/elycruz/rollup-plugin-sass?branch=main)
 
 ## Installation
 
@@ -19,10 +18,8 @@ export default {
     file: 'bundle.js',
     format: 'cjs',
   },
-  plugins: [
-    sass()
-  ]
-}
+  plugins: [sass()],
+};
 ```
 
 #### rollup.config.ts
@@ -54,7 +51,7 @@ Profit.
 
 ### `output`
 
-+ Type: `Boolean|String|Function` _(default: false)_
+- Type: `Boolean|String|Function` _(default: false)_
 
 ```js
 sass({
@@ -76,41 +73,39 @@ sass({
   //  ]
   output(styles, styleNodes) {
     writeFileSync('bundle.css', styles);
-  }
-})
+  },
+});
 ```
 
 ### `insert`
 
-+ Type: `Boolean` _(default: false)_
+- Type: `Boolean` _(default: false)_
 
 If you specify `true`, the plugin will insert compiled CSS into `<head/>` tag, via utility function that it will output
 in your build bundle.
 
 ```js
 sass({
-  insert: true
-})
+  insert: true,
+});
 ```
 
 **Note:**
 
-The utility function responsible for injecting style chunks into the page's head is output to
-`./dist/node_modules/...` (depending on the build tool you're using) when using rollup-plugin-sass's
-`insert` feature. 
+In this current version of the library the utility function responsible for injecting style chunks into the page's head is output to `./dist/node_modules/...` (depending on the build tool you're using) when using rollup-plugin-sass's `insert` feature.
 
 Due to this some caveats come up:
 
-1.  If you're publishing, and/or packaging-up, an app:
-- Ensure the `./{target-dist}/**/node_modules**/insertStyle.js` file is not listed in relevant `.*ignore` files.
-- Ensure the `./{target-dist}/**/insertStyle.js` file is listed in [`package.json.files`](https://docs.npmjs.com/cli/v10/configuring-npm/package-json#files) field.
-- Additionally, ensure the same directory is not excluded via your build tools (rollup, webpack, etc.). 
-- Optionally, if you're using typescript, you can list the `./{target-dist}/**/insertStyle` module 
-  in your `*tsconfig*`.
+1. If you're bundling an app:
+- Ensure the `./{target-dist}/**/node_modules**/insertStyle.js` file (or it's parent dirs) is/are not excluded via your build tools (rollup, webpack, etc.).
+2. If you're publishing an app:
+- Ensure the `./{target-dist}/**/node_modules**/insertStyle.js` is not listed in relevant `.*ignore` files.
+- Ensure the file is listed in [`package.json.files`](https://docs.npmjs.com/cli/v10/configuring-npm/package-json#files) field.
+- Optionally, if you're using typescript, you can list the file in your `*tsconfig*`.
 
 ### `processor`
 
-+ Type: `Function`
+- Type: `Function`
 
 If you specify a function as processor which will be called with compiled css before generate phase.
 
@@ -122,10 +117,11 @@ sass({
   // Processor will be called with two arguments:
   // - style: the compiled css
   // - id: import id
-  processor: css => postcss([autoprefixer])
-    .process(css)
-    .then(result => result.css)
-})
+  processor: (css) =>
+    postcss([autoprefixer])
+      .process(css)
+      .then((result) => result.css),
+});
 ```
 
 The `processor` also support object result. Reverse `css` filLed for stylesheet, the rest of the properties can be customized.
@@ -134,12 +130,12 @@ The `processor` also support object result. Reverse `css` filLed for stylesheet,
 sass({
   processor(code) {
     return {
-       css: '.body {}',
-       foo: 'foo',
-       bar: 'bar',
+      css: '.body {}',
+      foo: 'foo',
+      bar: 'bar',
     };
   },
-})
+});
 ```
 
 Otherwise, you could do:
@@ -148,31 +144,32 @@ Otherwise, you could do:
 import style, { foo, bar } from 'stylesheet';
 ```
 
-#### Exporting sass variable to *.js
+#### Exporting sass variable to \*.js
 
 Example showing how to use [icss-utils](https://www.npmjs.com/package/icss-utils) to extract resulting sass vars
-to your *.js bundle:
+to your \*.js bundle:
 
 ```js
 const config = {
   input: 'test/fixtures/processor-promise/with-icss-exports.js',
   plugins: [
     sass({
-      processor: (css) => new Promise((resolve, reject) => {
-        const pcssRootNodeRslt = postcss.parse(css),
-          extractedIcss = extractICSS(pcssRootNodeRslt, true),
-          cleanedCss = pcssRootNodeRslt.toString(),
-          out = Object.assign({}, extractedIcss.icssExports, {
-            css: cleanedCss,
-          });
-        // console.table(extractedIcss); 
-        // console.log(out); 
-        resolve(out);
-      }),
+      processor: (css) =>
+        new Promise((resolve, reject) => {
+          const pcssRootNodeRslt = postcss.parse(css),
+            extractedIcss = extractICSS(pcssRootNodeRslt, true),
+            cleanedCss = pcssRootNodeRslt.toString(),
+            out = Object.assign({}, extractedIcss.icssExports, {
+              css: cleanedCss,
+            });
+          // console.table(extractedIcss);
+          // console.log(out);
+          resolve(out);
+        }),
       options: sassOptions,
     }),
   ],
-}
+};
 ```
 
 See the [Input file](test/fixtures/processor-promise/with-icss-exports.js) for example on how to access
@@ -180,13 +177,13 @@ the exported vars.
 
 ### `runtime`
 
-+ Type: `Object` _(default: sass)_
+- Type: `Object` _(default: sass)_
 
 If you specify an object, it will be used instead of [sass](https://github.com/sass/dart-sass). You can use this to pass a different sass compiler (for example the `node-sass` npm package).
 
 ### `options`
 
-+ Type: `Object`
+- Type: `Object`
 
 Options for [sass](https://github.com/sass/dart-sass) or your own runtime sass compiler.
 
@@ -196,38 +193,38 @@ Since you can inject variables during sass compilation with node.
 ```js
 sass({
   options: {
-    data: '$color: #000;'
-  }
-})
+    data: '$color: #000;',
+  },
+});
 ```
 
 ### `include`
 
-+ Type: `string | string[]`
-+ Default: `['**/*.sass', '**/*.scss']`
+- Type: `string | string[]`
+- Default: `['**/*.sass', '**/*.scss']`
 
 Glob of sass/css files to be targeted.
 
 ```ts
 sass({
-  include: ['**/*.css', '**/*.sass', '**/*.scss'] 
-})
+  include: ['**/*.css', '**/*.sass', '**/*.scss'],
+});
 ```
 
 ### `exclude`
 
-+ Type: `string | string[]`; 
-+ Default: `'node_modules/**'`
+- Type: `string | string[]`;
+- Default: `'node_modules/**'`
 
 Globs to exclude from processing.
 
 ```ts
 sass({
-  exclude: 'node_modules/**'
-})
+  exclude: 'node_modules/**',
+});
 ```
 
 ## License
 
-[MIT](./LICENSE) [elycruz](https://github.com/elycruz), 
+[MIT](./LICENSE) [elycruz](https://github.com/elycruz),
 [BinRui.Guan](mailto:differui@gmail.com)
