@@ -90,19 +90,6 @@ sass({
 });
 ```
 
-**Note:**
-
-In this current version of the library the utility function responsible for injecting style chunks into the page's head is output to `./dist/node_modules/...` (depending on the build tool you're using) when using rollup-plugin-sass's `insert` feature.
-
-Due to this some caveats come up:
-
-1. If you're bundling an app:
-- Ensure the `./{target-dist}/**/node_modules**/insertStyle.js` file (or it's parent dirs) is/are not excluded via your build tools (rollup, webpack, etc.).
-2. If you're publishing an app:
-- Ensure the `./{target-dist}/**/node_modules**/insertStyle.js` is not listed in relevant `.*ignore` files.
-- Ensure the file is listed in [`package.json.files`](https://docs.npmjs.com/cli/v10/configuring-npm/package-json#files) field.
-- Optionally, if you're using typescript, you can list the file in your `*tsconfig*`.
-
 ### `processor`
 
 - Type: `Function`
