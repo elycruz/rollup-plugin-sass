@@ -156,7 +156,9 @@ const processRenderResponse = (
         if (rollupOptions.insert) {
           /**
            * Include import using {@link INSERT_STYLE_ID} as source.
-           * It will be resolved to insert style function using `resolvedID` and `load` hooks
+           * It will be resolved to insert style function using `resolvedID` and `load` hooks;
+           * e.g., the path will completely replaced, and re-generated (as a relative path)
+           * by rollup.
            */
           imports = `import ${INSERT_STYLE_ID} from '${INSERT_STYLE_ID}';\n`;
           defaultExport = `${INSERT_STYLE_ID}(${out});`;
