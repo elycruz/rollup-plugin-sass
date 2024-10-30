@@ -151,7 +151,7 @@ const processRenderResponse = (
            * *.css into *.html `head`.
            * @see insertStyle.ts for additional information
            */
-          imports = `import ${insertFnName} from '${__dirname}/insertStyle.js';\n`;
+          imports = `import ${insertFnName} from '${__dirname.replace(/\\/g, '/')}/insertStyle.js';\n`;
           defaultExport = `${insertFnName}(${out});`;
         } else if (!rollupOptions.output) {
           defaultExport = out;
