@@ -649,7 +649,13 @@ test('When `sourcemap` is set, to `true`, adjacent source map file should be out
 // #endregion
 
 test('module stylesheets graph should be added to watch list', async (t) => {
-  const inputFilePath = 'test/fixtures/dependencies/index.js';
+  /** Convert the path using file system separator of the current tested platform */
+  const normalizePathForAllOS = (input: string): string =>
+    path.join(...input.split('/'));
+
+  const inputFilePath = normalizePathForAllOS(
+    'test/fixtures/dependencies/index.js',
+  );
 
   // Bundle our dependencies fixture module
   // ----
@@ -671,12 +677,9 @@ test('module stylesheets graph should be added to watch list', async (t) => {
     'test/fixtures/dependencies/style3.scss',
     'test/fixtures/dependencies/empty-style3.scss',
     'test/fixtures/dependencies/empty-style2.sass',
-  ];
+  ].map(normalizePathForAllOS);
 
-  const expectedWatchedFiles = [
-    'test/fixtures/dependencies/index.js',
-    ...nestedFilePaths,
-  ];
+  const expectedWatchedFiles = [inputFilePath, ...nestedFilePaths];
 
   // Run tests
   // ----
@@ -695,11 +698,10 @@ test('module stylesheets graph should be added to watch list', async (t) => {
   );
 
   // Ensure 'index.js' module, and other files in dep tree are watched
-  bundle.watchFiles.forEach((filePath, i) => {
-    const expectedTail = expectedWatchedFiles[i];
+  expectedWatchedFiles.forEach((filePath) => {
     t.true(
-      filePath.endsWith(expectedTail),
-      `${filePath} should end with ${expectedTail}`,
+      bundle.watchFiles.some((it) => it.endsWith(filePath)),
+      `${filePath} should be included among "bundle.watchFiles"`,
     );
   });
 
