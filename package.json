@@ -16,10 +16,10 @@
     "build": "npm run build-downlevel-dts && tsc --project tsconfig.build.json",
     "build-downlevel-dts": "node scripts/clean-and-run-downlevel-dts.js",
     "downlevel-dts": "downlevel-dts . ts3.5 [--to=3.5]",
-    "test": "nyc --reporter=html --reporter=text ava && npm run test:rollup.config.spec.ts",
+    "test": "nyc --reporter=html --reporter=text ava && npm run test:types",
+    "test:types": "tsc --project tsconfig.spec.json --noEmit",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
     "output-coverage-lcov": "nyc report --reporter=text-lcov > coverage/tests.lcov",
-    "test:rollup.config.spec.ts": "tsc --project tsconfig.spec.json --noEmit",
     "commitlint": "commitlint --edit",
     "format": "prettier . --check",
     "format:fix": "prettier . --write"
