@@ -34,9 +34,9 @@ export const processRenderResponse = (
       .then(
         (
           result: Partial<RollupPluginSassProcessorFnOutput>,
-        ): [string, string, Record<string, string>?] => {
+        ): [string, Record<string, unknown>, Record<string, string>?] => {
           if (!isObject(result)) {
-            return [result, ''];
+            return [result, {}];
           }
 
           if (!isString(result.css)) {
@@ -55,18 +55,8 @@ export const processRenderResponse = (
             );
           }
 
-          const { css: outCss, cssModules } = result;
-
-          // Remove "reserved" keys to avoid to add them inside additional exports
-          delete result.css;
-          delete result.cssModules;
-
-          const namedExports = Object.keys(result).reduce(
-            (agg, name) =>
-              agg + `export const ${name} = ${JSON.stringify(result[name])};\n`,
-            '',
-          );
-          return [outCss, namedExports, cssModules] as const;
+          const { css, cssModules, ...namedExports } = result;
+          return [css, namedExports, cssModules];
         },
       )
 
@@ -99,14 +89,18 @@ export const processRenderResponse = (
           path.basename(fileId, path.extname(fileId)),
         );
 
-        const codeOutput = [
+        const codeOutput: string[] = [
           ...imports,
+
           `var ${variableName} = ${defaultExport};`,
           `export default ${cssModules ? JSON.stringify(cssModules) : variableName};`,
-          namedExports,
-        ].join('\n');
 
-        return codeOutput;
+          ...Object.entries(namedExports).map(
+            ([n, v]) => `export const ${n} = ${JSON.stringify(v)};`,
+          ),
+        ];
+
+        return codeOutput.join('\n');
       })
   ); // @note do not `catch` here - let error propagate to rollup level
 };
