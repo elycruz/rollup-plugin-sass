@@ -20,6 +20,7 @@ import sass from '../src/index';
 import type {
   RollupPluginSassOutputFn,
   RollupPluginSassOptions,
+  RollupPluginSassProcessorFn,
 } from '../src/types';
 
 type ApiValue = Extract<RollupPluginSassOptions['api'], string>;
@@ -260,7 +261,7 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
     },
   });
 }
-// #endregion
+// #endregion basic tests
 
 // #region insert option
 {
@@ -397,7 +398,7 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
   test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
   test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
-// #endregion
+// #endregion insert option
 
 // #region output option
 {
@@ -425,7 +426,6 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
    * Right now we can't use snapshot testing on this tests because sometimes rollup mess with the order of imports.
    * Detailed information can be found here: https://github.com/elycruz/rollup-plugin-sass/pull/143#issuecomment-2227274405
    */
-
   {
     const title = 'should support output as function';
 
@@ -713,47 +713,133 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
   test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
 
-// {
-//   const title =
-//     'should produces CSS modules if `cssModules` is returned from processor';
+{
+  const postcssModulesProcessor: RollupPluginSassProcessorFn = async (
+    styles,
+    id,
+  ) => {
+    let cssModules = {};
+    const postcssProcessResult = await postcss([
+      postcssModules({
+        getJSON: (_, json) => {
+          if (json) cssModules = json;
+        },
+      }),
+    ]).process(styles, {
+      from: id,
+    });
 
-//   const macro = test.macro<[RollupPluginSassOptions]>({
-//     async exec(t, pluginOptions) {
-//       const outputBundle = await rollup({
-//         input: 'test/fixtures/css-modules/index.js',
-//         plugins: [
-//           sass({
-//             ...pluginOptions,
-//             processor: async (styles, id) => {
-//               let cssModules = {};
-//               const postcssProcessResult = await postcss([
-//                 postcssModules({
-//                   getJSON: (_, json) => {
-//                     if (json) cssModules = json;
-//                   },
-//                 }),
-//               ]).process(styles, {
-//                 from: id,
-//               });
+    return { css: postcssProcessResult.css, cssModules };
+  };
 
-//               return { css: postcssProcessResult.css, cssModules };
-//             },
-//           }),
-//         ],
-//       });
+  {
+    const title =
+      'should produces CSS modules if `cssModules` is returned from processor';
 
-//       const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
-//       const result = getFirstChunkCode(output);
+    const macro = test.macro<[RollupPluginSassOptions]>({
+      async exec(t, pluginOptions) {
+        const outputBundle = await rollup({
+          input: 'test/fixtures/css-modules/index.js',
+          plugins: [
+            sass({
+              ...pluginOptions,
+              processor: postcssModulesProcessor,
+            }),
+          ],
+        });
 
-//       t.snapshot(result);
-//     },
-//     title: createApiOptionTestCaseTitle,
-//   });
+        const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+        const result = getFirstChunkCode(output);
 
-//   test.only(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
-//   test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
-// }
-// #endregion
+        t.snapshot(result);
+      },
+      title: createApiOptionTestCaseTitle,
+    });
+
+    test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+    test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
+  }
+
+  // {
+  //   const title =
+  //     'should produces CSS modules alongside `insertStyle` if `cssModules` is returned from processor';
+
+  //   const macro = test.macro<[RollupPluginSassOptions]>({
+  //     async exec(t, pluginOptions) {
+  //       const outputBundle = await rollup({
+  //         input: 'test/fixtures/css-modules/index.js',
+  //         plugins: [
+  //           sass({
+  //             ...pluginOptions,
+  //             insert: true,
+  //             processor: postcssModulesProcessor,
+  //           }),
+  //         ],
+  //       });
+
+  //       const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+
+  //       t.is(
+  //         output.length,
+  //         1,
+  //         'has 1 chunk (we are bundling all in one single file)',
+  //       );
+
+  //       const [{ moduleIds, modules }] = output;
+
+  //       t.is(
+  //         moduleIds.filter((it) => it.endsWith('insertStyle')).length,
+  //         1,
+  //         'include insertStyle one time',
+  //       );
+
+  //       const actualAModuleID = moduleIds.find((it) =>
+  //         it.endsWith('actual_a.scss'),
+  //       ) as string;
+  //       const actualAModule = modules[actualAModuleID];
+  //       t.truthy(actualAModule);
+  //       t.snapshot(
+  //         actualAModule.code,
+  //         'actual_a content is compiled with insertStyle',
+  //       );
+  //     },
+  //     title: createApiOptionTestCaseTitle,
+  //   });
+
+  //   test.only(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+  //   test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
+  // }
+
+  {
+    const title = 'should throw error when CSS modules is not an object';
+
+    const macro = test.macro<[RollupPluginSassOptions]>({
+      async exec(t, pluginOptions) {
+        const message =
+          'You need to provide a js object as `cssModules` property. See https://github.com/elycruz/rollup-plugin-sass#processor';
+
+        await t.throwsAsync(
+          rollup({
+            input: 'test/fixtures/css-modules/index.js',
+            plugins: [
+              sass({
+                ...pluginOptions,
+                // @ts-expect-error testing error
+                processor: () => ({ css: 'body {}', cssModules: 'asd' }),
+              }),
+            ],
+          }),
+          { message },
+        );
+      },
+      title: createApiOptionTestCaseTitle,
+    });
+
+    test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+    test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
+  }
+}
+// #endregion processor option
 
 // #region node resolution
 {
@@ -833,7 +919,7 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
   test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
   test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
-// #endregion
+// #endregion node resolution
 
 {
   const title = 'should support options.runtime';
@@ -960,7 +1046,7 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
   test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
   test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
-// #endregion
+// #endregion sourcemap
 
 {
   const title = 'module stylesheets graph should be added to watch list';
