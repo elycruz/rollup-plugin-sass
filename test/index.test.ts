@@ -13,6 +13,7 @@ import type {
 } from 'rollup';
 import * as sassRuntime from 'sass';
 import postcss from 'postcss';
+import postcssModules from 'postcss-modules';
 import { extractICSS } from 'icss-utils';
 
 import sass from '../src/index';
@@ -694,7 +695,7 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
         processor: () => ({}),
       });
       const message =
-        'You need to return the styles using the `css` property. See https://github.com/differui/rollup-plugin-sass#processor';
+        'You need to return the styles using the `css` property. See https://github.com/elycruz/rollup-plugin-sass#processor';
 
       await t.throwsAsync(
         () =>
@@ -711,6 +712,47 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
   test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
   test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
+
+// {
+//   const title =
+//     'should produces CSS modules if `cssModules` is returned from processor';
+
+//   const macro = test.macro<[RollupPluginSassOptions]>({
+//     async exec(t, pluginOptions) {
+//       const outputBundle = await rollup({
+//         input: 'test/fixtures/css-modules/index.js',
+//         plugins: [
+//           sass({
+//             ...pluginOptions,
+//             processor: async (styles, id) => {
+//               let cssModules = {};
+//               const postcssProcessResult = await postcss([
+//                 postcssModules({
+//                   getJSON: (_, json) => {
+//                     if (json) cssModules = json;
+//                   },
+//                 }),
+//               ]).process(styles, {
+//                 from: id,
+//               });
+
+//               return { css: postcssProcessResult.css, cssModules };
+//             },
+//           }),
+//         ],
+//       });
+
+//       const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+//       const result = getFirstChunkCode(output);
+
+//       t.snapshot(result);
+//     },
+//     title: createApiOptionTestCaseTitle,
+//   });
+
+//   test.only(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+//   test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
+// }
 // #endregion
 
 // #region node resolution
