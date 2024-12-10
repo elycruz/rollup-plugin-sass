@@ -1122,10 +1122,7 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
 
       // Test final content output
       // ----
-      const expectedFinalContent = await fs.readFile(
-        'test/fixtures/dependencies/expected.js',
-      );
-      t.is(targetModule.code.trim(), expectedFinalContent.toString().trim());
+      t.snapshot(targetModule.code, 'Final content output');
     },
     title: createApiOptionTestCaseTitle,
   });
