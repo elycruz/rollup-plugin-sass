@@ -79,7 +79,7 @@ export const processRenderResponse = (
            * by rollup.
            */
           imports.push(`import ${INSERT_STYLE_ID} from '${INSERT_STYLE_ID}';`);
-          cssCode = `${INSERT_STYLE_ID}(${cssCode});`;
+          cssCode = `${INSERT_STYLE_ID}(${cssCode})`;
           defaultExport = cssCode;
         } else if (!rollupOptions.output) {
           defaultExport = cssCode;

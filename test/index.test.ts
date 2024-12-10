@@ -760,55 +760,55 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
     test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
   }
 
-  // {
-  //   const title =
-  //     'should produces CSS modules alongside `insertStyle` if `cssModules` is returned from processor';
+  {
+    const title =
+      'should produces CSS modules alongside `insertStyle` if `cssModules` is returned from processor';
 
-  //   const macro = test.macro<[RollupPluginSassOptions]>({
-  //     async exec(t, pluginOptions) {
-  //       const outputBundle = await rollup({
-  //         input: 'test/fixtures/css-modules/index.js',
-  //         plugins: [
-  //           sass({
-  //             ...pluginOptions,
-  //             insert: true,
-  //             processor: postcssModulesProcessor,
-  //           }),
-  //         ],
-  //       });
+    const macro = test.macro<[RollupPluginSassOptions]>({
+      async exec(t, pluginOptions) {
+        const outputBundle = await rollup({
+          input: 'test/fixtures/css-modules/index.js',
+          plugins: [
+            sass({
+              ...pluginOptions,
+              insert: true,
+              processor: postcssModulesProcessor,
+            }),
+          ],
+        });
 
-  //       const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
+        const { output } = await outputBundle.generate(TEST_GENERATE_OPTIONS);
 
-  //       t.is(
-  //         output.length,
-  //         1,
-  //         'has 1 chunk (we are bundling all in one single file)',
-  //       );
+        t.is(
+          output.length,
+          1,
+          'has 1 chunk (we are bundling all in one single file)',
+        );
 
-  //       const [{ moduleIds, modules }] = output;
+        const [{ moduleIds, modules }] = output;
 
-  //       t.is(
-  //         moduleIds.filter((it) => it.endsWith('insertStyle')).length,
-  //         1,
-  //         'include insertStyle one time',
-  //       );
+        t.is(
+          moduleIds.filter((it) => it.endsWith('insertStyle')).length,
+          1,
+          'include insertStyle one time',
+        );
 
-  //       const actualAModuleID = moduleIds.find((it) =>
-  //         it.endsWith('actual_a.scss'),
-  //       ) as string;
-  //       const actualAModule = modules[actualAModuleID];
-  //       t.truthy(actualAModule);
-  //       t.snapshot(
-  //         actualAModule.code,
-  //         'actual_a content is compiled with insertStyle',
-  //       );
-  //     },
-  //     title: createApiOptionTestCaseTitle,
-  //   });
+        const styleModuleID = moduleIds.find((it) =>
+          it.endsWith('style.scss'),
+        ) as string;
+        const styleModule = modules[styleModuleID];
+        t.truthy(styleModule);
+        t.snapshot(
+          styleModule.code,
+          'style content is compiled with insertStyle',
+        );
+      },
+      title: createApiOptionTestCaseTitle,
+    });
 
-  //   test.only(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
-  //   test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
-  // }
+    test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+    test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
+  }
 
   {
     const title = 'should throw error when CSS modules is not an object';
