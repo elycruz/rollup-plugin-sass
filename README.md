@@ -34,7 +34,7 @@ Add `allowSyntheticDefaultImports`, or `esModuleInterop` (enables `allowSyntheti
 }
 ```
 
-Reference: (https://www.typescriptlang.org/tsconfig#esModuleInterop)
+[`esModuleInterop` reference](https://www.typescriptlang.org/tsconfig#esModuleInterop)
 
 Write rollup.config.ts:
 
@@ -113,7 +113,7 @@ sass({
 });
 ```
 
-The `processor` also support object result. Reverse `css` filLed for stylesheet, the rest of the properties can be customized.
+The `processor` also support object result. Reverse `css` filled for stylesheet, the rest of the properties can be customized.
 
 ```js
 sass({
@@ -133,29 +133,60 @@ Otherwise, you could do:
 import style, { foo, bar } from 'stylesheet';
 ```
 
+#### Create CSS modules using processor `cssModules` output
+
+When returning a `cssModules` property inside a processor's output,
+the plugin will change the module's default export to the value
+of `cssModules` instead of the compiled CSS code.
+
+The following example uses [`postcss-modules`](https://www.npmjs.com/package/postcss-modules) to create css modules:
+
+```js
+import postcss from 'postcss';
+import postcssModules from 'postcss-modules';
+
+sass({
+  async processor(css, id) {
+    let cssModules = {};
+    const postcssProcessResult = await postcss([
+      postcssModules({
+        getJSON: (_, json) => {
+          if (json) cssModules = json;
+        },
+      }),
+    ]).process(css, { from: id });
+
+    return { css: postcssProcessResult.css, cssModules };
+  },
+});
+```
+
+Which allows you to write something like:
+
+```js
+import style from 'stylesheet';
+
+style['some-classes'];
+```
+
 #### Exporting sass variable to \*.js
 
-Example showing how to use [icss-utils](https://www.npmjs.com/package/icss-utils) to extract resulting sass vars
-to your \*.js bundle:
+Example showing how to use [`icss-utils`](https://www.npmjs.com/package/icss-utils) to extract resulting sass vars to your \*.js bundle:
 
 ```js
 const config = {
   input: 'test/fixtures/processor-promise/with-icss-exports.js',
   plugins: [
     sass({
-      processor: (css) =>
-        new Promise((resolve, reject) => {
-          const pcssRootNodeRslt = postcss.parse(css),
-            extractedIcss = extractICSS(pcssRootNodeRslt, true),
-            cleanedCss = pcssRootNodeRslt.toString(),
-            out = Object.assign({}, extractedIcss.icssExports, {
-              css: cleanedCss,
-            });
-          // console.table(extractedIcss);
-          // console.log(out);
-          resolve(out);
-        }),
-      options: sassOptions,
+      processor: (css) => {
+        const pcssRootNodeRslt = postcss.parse(css);
+        const extractedIcss = extractICSS(pcssRootNodeRslt, true);
+        const cleanedCss = pcssRootNodeRslt.toString();
+        const out = { css: cleanedCss, ...extractedIcss.icssExports };
+        // console.table(extractedIcss);
+        // console.log(out);
+        return out;
+      },
     }),
   ],
 };
