@@ -1,9 +1,14 @@
-import { isFunction, isObject, isString } from './helpers';
+import path from 'path';
+
+import { makeLegalIdentifier } from '@rollup/pluginutils';
+
 import {
   RollupPluginSassOptions,
   RollupPluginSassState,
   RollupPluginSassProcessorFnOutput,
 } from '../types';
+
+import { isFunction, isObject, isString } from './helpers';
 
 export const INSERT_STYLE_ID = '___$insertStyle';
 
@@ -12,7 +17,7 @@ export const processRenderResponse = (
     RollupPluginSassOptions,
     'insert' | 'processor' | 'output'
   >,
-  file: string,
+  fileId: string,
   state: RollupPluginSassState,
   inCss: string,
 ) => {
@@ -23,40 +28,48 @@ export const processRenderResponse = (
   return (
     Promise.resolve()
       .then(() =>
-        !isFunction(processor) ? inCss + '' : processor(inCss, file),
+        !isFunction(processor) ? inCss + '' : processor(inCss, fileId),
       )
       // Gather output requirements
-      .then((result: Partial<RollupPluginSassProcessorFnOutput>) => {
-        if (!isObject(result)) {
-          return [result, ''];
-        }
-        if (!isString(result.css)) {
-          throw new Error(
-            'You need to return the styles using the `css` property. ' +
-              'See https://github.com/differui/rollup-plugin-sass#processor',
-          );
-        }
-        const outCss = result.css;
-        delete result.css;
-        const restExports = Object.keys(result).reduce(
-          (agg, name) =>
-            agg + `export const ${name} = ${JSON.stringify(result[name])};\n`,
-          '',
-        );
-        return [outCss, restExports];
-      })
+      .then(
+        (
+          result: Partial<RollupPluginSassProcessorFnOutput>,
+        ): [string, Record<string, unknown>, Record<string, string>?] => {
+          if (!isObject(result)) {
+            return [result, {}];
+          }
+
+          if (!isString(result.css)) {
+            /** @todo consider using rollup utils to throw this error */
+            throw new Error(
+              'You need to return the styles using the `css` property. ' +
+                'See https://github.com/elycruz/rollup-plugin-sass#processor',
+            );
+          }
+
+          if (result.cssModules && !isObject(result.cssModules)) {
+            /** @todo consider using rollup utils to throw this error */
+            throw new Error(
+              'You need to provide a js object as `cssModules` property. ' +
+                'See https://github.com/elycruz/rollup-plugin-sass#processor',
+            );
+          }
+
+          const { css, cssModules, ...namedExports } = result;
+          return [css, namedExports, cssModules];
+        },
+      )
 
       // Compose output
-      .then(([resolvedCss, restExports]) => {
+      .then(([resolvedCss, namedExports, cssModules]) => {
         const { styleMaps } = state;
 
         // Update bundle tracking entry with resolved content
-        styleMaps[file].content = resolvedCss;
-
-        const out = JSON.stringify(resolvedCss);
+        styleMaps[fileId].content = resolvedCss;
 
         let defaultExport = `""`;
-        let imports = '';
+        let cssCode = JSON.stringify(resolvedCss);
+        let imports: string[] = [];
 
         if (rollupOptions.insert) {
           /**
@@ -65,13 +78,29 @@ export const processRenderResponse = (
            * e.g., the path will completely replaced, and re-generated (as a relative path)
            * by rollup.
            */
-          imports = `import ${INSERT_STYLE_ID} from '${INSERT_STYLE_ID}';\n`;
-          defaultExport = `${INSERT_STYLE_ID}(${out});`;
+          imports.push(`import ${INSERT_STYLE_ID} from '${INSERT_STYLE_ID}';`);
+          cssCode = `${INSERT_STYLE_ID}(${cssCode})`;
+          defaultExport = cssCode;
         } else if (!rollupOptions.output) {
-          defaultExport = out;
+          defaultExport = cssCode;
         }
 
-        return `${imports}export default ${defaultExport};\n${restExports}`;
+        const variableName = makeLegalIdentifier(
+          path.basename(fileId, path.extname(fileId)),
+        );
+
+        const codeOutput: string[] = [
+          ...imports,
+
+          `const ${variableName} = ${defaultExport}`,
+          `export default ${cssModules ? JSON.stringify(cssModules) : variableName}`,
+
+          ...Object.entries(namedExports).map(
+            ([n, v]) => `export const ${n} = ${JSON.stringify(v)}`,
+          ),
+        ];
+
+        return codeOutput.join(';\n');
       })
   ); // @note do not `catch` here - let error propagate to rollup level
 };

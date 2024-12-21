@@ -10,9 +10,7 @@
 export default function insertStyle(
   css: string | undefined,
 ): string | undefined {
-  if (!css || typeof window === 'undefined') {
-    return;
-  }
+  if (!css || typeof window === 'undefined') return;
 
   const style = document.createElement('style');
   style.setAttribute('type', 'text/css');
