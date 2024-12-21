@@ -713,6 +713,7 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
   test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
 
+// #region processor and cssModules option
 {
   const postcssModulesProcessor: RollupPluginSassProcessorFn = async (
     styles,
@@ -725,9 +726,7 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
           if (json) cssModules = json;
         },
       }),
-    ]).process(styles, {
-      from: id,
-    });
+    ]).process(styles, { from: id });
 
     return { css: postcssProcessResult.css, cssModules };
   };
@@ -839,6 +838,8 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
     test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
   }
 }
+// #endregion processor and cssModules option
+
 // #endregion processor option
 
 // #region node resolution

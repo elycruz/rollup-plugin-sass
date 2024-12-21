@@ -92,15 +92,15 @@ export const processRenderResponse = (
         const codeOutput: string[] = [
           ...imports,
 
-          `var ${variableName} = ${defaultExport};`,
-          `export default ${cssModules ? JSON.stringify(cssModules) : variableName};`,
+          `const ${variableName} = ${defaultExport}`,
+          `export default ${cssModules ? JSON.stringify(cssModules) : variableName}`,
 
           ...Object.entries(namedExports).map(
-            ([n, v]) => `export const ${n} = ${JSON.stringify(v)};`,
+            ([n, v]) => `export const ${n} = ${JSON.stringify(v)}`,
           ),
         ];
 
-        return codeOutput.join('\n');
+        return codeOutput.join(';\n');
       })
   ); // @note do not `catch` here - let error propagate to rollup level
 };
