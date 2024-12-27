@@ -17,9 +17,14 @@ export type RollupPluginSassProcessorFnOutput =
   | string
   | {
       css: string;
+
+      /** If provided, the default export of the CSS file will be the map returned here */
+      cssModules?: Record<string, string>;
+
       // User processor might add additional exports
       [key: string]: unknown;
     };
+
 export type RollupPluginSassProcessorFn<T = RollupPluginSassProcessorFnOutput> =
   (styles: string, id: string) => Promise<T> | T;
 
