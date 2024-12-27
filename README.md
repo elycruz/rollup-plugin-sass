@@ -243,7 +243,7 @@ sass({
 ---
 
 > [!TIP]
-> If your are working with npm packages packages, consider to use
+> If your are working with npm packages, consider to use
 > [NodePackageImporter](https://sass-lang.com/documentation/js-api/classes/nodepackageimporter/)
 >
 > ```js
