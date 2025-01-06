@@ -22,7 +22,7 @@ export default {
 };
 ```
 
-#### rollup.config.ts
+### rollup.config.ts
 
 Add `allowSyntheticDefaultImports`, or `esModuleInterop` (enables `allowSyntheticDefaultImports`), to tsconfig.json:
 
@@ -34,7 +34,7 @@ Add `allowSyntheticDefaultImports`, or `esModuleInterop` (enables `allowSyntheti
 }
 ```
 
-Reference: (https://www.typescriptlang.org/tsconfig#esModuleInterop)
+[`esModuleInterop` reference](https://www.typescriptlang.org/tsconfig#esModuleInterop)
 
 Write rollup.config.ts:
 
@@ -51,11 +51,12 @@ Profit.
 
 ### `output`
 
-- Type: `Boolean|String|Function` _(default: false)_
+- Type: `Boolean|String|Function`
+- Default: `false`
 
 ```js
 sass({
-  // Default behaviour disable output
+  // Default behavior disable output
   output: false,
 
   // Write all styles to the bundle destination where .js is replaced by .css
@@ -64,7 +65,7 @@ sass({
   // Filename to write all styles
   output: 'bundle.css',
 
-  // Callback that will be called ongenerate with two arguments:
+  // Callback that will be called on generate bundle with two arguments:
   // - styles: the concatenated styles in order of imported
   // - styleNodes: an array of style objects:
   //  [
@@ -79,7 +80,8 @@ sass({
 
 ### `insert`
 
-- Type: `Boolean` _(default: false)_
+- Type: `Boolean`
+- Default: `false`
 
 If you specify `true`, the plugin will insert compiled CSS into `<head/>` tag, via utility function that it will output
 in your build bundle.
@@ -111,7 +113,7 @@ sass({
 });
 ```
 
-The `processor` also support object result. Reverse `css` filLed for stylesheet, the rest of the properties can be customized.
+The `processor` also support object result. Reverse `css` filled for stylesheet, the rest of the properties can be customized.
 
 ```js
 sass({
@@ -131,29 +133,60 @@ Otherwise, you could do:
 import style, { foo, bar } from 'stylesheet';
 ```
 
+#### Create CSS modules using processor `cssModules` output
+
+When returning a `cssModules` property inside a processor's output,
+the plugin will change the module's default export to the value
+of `cssModules` instead of the compiled CSS code.
+
+The following example uses [`postcss-modules`](https://www.npmjs.com/package/postcss-modules) to create css modules:
+
+```js
+import postcss from 'postcss';
+import postcssModules from 'postcss-modules';
+
+sass({
+  async processor(css, id) {
+    let cssModules = {};
+    const postcssProcessResult = await postcss([
+      postcssModules({
+        getJSON: (_, json) => {
+          if (json) cssModules = json;
+        },
+      }),
+    ]).process(css, { from: id });
+
+    return { css: postcssProcessResult.css, cssModules };
+  },
+});
+```
+
+Which allows you to write something like:
+
+```js
+import style from 'stylesheet';
+
+style['some-classes'];
+```
+
 #### Exporting sass variable to \*.js
 
-Example showing how to use [icss-utils](https://www.npmjs.com/package/icss-utils) to extract resulting sass vars
-to your \*.js bundle:
+Example showing how to use [`icss-utils`](https://www.npmjs.com/package/icss-utils) to extract resulting sass vars to your \*.js bundle:
 
 ```js
 const config = {
   input: 'test/fixtures/processor-promise/with-icss-exports.js',
   plugins: [
     sass({
-      processor: (css) =>
-        new Promise((resolve, reject) => {
-          const pcssRootNodeRslt = postcss.parse(css),
-            extractedIcss = extractICSS(pcssRootNodeRslt, true),
-            cleanedCss = pcssRootNodeRslt.toString(),
-            out = Object.assign({}, extractedIcss.icssExports, {
-              css: cleanedCss,
-            });
-          // console.table(extractedIcss);
-          // console.log(out);
-          resolve(out);
-        }),
-      options: sassOptions,
+      processor: (css) => {
+        const pcssRootNodeRslt = postcss.parse(css);
+        const extractedIcss = extractICSS(pcssRootNodeRslt, true);
+        const cleanedCss = pcssRootNodeRslt.toString();
+        const out = { css: cleanedCss, ...extractedIcss.icssExports };
+        // console.table(extractedIcss);
+        // console.log(out);
+        return out;
+      },
     }),
   ],
 };
@@ -164,13 +197,35 @@ the exported vars.
 
 ### `runtime`
 
-- Type: `Object` _(default: sass)_
+- Type: `Object`
+- Default: `sass`
 
 If you specify an object, it will be used instead of [sass](https://github.com/sass/dart-sass). You can use this to pass a different sass compiler (for example the `node-sass` npm package).
+
+### `api`
+
+- Type: `'legacy'|'modern'`
+- Default: `'legacy'`
+
+```js
+sass(); // default to legacy
+
+sass({ api: 'modern' });
+
+sass({
+  api: 'modern',
+  options: {
+    style: 'compressed',
+  },
+});
+```
 
 ### `options`
 
 - Type: `Object`
+
+> [!NOTE]
+> The content of `options` is sensible to the value specified in `api` option
 
 Options for [sass](https://github.com/sass/dart-sass) or your own runtime sass compiler.
 
@@ -184,6 +239,22 @@ sass({
   },
 });
 ```
+
+---
+
+> [!TIP]
+> If your are working with npm packages, consider to use
+> [NodePackageImporter](https://sass-lang.com/documentation/js-api/classes/nodepackageimporter/)
+>
+> ```js
+> import * as sass from 'sass';
+>
+> sass({
+>   options: {
+>     importers: [new sass.NodePackageImporter()],
+>   },
+> });
+> ```
 
 ### `include`
 

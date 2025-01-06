@@ -1,26 +1,34 @@
-import type { LegacyOptions, LegacyResult, types } from 'sass';
+import type {
+  LegacyOptions as SassLegacyOptions,
+  Options as SassOptions,
+} from 'sass';
 
-export interface IdAndContentObject {
+interface StyleSheetIdAndContent {
   id?: string;
   content?: string;
 }
 
 export type RollupPluginSassOutputFn = (
   styles: string,
-  styleNodes: IdAndContentObject[],
+  styleNodes: StyleSheetIdAndContent[],
 ) => any;
 
 export type RollupPluginSassProcessorFnOutput =
   | string
   | {
       css: string;
+
+      /** If provided, the default export of the CSS file will be the map returned here */
+      cssModules?: Record<string, string>;
+
       // User processor might add additional exports
       [key: string]: unknown;
     };
+
 export type RollupPluginSassProcessorFn<T = RollupPluginSassProcessorFnOutput> =
   (styles: string, id: string) => Promise<T> | T;
 
-export interface RollupPluginSassOptions {
+interface RollupPluginSassSharedOptions {
   /**
    * File globs to "exclude" from processing.  Default 'node_modules/**'.
    */
@@ -35,11 +43,6 @@ export interface RollupPluginSassOptions {
    * Controls whether to insert generated styles into a style tag on (html) page's `head` or not.
    */
   insert?: boolean;
-
-  /**
-   * Options to pass to resolved sass runtime instance (node-sass/sass etc.).
-   */
-  options?: SassOptions;
 
   processor?: RollupPluginSassProcessorFn;
 
@@ -64,92 +67,37 @@ export interface RollupPluginSassOptions {
   runtime?: any;
 }
 
-export type SassImporterResult =
-  | { file: string }
-  | { contents: string }
-  | Error
-  | null;
+export type RollupPluginSassModernOptions = Omit<
+  SassOptions<'async'>,
+  'sourceMap' // sourcemaps are handled by rollup
+> & {
+  data?: string;
+};
 
-export type SassDoneFn<T extends SassImporterResult = SassImporterResult> = (
-  result: T,
-) => void | T;
+export type RollupPluginSassLegacyOptions = Omit<
+  SassLegacyOptions<'async'>,
+  'data' // data is assembled and always passed via plugin `transform`
+> & {
+  data?: string;
+};
 
-/**
- * @deprecated - Use types directly from `sass` package instead.
- */
-export type SassImporter<T extends SassImporterResult = SassImporterResult> = (
-  url: string,
-  prev: string,
-  done: SassDoneFn<T>,
-) => void | T;
+export type RollupPluginSassOptions =
+  | (RollupPluginSassSharedOptions & {
+      api: 'modern';
+      options?: RollupPluginSassModernOptions;
+    })
+  | (RollupPluginSassSharedOptions & {
+      api?: 'legacy';
+      options?: RollupPluginSassLegacyOptions;
+    });
 
-/**
- * @deprecated - Use types directly from `sass` package instead.
- */
-export interface SassFunctionsObject {
-  [index: string]:
-    | types.Color
-    | types.Number
-    | types.String
-    | types.List
-    | types.Map
-    | types.Null;
-}
+export type RollupPluginSassState = {
+  // Stores interim bundle objects
+  styles: StyleSheetIdAndContent[];
 
-/**
- * All option types taken from https://github.com/sass/node-sass#options -
- * **Note 1:** As noted by dart-sass project "When installed via npm, Dart Sass supports a JavaScript API that's
- * fully compatible with Node Sass (with a few exceptions listed below) ...".  See the (dart) sass npm page for more:
- * https://www.npmjs.com/package/sass
- *
- * **Note 2:** Our plugin only uses the "legacy" (async) API (internally) so `SassOptions` type below, for now,
- *  is the legacy type.
- *
- * @todo Update this if/when we update to the new sass API.
- */
-export type SassOptions = LegacyOptions<'async'>;
-
-/**
- * @todo Update this if/when we update to the new sass API.
- */
-export type SassRenderResult = LegacyResult;
-
-/**
- * Rollup's `AssetInfo` bundle type.
- */
-export interface RollupAssetInfo {
-  fileName: string;
-  name?: string;
-  source: string | Uint8Array;
-  type: 'asset';
-}
-
-/**
- * Rollup's `ChunkInfo` bundle type.
- */
-export interface RollupChunkInfo {
-  code: string;
-  dynamicImports: string[];
-  exports: string[];
-  facadeModuleId: string | null;
-  fileName: string;
-  implicitlyLoadedBefore: string[];
-  imports: string[];
-  importedBindings: { [imported: string]: string[] };
-  isDynamicEntry: boolean;
-  isEntry: boolean;
-  isImplicitEntry: boolean;
-  map: { [index: string]: string } | null;
-  modules: {
-    [id: string]: {
-      renderedExports: string[];
-      removedExports: string[];
-      renderedLength: number;
-      originalLength: number;
-      code: string | null;
-    };
+  // "";  Used, currently to ensure that we're not pushing style objects representing
+  // the same file-path into `pluginState.styles` more than once.
+  styleMaps: {
+    [index: string]: StyleSheetIdAndContent;
   };
-  name: string;
-  referencedFiles: string[];
-  type: 'chunk';
-}
+};

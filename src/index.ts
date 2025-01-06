@@ -1,175 +1,34 @@
 import { promisify } from 'util';
-import resolve from 'resolve';
-import * as sass from 'sass';
-import { dirname } from 'path';
 import * as fs from 'fs';
+import path from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
+
+import * as sass from 'sass';
 import { createFilter } from '@rollup/pluginutils';
-import type {
-  SassImporterResult,
-  RollupPluginSassOptions,
-  RollupPluginSassOutputFn,
-  SassOptions,
-  RollupPluginSassProcessorFnOutput,
-  SassRenderResult,
-} from './types';
-import { isFunction, isObject, isString, warn } from './utils';
-import insertStyle from './insertStyle';
-
-// @note Rollup is added as a "devDependency" so no actual symbols should be imported.
-//  Interfaces and non-concrete types are ok.
-import {
-  Plugin as RollupPlugin,
-  NormalizedOutputOptions as RollupNormalizedOutputOptions,
-  OutputBundle as RollupOutputBundle,
-} from 'rollup';
-
-type PluginState = {
-  // Stores interim bundle objects
-  styles: { id?: string; content?: string }[];
-
-  // "";  Used, currently to ensure that we're not pushing style objects representing
-  // the same file-path into `pluginState.styles` more than once.
-  styleMaps: {
-    [index: string]: {
-      id?: string;
-      content?: string;
-    };
-  };
-};
-
-const MATCH_SASS_FILENAME_RE = /\.sass$/;
-const MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i;
-
-const INSERT_STYLE_ID = '___$insertStyle';
 
 /**
- * Returns a sass `importer` list:
- * @see https://sass-lang.com/documentation/js-api#importer
+ * @warning Rollup is added as a "devDependency",
+ *          so no actual symbols should be imported.
+ *          Interfaces and non-concrete types are ok.
  */
-const getImporterList = (sassOptions: SassOptions) => {
-  // `Promise` to chain all `importer1` calls to;  E.g.,  subsequent `importer1` calls won't call `done` until previous `importer1` calls have called `done` (import order enforcement) - Required since importer below is actually 'async'.
-  let lastResult = Promise.resolve();
+import type { Plugin as RollupPlugin, TransformResult } from 'rollup';
 
-  /**
-   * Legacy Sass (*.scss/*.sass) file importer (works in new (< v2.0), and older, versions of `sass` (dart-sass) module).
-   *
-   * @see https://sass-lang.com/documentation/js-api/modules#LegacyAsyncImporter
-   *
-   * @param {string} url - Url found in `@import`/`@use`, found in parent sass file;  E.g., exactly as it appears in sass file.
-   * @param {string} prevUrl - Url of file that contains '@import' rule for incoming file (`url`).
-   * @param {(result: LegacyImporterResult | SassImporterResult) => void} done - Signals import completion.  Note: `LegacyImporterResult`, and `SassImporterResult`, are the same here - We've defined the type for our plugin, since older versions of sass don't have this type defined.
-   * @note This importer may not work in dart-sass v2.0+ (which may be far off in the future, but is important to note: https://sass-lang.com/documentation/js-api/#legacy-api).
-   * @returns {void}
-   */
-  const importer1 = (
-    url: string,
-    prevUrl: string,
-    done: (rslt: SassImporterResult) => void,
-  ): void | null => {
-    if (!MATCH_NODE_MODULE_RE.test(url)) {
-      return null;
-    }
+import type {
+  RollupPluginSassOptions,
+  RollupPluginSassOutputFn,
+  RollupPluginSassState,
+} from './types';
+import {
+  getImporterListLegacy,
+  getImporterListModern,
+} from './utils/getImporterList';
+import {
+  processRenderResponse,
+  INSERT_STYLE_ID,
+} from './utils/processRenderResponse';
+import insertStyle from './insertStyle';
 
-    const moduleUrl = url.slice(1);
-    const resolveOptions = {
-      basedir: dirname(prevUrl),
-      extensions: ['.scss', '.sass'],
-    };
-
-    // @todo This block should run as a promise instead, will help ensure we're not blocking the thread it is
-    //   running on, even though `sass` is probably already running the importer in one.
-    try {
-      const file = resolve.sync(moduleUrl, resolveOptions);
-      lastResult = lastResult.then(() => done({ file }));
-    } catch (err) {
-      warn('[rollup-plugin-sass]: Recovered from error: ', err);
-      // If importer has sibling importers then exit and allow one of the other
-      //  importers to attempt file path resolution.
-      if (sassOptions.importer && sassOptions.importer.length > 1) {
-        lastResult = lastResult.then(() => done(null));
-        return;
-      }
-      lastResult = lastResult.then(() =>
-        done({
-          file: url,
-        }),
-      );
-    }
-  };
-
-  return [importer1].concat(
-    (sassOptions.importer as Extract<SassOptions['importer'], []>) || [],
-  );
-};
-
-const processRenderResponse = (
-  rollupOptions: Pick<
-    RollupPluginSassOptions,
-    'insert' | 'processor' | 'output'
-  >,
-  file: string,
-  state: PluginState,
-  inCss: string,
-) => {
-  if (!inCss) return Promise.resolve();
-
-  const { processor } = rollupOptions;
-
-  return (
-    Promise.resolve()
-      .then(() =>
-        !isFunction(processor) ? inCss + '' : processor(inCss, file),
-      )
-      // Gather output requirements
-      .then((result: Partial<RollupPluginSassProcessorFnOutput>) => {
-        if (!isObject(result)) {
-          return [result, ''];
-        }
-        if (!isString(result.css)) {
-          throw new Error(
-            'You need to return the styles using the `css` property. ' +
-              'See https://github.com/differui/rollup-plugin-sass#processor',
-          );
-        }
-        const outCss = result.css;
-        delete result.css;
-        const restExports = Object.keys(result).reduce(
-          (agg, name) =>
-            agg + `export const ${name} = ${JSON.stringify(result[name])};\n`,
-          '',
-        );
-        return [outCss, restExports];
-      })
-
-      // Compose output
-      .then(([resolvedCss, restExports]) => {
-        const { styleMaps } = state;
-
-        // Update bundle tracking entry with resolved content
-        styleMaps[file].content = resolvedCss;
-
-        const out = JSON.stringify(resolvedCss);
-
-        let defaultExport = `""`;
-        let imports = '';
-
-        if (rollupOptions.insert) {
-          /**
-           * Include import using {@link INSERT_STYLE_ID} as source.
-           * It will be resolved to insert style function using `resolvedID` and `load` hooks;
-           * e.g., the path will completely replaced, and re-generated (as a relative path)
-           * by rollup.
-           */
-          imports = `import ${INSERT_STYLE_ID} from '${INSERT_STYLE_ID}';\n`;
-          defaultExport = `${INSERT_STYLE_ID}(${out});`;
-        } else if (!rollupOptions.output) {
-          defaultExport = out;
-        }
-
-        return `${imports}export default ${defaultExport};\n${restExports}`;
-      })
-  ); // @note do not `catch` here - let error propagate to rollup level
-};
+const MATCH_SASS_FILENAME_RE = /\.sass$/;
 
 const defaultIncludes = ['**/*.sass', '**/*.scss'];
 const defaultExcludes = 'node_modules/**';
@@ -192,12 +51,11 @@ export = function plugin(
     include = defaultIncludes,
     exclude = defaultExcludes,
     runtime: sassRuntime,
-    options: incomingSassOptions = {} as SassOptions,
   } = pluginOptions;
 
-  const filter = createFilter(include || '', exclude || '');
+  const filter = createFilter(include, exclude);
 
-  const pluginState: PluginState = {
+  const pluginState: RollupPluginSassState = {
     styles: [],
     styleMaps: {},
   };
@@ -219,63 +77,112 @@ export = function plugin(
       }
     },
 
-    transform(code, filePath) {
+    async transform(code, filePath) {
       if (!filter(filePath)) {
-        return Promise.resolve();
+        return;
       }
-      const paths = [dirname(filePath), process.cwd()];
+
+      const paths = [path.dirname(filePath), process.cwd()];
       const { styleMaps, styles } = pluginState;
-      const resolvedOptions = Object.assign({}, incomingSassOptions, {
-        file: filePath,
-        data: incomingSassOptions.data && `${incomingSassOptions.data}${code}`,
-        indentedSyntax: MATCH_SASS_FILENAME_RE.test(filePath),
-        includePaths: (incomingSassOptions.includePaths || []).concat(paths),
-        importer: getImporterList(incomingSassOptions),
-      });
 
       // Setup resolved css output bundle tracking, for use later in `generateBundle` method.
       // ----
       if (!styleMaps[filePath]) {
         const mapEntry = {
           id: filePath,
-          content: '', // Populated after `sass.render`
+          content: '', // Populated after sass compilation
         };
         styleMaps[filePath] = mapEntry;
         styles.push(mapEntry);
       }
 
-      return promisify(sassRuntime.render.bind(sassRuntime))(resolvedOptions)
-        .then((res: SassRenderResult) =>
-          processRenderResponse(
+      switch (pluginOptions.api) {
+        case 'modern': {
+          const { options: incomingSassOptions } = pluginOptions;
+
+          const compileOptions: sass.StringOptions<'async'> = {
+            ...incomingSassOptions,
+            syntax: path.extname(filePath) === '.sass' ? 'indented' : 'scss',
+            loadPaths: (incomingSassOptions?.loadPaths || []).concat(paths),
+            importers: getImporterListModern(incomingSassOptions?.importers),
+            url: pathToFileURL(filePath),
+            /** force sourceMap because right now rollup outputOptions are not available */
+            sourceMap: true,
+          };
+
+          /**
+           * Using {@link compileStringAsync} to keep support of prepend information on each file,
+           * basically `data` option
+           */
+          const source = incomingSassOptions?.data
+            ? `${incomingSassOptions.data}${code}`
+            : code;
+
+          const compileResult: sass.CompileResult =
+            await sassRuntime.compileStringAsync(source, compileOptions);
+
+          const codeResult = await processRenderResponse(
+            pluginOptions,
+            filePath,
+            pluginState,
+            compileResult.css.toString().trim(),
+          );
+
+          const { loadedUrls, sourceMap } = compileResult;
+
+          loadedUrls.forEach((filePath) => {
+            this.addWatchFile(fileURLToPath(filePath));
+          });
+
+          return {
+            code: codeResult || '',
+            map: sourceMap ? sourceMap : undefined,
+          } as TransformResult;
+        }
+
+        case 'legacy':
+        default: {
+          const { options: incomingSassOptions } = pluginOptions;
+
+          const renderOptions: sass.LegacyOptions<'async'> = {
+            ...incomingSassOptions,
+
+            file: filePath,
+            data:
+              incomingSassOptions?.data && `${incomingSassOptions.data}${code}`,
+            indentedSyntax: MATCH_SASS_FILENAME_RE.test(filePath),
+            includePaths: (incomingSassOptions?.includePaths || []).concat(
+              paths,
+            ),
+            importer: getImporterListLegacy(incomingSassOptions?.importer),
+          };
+
+          const res: sass.LegacyResult = await promisify(
+            sassRuntime.render.bind(sassRuntime),
+          )(renderOptions);
+
+          const codeResult = await processRenderResponse(
             pluginOptions,
             filePath,
             pluginState,
             res.css.toString().trim(),
-          ).then((result) => [res, result]),
-        )
-        .then(
-          ([res, codeResult]: [
-            SassRenderResult,
-            RollupPluginSassProcessorFnOutput,
-          ]) => {
-            // @todo Do we need to filter this call so it only occurs when rollup is in 'watch' mode?
-            res.stats.includedFiles.forEach((filePath: string) => {
-              this.addWatchFile(filePath);
-            });
+          );
 
-            return {
-              code: codeResult || '',
-              map: { mappings: res.map ? res.map.toString() : '' },
-            };
-          },
-        ); // @note do not `catch` here - let error propagate to rollup level.
+          // @todo Do we need to filter this call so it only occurs when rollup is in 'watch' mode?
+          res.stats.includedFiles.forEach((filePath: string) => {
+            this.addWatchFile(filePath);
+          });
+
+          // @note do not `catch` here - let error propagate to rollup level.
+          return {
+            code: codeResult || '',
+            map: { mappings: res.map ? res.map.toString() : '' },
+          } as TransformResult;
+        }
+      }
     },
 
-    generateBundle(
-      generateOptions: RollupNormalizedOutputOptions,
-      _: RollupOutputBundle,
-      isWrite: boolean,
-    ) {
+    generateBundle(outputOptions, _, isWrite) {
       const { styles } = pluginState;
       const { output, insert } = pluginOptions;
 
@@ -287,21 +194,21 @@ export = function plugin(
 
       if (typeof output === 'string') {
         return fs.promises
-          .mkdir(dirname(output as string), { recursive: true })
+          .mkdir(path.dirname(output as string), { recursive: true })
           .then(() => fs.promises.writeFile(output as string, css));
       } else if (typeof output === 'function') {
         return Promise.resolve(
           (output as RollupPluginSassOutputFn)(css, styles),
         );
-      } else if (!insert && generateOptions.file && output === true) {
-        let dest = generateOptions.file;
+      } else if (!insert && outputOptions.file && output === true) {
+        let dest = outputOptions.file;
 
         if (dest.endsWith('.js') || dest.endsWith('.ts')) {
           dest = dest.slice(0, -3);
         }
         dest = `${dest}.css`;
         return fs.promises
-          .mkdir(dirname(dest), { recursive: true })
+          .mkdir(path.dirname(dest), { recursive: true })
           .then(() => fs.promises.writeFile(dest, css));
       }
 
