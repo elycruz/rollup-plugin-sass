@@ -69,7 +69,7 @@ export const processRenderResponse = (
 
         let defaultExport = `""`;
         let cssCode = JSON.stringify(resolvedCss);
-        let imports: string[] = [];
+        const imports: string[] = [];
 
         if (rollupOptions.insert) {
           /**

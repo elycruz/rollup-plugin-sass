@@ -38,7 +38,7 @@ const defaultExcludes = 'node_modules/**';
 export = function plugin(
   options = {} as RollupPluginSassOptions,
 ): RollupPlugin {
-  const pluginOptions = Object.assign(
+  const pluginOptions: RollupPluginSassOptions = Object.assign(
     {
       runtime: sass,
       output: false,
@@ -197,9 +197,8 @@ export = function plugin(
           .mkdir(path.dirname(output as string), { recursive: true })
           .then(() => fs.promises.writeFile(output as string, css));
       } else if (typeof output === 'function') {
-        return Promise.resolve(
-          (output as RollupPluginSassOutputFn)(css, styles),
-        );
+        (output as RollupPluginSassOutputFn)(css, styles);
+        return Promise.resolve();
       } else if (!insert && outputOptions.file && output === true) {
         let dest = outputOptions.file;
 
@@ -212,7 +211,7 @@ export = function plugin(
           .then(() => fs.promises.writeFile(dest, css));
       }
 
-      return Promise.resolve(css);
+      return Promise.resolve();
     },
   };
 };

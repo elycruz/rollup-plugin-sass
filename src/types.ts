@@ -11,7 +11,7 @@ interface StyleSheetIdAndContent {
 export type RollupPluginSassOutputFn = (
   styles: string,
   styleNodes: StyleSheetIdAndContent[],
-) => any;
+) => unknown;
 
 export type RollupPluginSassProcessorFnOutput =
   | string
@@ -64,6 +64,7 @@ interface RollupPluginSassSharedOptions {
   /**
    * Sass runtime instance - sass, node-sass or other etc..
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   runtime?: any;
 }
 

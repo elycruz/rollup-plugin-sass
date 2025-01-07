@@ -412,6 +412,7 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
   let expectA: string;
   let expectB: string;
 
+  // eslint-disable-next-line ava/hooks-order
   test.before(async () => {
     expectA = stripNewLines(
       await fs.readFile('test/assets/expect_a.css', { encoding: 'utf-8' }),
@@ -469,10 +470,8 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
         [expectA, expectB].forEach((expectedChunkCSS) => {
           t.true(
             actualCSSstring.includes(expectedChunkCSS),
-            [
-              `expect "${actualCSSstring}" to include "${expectedChunkCSS}"`,
-              `Additional params are: ${JSON.stringify(otherOutputParams)}`,
-            ].join('\n'),
+            `expect "${actualCSSstring}" to include "${expectedChunkCSS}"
+            Additional params are: ${JSON.stringify(otherOutputParams)}`,
           );
         });
       },
@@ -1108,13 +1107,13 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
 
       // Get target module.
       // ----
-      const targetModule = bundle?.cache?.modules[0]!;
+      const targetModule = bundle?.cache?.modules[0];
       t.true(!!targetModule, 'Expected bundle data');
 
       // Ensure target module transform dependencies indeed end with expected file path tails.
       // ----
       t.true(
-        targetModule.transformDependencies?.every(
+        targetModule?.transformDependencies?.every(
           (filePath) =>
             !!expectedWatchedFiles.find((fp) => filePath.endsWith(fp)),
         ),
@@ -1123,7 +1122,7 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
 
       // Test final content output
       // ----
-      t.snapshot(targetModule.code, 'Final content output');
+      t.snapshot(targetModule?.code, 'Final content output');
     },
     title: createApiOptionTestCaseTitle,
   });
