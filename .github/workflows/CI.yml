@@ -19,6 +19,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    name: 'Build and test (OS: ${{ matrix.os }}, Node: ${{ matrix.node-version }})'
     steps:
       - uses: actions/checkout@v4
 
@@ -43,7 +44,7 @@ jobs:
 
     strategy:
       matrix:
-        script: ['format']
+        script: ['format', 'lint']
 
     name: Code check (${{ matrix.script }})
     steps:

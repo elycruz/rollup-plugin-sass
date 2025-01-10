@@ -5,7 +5,7 @@ import Sinon from 'sinon';
 
 const expectA = 'body{color:red}';
 
-test.serial('insertStyle should work in a DOM environment', async (t) => {
+test.serial('insertStyle should work in a DOM environment', (t) => {
   const browser = new Browser();
   const page = browser.newPage();
 

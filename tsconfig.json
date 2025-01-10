@@ -1,5 +1,4 @@
 {
-  "include": ["./src/*"],
   "compilerOptions": {
     /* Language and Environment */
     "target": "es2015",
