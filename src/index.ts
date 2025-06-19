@@ -13,11 +13,7 @@ import { createFilter } from '@rollup/pluginutils';
  */
 import type { Plugin as RollupPlugin, TransformResult } from 'rollup';
 
-import type {
-  RollupPluginSassOptions,
-  RollupPluginSassOutputFn,
-  RollupPluginSassState,
-} from './types';
+import type { RollupPluginSassOptions, RollupPluginSassState } from './types';
 import {
   getImporterListLegacy,
   getImporterListModern,
@@ -38,7 +34,7 @@ const defaultExcludes = 'node_modules/**';
 export = function plugin(
   options = {} as RollupPluginSassOptions,
 ): RollupPlugin {
-  const pluginOptions = Object.assign(
+  const pluginOptions: RollupPluginSassOptions = Object.assign(
     {
       runtime: sass,
       output: false,
@@ -182,37 +178,40 @@ export = function plugin(
       }
     },
 
-    generateBundle(outputOptions, _, isWrite) {
+    async generateBundle(outputOptions, _, isWrite) {
       const { styles } = pluginState;
       const { output, insert } = pluginOptions;
 
       if (!isWrite || (!insert && (!styles.length || output === false))) {
-        return Promise.resolve();
+        return;
       }
 
       const css = styles.map((style) => style.content).join('');
 
       if (typeof output === 'string') {
-        return fs.promises
-          .mkdir(path.dirname(output as string), { recursive: true })
-          .then(() => fs.promises.writeFile(output as string, css));
-      } else if (typeof output === 'function') {
-        return Promise.resolve(
-          (output as RollupPluginSassOutputFn)(css, styles),
-        );
-      } else if (!insert && outputOptions.file && output === true) {
+        await fs.promises.mkdir(path.dirname(output), { recursive: true });
+        await fs.promises.writeFile(output, css);
+
+        return;
+      }
+
+      if (typeof output === 'function') {
+        output(css, styles);
+        return;
+      }
+
+      if (!insert && outputOptions.file && output === true) {
         let dest = outputOptions.file;
 
         if (dest.endsWith('.js') || dest.endsWith('.ts')) {
           dest = dest.slice(0, -3);
         }
         dest = `${dest}.css`;
-        return fs.promises
-          .mkdir(path.dirname(dest), { recursive: true })
-          .then(() => fs.promises.writeFile(dest, css));
-      }
 
-      return Promise.resolve(css);
+        await fs.promises.mkdir(path.dirname(dest), { recursive: true });
+        await fs.promises.writeFile(dest, css);
+        return;
+      }
     },
   };
 };

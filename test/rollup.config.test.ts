@@ -8,8 +8,7 @@ sass();
 // should default to legacy when `api` is not specified
 sass({ options: { outputStyle: 'compact' } });
 
-// should error when LegacyOptions are used with `api: 'modern'`
-// @ts-expect-error
+// @ts-expect-error should error when LegacyOptions are used with `api: 'modern'`
 sass({ api: 'modern', options: { outputStyle: 'compact' } });
 
 // should only accept api parameter
