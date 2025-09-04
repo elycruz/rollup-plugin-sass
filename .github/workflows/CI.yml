@@ -40,6 +40,8 @@ jobs:
           file: 'coverage/tests.lcov'
 
   code-check:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
 
     strategy:
