@@ -3,6 +3,8 @@
 # and https://docs.github.com/en/actions/guides/publishing-nodejs-packages#publishing-packages-to-the-npm-registry .
 
 name: Publish
+permissions:
+  contents: read
 
 on:
   release:
