@@ -2,10 +2,15 @@
 
 CHANGELOG*
 CODEOWNERS*
+AGENTS.md
+CLAUDE.md
 rollup*
 tsconfig*
 
 coverage/
+eslint*
+md/
 scripts/
 src/
 test/
+tsconfig*
