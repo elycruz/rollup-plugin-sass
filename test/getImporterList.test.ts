@@ -16,8 +16,9 @@ type LegacyImporterCallable = (
   done: (result: LegacyDoneResult) => void,
 ) => void;
 
-const asCallable = (importer: LegacyImporter<'async'>): LegacyImporterCallable =>
-  importer as unknown as LegacyImporterCallable;
+const asCallable = (
+  importer: LegacyImporter<'async'>,
+): LegacyImporterCallable => importer as unknown as LegacyImporterCallable;
 
 test('legacy importer1: resolve failure with no siblings falls back to original url', async (t) => {
   const importers = getImporterListLegacy(undefined);
