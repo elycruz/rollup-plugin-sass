@@ -560,6 +560,54 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
     test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
     test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
   }
+
+  {
+    const title = 'should reset output CSS between sequential builds';
+
+    const macro = test.macro<[RollupPluginSassOptions]>({
+      async exec(t, pluginOptions) {
+        const outputCss: string[] = [];
+        const plugin = sass({
+          ...pluginOptions,
+          output: (css) => outputCss.push(css),
+        });
+
+        const firstBundle = await rollup({
+          input: 'test/fixtures/watch-stale/with-stale.js',
+          plugins: [plugin],
+          onwarn,
+        });
+        await firstBundle.write({
+          ...TEST_GENERATE_OPTIONS,
+          file: path.join(
+            getTestOutputDir(pluginOptions.api),
+            'watch-stale-with.js',
+          ),
+        });
+
+        const secondBundle = await rollup({
+          input: 'test/fixtures/watch-stale/without-stale.js',
+          plugins: [plugin],
+          onwarn,
+        });
+        await secondBundle.write({
+          ...TEST_GENERATE_OPTIONS,
+          file: path.join(
+            getTestOutputDir(pluginOptions.api),
+            'watch-stale-without.js',
+          ),
+        });
+
+        t.true(outputCss[0].includes('stale-watch-stale'));
+        t.true(outputCss[1].includes('keep-watch-stale'));
+        t.false(outputCss[1].includes('stale-watch-stale'));
+      },
+      title: createApiOptionTestCaseTitle,
+    });
+
+    test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+    test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
+  }
 }
 // #endregion
 

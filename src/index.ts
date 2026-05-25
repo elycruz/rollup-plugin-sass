@@ -73,6 +73,11 @@ export = function plugin(
       }
     },
 
+    buildStart() {
+      pluginState.styles = [];
+      pluginState.styleMaps = {};
+    },
+
     async transform(code, filePath) {
       if (!filter(filePath)) {
         return;
