@@ -11,7 +11,11 @@ import { createFilter } from '@rollup/pluginutils';
  *          so no actual symbols should be imported.
  *          Interfaces and non-concrete types are ok.
  */
-import type { Plugin as RollupPlugin, TransformResult } from 'rollup';
+import type {
+  OutputBundle,
+  Plugin as RollupPlugin,
+  TransformResult,
+} from 'rollup';
 
 import type { RollupPluginSassOptions, RollupPluginSassState } from './types';
 import {
@@ -178,7 +182,7 @@ export = function plugin(
       }
     },
 
-    async generateBundle(outputOptions, _, isWrite) {
+    async generateBundle(outputOptions, bundle: OutputBundle, isWrite) {
       const { styles } = pluginState;
       const { output, insert } = pluginOptions;
 
@@ -208,6 +212,18 @@ export = function plugin(
         }
         dest = `${dest}.css`;
 
+        await fs.promises.mkdir(path.dirname(dest), { recursive: true });
+        await fs.promises.writeFile(dest, css);
+        return;
+      }
+
+      if (!insert && outputOptions.dir && output === true) {
+        const entry = Object.values(bundle).find(
+          (item) => item.type === 'chunk' && item.isEntry,
+        );
+        if (!entry) return;
+        const baseName = path.parse(entry.fileName).name;
+        const dest = path.join(outputOptions.dir, `${baseName}.css`);
         await fs.promises.mkdir(path.dirname(dest), { recursive: true });
         await fs.promises.writeFile(dest, css);
         return;

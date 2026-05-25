@@ -560,6 +560,48 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
     test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
     test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
   }
+
+  {
+    const title =
+      'should support output as true with outputOptions.dir (code-splitting / dir-based output)';
+
+    const macro = test.macro<[RollupPluginSassOptions]>({
+      async exec(t, pluginOptions) {
+        const outputDir = path.join(
+          getTestOutputDir(pluginOptions.api),
+          'support-output-as-true-with-dir',
+        );
+
+        const outputBundle = await rollup({
+          input: 'test/fixtures/output-true/index.js',
+          plugins: [sass({ ...pluginOptions, output: true })],
+          onwarn,
+        });
+
+        await outputBundle.write({
+          format: 'es',
+          dir: outputDir,
+        });
+
+        // The CSS file should be written as <entry-stem>.css inside outputDir.
+        // The entry chunk file name is derived from the input file name → "index.css".
+        const outputStylePath = path.join(outputDir, 'index.css');
+        const outputStyleContent = await fs.readFile(outputStylePath);
+        t.true(
+          stripNewLines(outputStyleContent.toString()).includes(expectA),
+          `CSS file should include expectA content`,
+        );
+        t.true(
+          stripNewLines(outputStyleContent.toString()).includes(expectB),
+          `CSS file should include expectB content`,
+        );
+      },
+      title: createApiOptionTestCaseTitle,
+    });
+
+    test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+    test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
+  }
 }
 // #endregion
 
