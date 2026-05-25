@@ -45,11 +45,8 @@ export = function plugin(
     ...options,
   };
 
-  const {
-    include = defaultIncludes,
-    exclude = defaultExcludes,
-    runtime: sassRuntime,
-  } = pluginOptions;
+  const { include = defaultIncludes, exclude = defaultExcludes } =
+    pluginOptions;
 
   const filter = createFilter(include, exclude);
 
@@ -102,7 +99,8 @@ export = function plugin(
 
       switch (pluginOptions.api) {
         case 'modern': {
-          const { options: incomingSassOptions } = pluginOptions;
+          const { options: incomingSassOptions, runtime: sassRuntime = sass } =
+            pluginOptions;
 
           const compileOptions: sass.StringOptions<'async'> = {
             ...incomingSassOptions,
@@ -122,9 +120,8 @@ export = function plugin(
             ? `${incomingSassOptions.data}${code}`
             : code;
 
-          const compileResult: sass.CompileResult = await (
-            sassRuntime as typeof sass
-          ).compileStringAsync(source, compileOptions);
+          const compileResult: sass.CompileResult =
+            await sassRuntime.compileStringAsync(source, compileOptions);
 
           const codeResult = await processRenderResponse(
             pluginOptions,
@@ -149,7 +146,8 @@ export = function plugin(
 
         case 'legacy':
         default: {
-          const { options: incomingSassOptions } = pluginOptions;
+          const { options: incomingSassOptions, runtime: sassRuntime = sass } =
+            pluginOptions;
 
           const renderOptions: sass.LegacyOptions<'async'> = {
             ...incomingSassOptions,
@@ -166,7 +164,7 @@ export = function plugin(
           };
 
           const res = (await promisify(
-            (sassRuntime as typeof sass).render.bind(sassRuntime),
+            sassRuntime.render.bind(sassRuntime),
           )(renderOptions)) as sass.LegacyResult;
 
           const codeResult = await processRenderResponse(
