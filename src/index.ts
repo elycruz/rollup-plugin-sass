@@ -63,6 +63,12 @@ export = function plugin(
   return {
     name: 'rollup-plugin-sass',
 
+    /** @see https://rollupjs.org/plugin-development/#buildstart */
+    buildStart() {
+      pluginState.styles = [];
+      pluginState.styleMaps = {};
+    },
+
     /** @see https://rollupjs.org/plugin-development/#resolveid */
     resolveId(source) {
       if (source === INSERT_STYLE_ID) {
