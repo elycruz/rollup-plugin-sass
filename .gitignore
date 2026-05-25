@@ -3,6 +3,7 @@
 .vscode/
 .nyc_output/
 .tests-output/
+.claude/worktrees/
 
 coverage/
 dist/
