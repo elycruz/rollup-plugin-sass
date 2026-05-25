@@ -1,5 +1,4 @@
 import { promisify } from 'util';
-import * as fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 
@@ -201,38 +200,64 @@ export = function plugin(
 
       const css = styles.map((style) => style.content).join('');
 
+      // Branch 1: `output` is a string path - emit with that exact fileName.
+      // Rollup honors `fileName` literally (relative to the rollup output dir).
       if (typeof output === 'string') {
-        await fs.promises.mkdir(path.dirname(output), { recursive: true });
-        await fs.promises.writeFile(output, css);
+        const outputDir = outputOptions.dir
+          ? outputOptions.dir
+          : outputOptions.file
+            ? path.dirname(outputOptions.file)
+            : process.cwd();
+        const relPath = path.isAbsolute(output)
+          ? path.relative(outputDir, output)
+          : output;
 
+        this.emitFile({
+          type: 'asset',
+          fileName: relPath,
+          source: css,
+        });
         return;
       }
 
+      // Branch 2: `output` is a function - hand control to the user fn.
+      // The user fn is responsible for writing the file itself (legacy
+      // semantics preserved). We do NOT additionally emit an asset here -
+      // emitting would surprise users who expect their fn to be the sole
+      // recipient of the CSS, and would also add an unexpected asset to
+      // rollup's `bundle`.
       if (typeof output === 'function') {
         await output(css, styles);
         return;
       }
 
+      // Branch 3: `output === true` with `outputOptions.file` -
+      // derive `<entry-stem>.css` and emit with `fileName` (literal,
+      // sibling to the JS entry).
       if (!insert && outputOptions.file && output === true) {
-        let dest = outputOptions.file;
-
-        const parsed = path.parse(dest);
-        dest = path.join(parsed.dir, `${parsed.name}.css`);
-
-        await fs.promises.mkdir(path.dirname(dest), { recursive: true });
-        await fs.promises.writeFile(dest, css);
+        const parsed = path.parse(outputOptions.file);
+        this.emitFile({
+          type: 'asset',
+          fileName: `${parsed.name}.css`,
+          source: css,
+        });
         return;
       }
 
+      // Branch 4: `output === true` with `outputOptions.dir` -
+      // derive from the entry chunk's fileName; emit with `name` so
+      // rollup applies `assetFileNames` (and hashing).
       if (!insert && outputOptions.dir && output === true) {
         const entry = Object.values(bundle).find(
           (item) => item.type === 'chunk' && item.isEntry,
         );
         if (!entry) return;
         const baseName = path.parse(entry.fileName).name;
-        const dest = path.join(outputOptions.dir, `${baseName}.css`);
-        await fs.promises.mkdir(path.dirname(dest), { recursive: true });
-        await fs.promises.writeFile(dest, css);
+        this.emitFile({
+          type: 'asset',
+          name: `${baseName}.css`,
+          source: css,
+        });
         return;
       }
     },
