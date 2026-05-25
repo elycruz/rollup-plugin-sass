@@ -103,6 +103,7 @@ export = function plugin(
       switch (pluginOptions.api) {
         case 'modern': {
           const { options: incomingSassOptions } = pluginOptions;
+          const wantsSourceMap = pluginOptions.sourceMap === true;
 
           const compileOptions: sass.StringOptions<'async'> = {
             ...incomingSassOptions,
@@ -110,8 +111,13 @@ export = function plugin(
             loadPaths: (incomingSassOptions?.loadPaths || []).concat(paths),
             importers: getImporterListModern(incomingSassOptions?.importers),
             url: pathToFileURL(filePath),
-            /** force sourceMap because right now rollup outputOptions are not available */
-            sourceMap: true,
+            /**
+             * Rollup output options are not available at transform time, so
+             * the user must opt in via the plugin's top-level `sourceMap`
+             * option. Defaults to `false` to avoid generating maps that the
+             * consumer never asked for.
+             */
+            sourceMap: wantsSourceMap,
           };
 
           /**
@@ -141,9 +147,10 @@ export = function plugin(
 
           return {
             code: codeResult || '',
-            map: sourceMap
-              ? (sourceMap as unknown as SourceMapInput)
-              : undefined,
+            map:
+              wantsSourceMap && sourceMap
+                ? (sourceMap as unknown as SourceMapInput)
+                : undefined,
           };
         }
 
