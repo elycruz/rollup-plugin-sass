@@ -11,7 +11,11 @@ import { createFilter } from '@rollup/pluginutils';
  *          so no actual symbols should be imported.
  *          Interfaces and non-concrete types are ok.
  */
-import type { Plugin as RollupPlugin, SourceMapInput } from 'rollup';
+import type {
+  OutputBundle,
+  Plugin as RollupPlugin,
+  SourceMapInput,
+} from 'rollup';
 
 import type { RollupPluginSassOptions, RollupPluginSassState } from './types';
 import {
@@ -56,6 +60,12 @@ export = function plugin(
 
   return {
     name: 'rollup-plugin-sass',
+
+    /** @see https://rollupjs.org/plugin-development/#buildstart */
+    buildStart() {
+      pluginState.styles = [];
+      pluginState.styleMaps = {};
+    },
 
     /** @see https://rollupjs.org/plugin-development/#resolveid */
     resolveId(source) {
@@ -181,7 +191,7 @@ export = function plugin(
       }
     },
 
-    async generateBundle(outputOptions, _, isWrite) {
+    async generateBundle(outputOptions, bundle: OutputBundle, isWrite) {
       const { styles } = pluginState;
       const { output, insert } = pluginOptions;
 
@@ -209,6 +219,18 @@ export = function plugin(
         const parsed = path.parse(dest);
         dest = path.join(parsed.dir, `${parsed.name}.css`);
 
+        await fs.promises.mkdir(path.dirname(dest), { recursive: true });
+        await fs.promises.writeFile(dest, css);
+        return;
+      }
+
+      if (!insert && outputOptions.dir && output === true) {
+        const entry = Object.values(bundle).find(
+          (item) => item.type === 'chunk' && item.isEntry,
+        );
+        if (!entry) return;
+        const baseName = path.parse(entry.fileName).name;
+        const dest = path.join(outputOptions.dir, `${baseName}.css`);
         await fs.promises.mkdir(path.dirname(dest), { recursive: true });
         await fs.promises.writeFile(dest, css);
         return;

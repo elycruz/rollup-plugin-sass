@@ -6,6 +6,17 @@ import resolve from 'resolve';
 import { warn } from './logger';
 import { fileURLToPath, pathToFileURL } from 'url';
 
+const resolveAsync = (id: string, opts: resolve.AsyncOpts): Promise<string> =>
+  new Promise((res, rej) =>
+    resolve(id, opts, (err, resolved) => {
+      if (err) {
+        rej(err);
+      } else {
+        res(resolved as string);
+      }
+    }),
+  );
+
 const MATCH_NODE_MODULE_RE = /^~([a-z0-9]|@).+/i;
 
 /**
@@ -39,25 +50,19 @@ export const getImporterListLegacy = (
       extensions: ['.scss', '.sass'],
     };
 
-    // @todo This block should run as a promise instead, will help ensure we're not blocking the thread it is
-    //   running on, even though `sass` is probably already running the importer in one.
-    try {
-      const file = resolve.sync(moduleUrl, resolveOptions);
-      lastResult = lastResult.then(() => done({ file }));
-    } catch (err) {
-      warn('[rollup-plugin-sass]: Recovered from error: ', err);
-      // If importer has sibling importers then exit and allow one of the other
-      //  importers to attempt file path resolution.
-      if (Array.isArray(importOption) && importOption.length > 1) {
-        lastResult = lastResult.then(() => done(null));
-        return;
-      }
-      lastResult = lastResult.then(() =>
-        done({
-          file: url,
-        }),
-      );
-    }
+    lastResult = lastResult
+      .then(() => resolveAsync(moduleUrl, resolveOptions))
+      .then((file) => done({ file }))
+      .catch((err) => {
+        warn('[rollup-plugin-sass]: Recovered from error: ', err);
+        // If importer has sibling importers then exit and allow one of the other
+        //  importers to attempt file path resolution.
+        if (Array.isArray(importOption) && importOption.length > 1) {
+          done(null);
+        } else {
+          done({ file: url });
+        }
+      });
   };
 
   const extras = Array.isArray(importOption)
@@ -76,7 +81,7 @@ export const getImporterListModern = (
   importOption: Options<'async'>['importers'],
 ) => {
   const importer: FileImporter<'async'> = {
-    findFileUrl(url, context) {
+    async findFileUrl(url, context) {
       if (!MATCH_NODE_MODULE_RE.test(url)) {
         return null;
       }
@@ -89,7 +94,7 @@ export const getImporterListModern = (
       };
 
       try {
-        const file = resolve.sync(moduleUrl, resolveOptions);
+        const file = await resolveAsync(moduleUrl, resolveOptions);
         return pathToFileURL(file);
       } catch (err) {
         warn('[rollup-plugin-sass]: error resolving import path: ', err);

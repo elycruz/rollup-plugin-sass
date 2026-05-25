@@ -560,6 +560,48 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
     test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
     test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
   }
+
+  {
+    const title =
+      'should support output as true with outputOptions.dir (code-splitting / dir-based output)';
+
+    const macro = test.macro<[RollupPluginSassOptions]>({
+      async exec(t, pluginOptions) {
+        const outputDir = path.join(
+          getTestOutputDir(pluginOptions.api),
+          'support-output-as-true-with-dir',
+        );
+
+        const outputBundle = await rollup({
+          input: 'test/fixtures/output-true/index.js',
+          plugins: [sass({ ...pluginOptions, output: true })],
+          onwarn,
+        });
+
+        await outputBundle.write({
+          format: 'es',
+          dir: outputDir,
+        });
+
+        // The CSS file should be written as <entry-stem>.css inside outputDir.
+        // The entry chunk file name is derived from the input file name → "index.css".
+        const outputStylePath = path.join(outputDir, 'index.css');
+        const outputStyleContent = await fs.readFile(outputStylePath);
+        t.true(
+          stripNewLines(outputStyleContent.toString()).includes(expectA),
+          `CSS file should include expectA content`,
+        );
+        t.true(
+          stripNewLines(outputStyleContent.toString()).includes(expectB),
+          `CSS file should include expectB content`,
+        );
+      },
+      title: createApiOptionTestCaseTitle,
+    });
+
+    test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+    test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
+  }
 }
 // #endregion
 
@@ -1130,3 +1172,91 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
   test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
   test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
+
+// #region watch-mode regression test (issue #218)
+{
+  const title =
+    'buildStart should reset pluginState so dropped imports do not appear in subsequent builds (watch-mode regression)';
+
+  const macro = test.macro<[RollupPluginSassOptions]>({
+    async exec(t, pluginOptions) {
+      const onwarn: WarningHandlerWithDefault = (warning, defaultHandler) => {
+        if (warning.code === 'EMPTY_BUNDLE') return;
+        defaultHandler(warning);
+      };
+
+      const expectA = stripNewLines(
+        await fs.readFile('test/assets/expect_a.css', { encoding: 'utf-8' }),
+      );
+      const expectB = stripNewLines(
+        await fs.readFile('test/assets/expect_b.css', { encoding: 'utf-8' }),
+      );
+
+      // Create ONE plugin instance to reuse across both builds,
+      // simulating what rollup does in watch mode.
+      let capturedCSS = '';
+      const pluginInstance = sass({
+        ...pluginOptions,
+        output: (css) => {
+          capturedCSS = css;
+        },
+      });
+
+      // --- Build 1: output-function fixture imports actual_a.scss + actual_b.scss ---
+      const firstBundle = await rollup({
+        input: 'test/fixtures/output-function/index.js',
+        plugins: [pluginInstance],
+        onwarn,
+      });
+      const outputFilePath1 = path.join(
+        getTestOutputDir(pluginOptions.api),
+        'watch-mode-build1.js',
+      );
+      await firstBundle.write({
+        ...TEST_GENERATE_OPTIONS,
+        file: outputFilePath1,
+      });
+
+      t.true(
+        stripNewLines(capturedCSS).includes(expectA),
+        `Build 1 CSS must include actual_a. Got: "${capturedCSS}"`,
+      );
+      t.true(
+        stripNewLines(capturedCSS).includes(expectB),
+        `Build 1 CSS must include actual_b. Got: "${capturedCSS}"`,
+      );
+
+      // --- Build 2: same plugin instance, compress fixture imports only actual_d.scss ---
+      // Reset captured value so we get a fresh read after the second write.
+      capturedCSS = '';
+
+      // The compress fixture only imports actual_d.scss (no actual_b.scss).
+      // Using the same plugin instance simulates a watch-mode rebuild where
+      // actual_b.scss has been dropped from the dependency graph.
+      const secondBundle = await rollup({
+        input: 'test/fixtures/compress/index.js',
+        plugins: [pluginInstance],
+        onwarn,
+      });
+      const outputFilePath2 = path.join(
+        getTestOutputDir(pluginOptions.api),
+        'watch-mode-build2.js',
+      );
+      await secondBundle.write({
+        ...TEST_GENERATE_OPTIONS,
+        file: outputFilePath2,
+      });
+
+      // Build 2 only processed actual_d.scss, so stale actual_b CSS must NOT appear.
+      t.false(
+        stripNewLines(capturedCSS).includes(expectB),
+        `Build 2 CSS must NOT contain stale actual_b content. Got: "${capturedCSS}"`,
+      );
+    },
+    title: createApiOptionTestCaseTitle,
+  });
+
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
+  test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
+}
+// #endregion watch-mode regression test
