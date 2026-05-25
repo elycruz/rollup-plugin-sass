@@ -131,7 +131,9 @@ export = function plugin(
 
           return {
             code: codeResult || '',
-            map: sourceMap ? (sourceMap as unknown as SourceMapInput) : undefined,
+            map: sourceMap
+              ? (sourceMap as unknown as SourceMapInput)
+              : undefined,
           };
         }
 
