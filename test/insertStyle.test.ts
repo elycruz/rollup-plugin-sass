@@ -50,9 +50,9 @@ test.serial('insertStyle should work in a DOM environment', (t) => {
     "stylesheet's content should equal returned css string",
   );
   t.is(
-    styleSheet.type,
-    'text/css',
-    'Should contain `type` attrib. equal to "text/css"',
+    styleSheet.hasAttribute('type'),
+    false,
+    'Should not set a redundant `type` attribute',
   );
 });
 

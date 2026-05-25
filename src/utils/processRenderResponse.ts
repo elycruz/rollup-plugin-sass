@@ -8,11 +8,11 @@ import {
   RollupPluginSassProcessorFnOutput,
 } from '../types';
 
-import { isFunction, isObject, isString } from './helpers';
+import { isObject, isString } from './helpers';
 
 export const INSERT_STYLE_ID = '___$insertStyle';
 
-export const processRenderResponse = (
+export const processRenderResponse = async (
   rollupOptions: Pick<
     RollupPluginSassOptions,
     'insert' | 'processor' | 'output'
@@ -21,86 +21,89 @@ export const processRenderResponse = (
   state: RollupPluginSassState,
   inCss: string,
 ) => {
-  if (!inCss) return Promise.resolve();
+  if (!inCss) return;
 
   const { processor } = rollupOptions;
 
-  return (
-    Promise.resolve()
-      .then(() =>
-        !isFunction(processor) ? inCss + '' : processor(inCss, fileId),
-      )
-      // Gather output requirements
-      .then(
-        (
-          result: Partial<RollupPluginSassProcessorFnOutput>,
-        ): [string, Record<string, unknown>, Record<string, string>?] => {
-          if (!isObject(result)) {
-            return [result, {}];
-          }
+  const result: Partial<RollupPluginSassProcessorFnOutput> = await (processor
+    ? processor(inCss, fileId)
+    : inCss);
 
-          if (!isString(result.css)) {
-            /** @todo consider using rollup utils to throw this error */
-            throw new Error(
-              'You need to return the styles using the `css` property. ' +
-                'See https://github.com/elycruz/rollup-plugin-sass#processor',
-            );
-          }
+  // Gather output requirements
+  let resolvedCss: string;
+  let namedExports: Record<string, unknown>;
+  let cssModules: Record<string, string> | undefined;
 
-          if (result.cssModules && !isObject(result.cssModules)) {
-            /** @todo consider using rollup utils to throw this error */
-            throw new Error(
-              'You need to provide a js object as `cssModules` property. ' +
-                'See https://github.com/elycruz/rollup-plugin-sass#processor',
-            );
-          }
+  if (!isObject(result)) {
+    resolvedCss = result as string;
+    namedExports = {};
+  } else {
+    if (!isString((result as { css?: unknown }).css)) {
+      /** @todo consider using rollup utils to throw this error */
+      throw new Error(
+        'You need to return the styles using the `css` property. ' +
+          'See https://github.com/elycruz/rollup-plugin-sass#processor',
+      );
+    }
 
-          const { css, cssModules, ...namedExports } = result;
-          return [css, namedExports, cssModules];
-        },
-      )
+    const objResult = result as {
+      css: string;
+      cssModules?: Record<string, string>;
+      [key: string]: unknown;
+    };
 
-      // Compose output
-      .then(([resolvedCss, namedExports, cssModules]) => {
-        const { styleMaps } = state;
+    if (objResult.cssModules && !isObject(objResult.cssModules)) {
+      /** @todo consider using rollup utils to throw this error */
+      throw new Error(
+        'You need to provide a js object as `cssModules` property. ' +
+          'See https://github.com/elycruz/rollup-plugin-sass#processor',
+      );
+    }
 
-        // Update bundle tracking entry with resolved content
-        styleMaps[fileId].content = resolvedCss;
+    const { css, cssModules: cm, ...rest } = objResult;
+    resolvedCss = css;
+    cssModules = cm;
+    namedExports = rest;
+  }
 
-        let defaultExport = `""`;
-        let cssCode = JSON.stringify(resolvedCss);
-        const imports: string[] = [];
+  // Compose output
+  const { styleMaps } = state;
 
-        if (rollupOptions.insert) {
-          /**
-           * Include import using {@link INSERT_STYLE_ID} as source.
-           * It will be resolved to insert style function using `resolvedID` and `load` hooks;
-           * e.g., the path will completely replaced, and re-generated (as a relative path)
-           * by rollup.
-           */
-          imports.push(`import ${INSERT_STYLE_ID} from '${INSERT_STYLE_ID}';`);
-          cssCode = `${INSERT_STYLE_ID}(${cssCode})`;
-          defaultExport = cssCode;
-        } else if (!rollupOptions.output) {
-          defaultExport = cssCode;
-        }
+  // Update bundle tracking entry with resolved content
+  styleMaps[fileId].content = resolvedCss;
 
-        const variableName = makeLegalIdentifier(
-          path.basename(fileId, path.extname(fileId)),
-        );
+  let defaultExport = `""`;
+  let cssCode = JSON.stringify(resolvedCss);
+  const imports: string[] = [];
 
-        const codeOutput: string[] = [
-          ...imports,
+  if (rollupOptions.insert) {
+    /**
+     * Include import using {@link INSERT_STYLE_ID} as source.
+     * It will be resolved to insert style function using `resolvedID` and `load` hooks;
+     * e.g., the path will completely replaced, and re-generated (as a relative path)
+     * by rollup.
+     */
+    imports.push(`import ${INSERT_STYLE_ID} from '${INSERT_STYLE_ID}';`);
+    cssCode = `${INSERT_STYLE_ID}(${cssCode})`;
+    defaultExport = cssCode;
+  } else if (!rollupOptions.output) {
+    defaultExport = cssCode;
+  }
 
-          `const ${variableName} = ${defaultExport}`,
-          `export default ${cssModules ? JSON.stringify(cssModules) : variableName}`,
+  const variableName = makeLegalIdentifier(
+    path.basename(fileId, path.extname(fileId)),
+  );
 
-          ...Object.entries(namedExports).map(
-            ([n, v]) => `export const ${n} = ${JSON.stringify(v)}`,
-          ),
-        ];
+  const codeOutput: string[] = [
+    ...imports,
 
-        return codeOutput.join(';\n');
-      })
-  ); // @note do not `catch` here - let error propagate to rollup level
-};
+    `const ${variableName} = ${defaultExport}`,
+    `export default ${cssModules ? JSON.stringify(cssModules) : variableName}`,
+
+    ...Object.entries(namedExports).map(
+      ([n, v]) => `export const ${n} = ${JSON.stringify(v)}`,
+    ),
+  ];
+
+  return codeOutput.join(';\n');
+}; // @note do not `catch` here - let error propagate to rollup level

@@ -13,8 +13,7 @@ export default function insertStyle(
   if (!css || typeof window === 'undefined') return;
 
   const style = document.createElement('style');
-  style.setAttribute('type', 'text/css');
-  style.innerHTML = css;
+  style.textContent = css;
 
   document.head.appendChild(style);
 

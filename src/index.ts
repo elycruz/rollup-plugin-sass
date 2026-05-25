@@ -14,7 +14,7 @@ import { createFilter } from '@rollup/pluginutils';
 import type {
   OutputBundle,
   Plugin as RollupPlugin,
-  TransformResult,
+  SourceMapInput,
 } from 'rollup';
 
 import type { RollupPluginSassOptions, RollupPluginSassState } from './types';
@@ -38,14 +38,12 @@ const defaultExcludes = 'node_modules/**';
 export = function plugin(
   options = {} as RollupPluginSassOptions,
 ): RollupPlugin {
-  const pluginOptions: RollupPluginSassOptions = Object.assign(
-    {
-      runtime: sass,
-      output: false,
-      insert: false,
-    },
-    options,
-  );
+  const pluginOptions: RollupPluginSassOptions = {
+    runtime: sass,
+    output: false,
+    insert: false,
+    ...options,
+  };
 
   const {
     include = defaultIncludes,
@@ -124,14 +122,15 @@ export = function plugin(
             ? `${incomingSassOptions.data}${code}`
             : code;
 
-          const compileResult: sass.CompileResult =
-            await sassRuntime.compileStringAsync(source, compileOptions);
+          const compileResult: sass.CompileResult = await (
+            sassRuntime as typeof sass
+          ).compileStringAsync(source, compileOptions);
 
           const codeResult = await processRenderResponse(
             pluginOptions,
             filePath,
             pluginState,
-            compileResult.css.toString().trim(),
+            compileResult.css.trim(),
           );
 
           const { loadedUrls, sourceMap } = compileResult;
@@ -142,8 +141,10 @@ export = function plugin(
 
           return {
             code: codeResult || '',
-            map: sourceMap ? sourceMap : undefined,
-          } as TransformResult;
+            map: sourceMap
+              ? (sourceMap as unknown as SourceMapInput)
+              : undefined,
+          };
         }
 
         case 'legacy':
@@ -154,8 +155,9 @@ export = function plugin(
             ...incomingSassOptions,
 
             file: filePath,
-            data:
-              incomingSassOptions?.data && `${incomingSassOptions.data}${code}`,
+            data: incomingSassOptions?.data
+              ? `${incomingSassOptions.data}${code}`
+              : undefined,
             indentedSyntax: MATCH_SASS_FILENAME_RE.test(filePath),
             includePaths: (incomingSassOptions?.includePaths || []).concat(
               paths,
@@ -163,9 +165,9 @@ export = function plugin(
             importer: getImporterListLegacy(incomingSassOptions?.importer),
           };
 
-          const res: sass.LegacyResult = await promisify(
-            sassRuntime.render.bind(sassRuntime),
-          )(renderOptions);
+          const res = (await promisify(
+            (sassRuntime as typeof sass).render.bind(sassRuntime),
+          )(renderOptions)) as sass.LegacyResult;
 
           const codeResult = await processRenderResponse(
             pluginOptions,
@@ -174,7 +176,6 @@ export = function plugin(
             res.css.toString().trim(),
           );
 
-          // @todo Do we need to filter this call so it only occurs when rollup is in 'watch' mode?
           res.stats.includedFiles.forEach((filePath: string) => {
             this.addWatchFile(filePath);
           });
@@ -182,8 +183,10 @@ export = function plugin(
           // @note do not `catch` here - let error propagate to rollup level.
           return {
             code: codeResult || '',
-            map: { mappings: res.map ? res.map.toString() : '' },
-          } as TransformResult;
+            map: res.map
+              ? ({ mappings: res.map.toString() } as SourceMapInput)
+              : undefined,
+          };
         }
       }
     },
@@ -206,17 +209,15 @@ export = function plugin(
       }
 
       if (typeof output === 'function') {
-        output(css, styles);
+        await output(css, styles);
         return;
       }
 
       if (!insert && outputOptions.file && output === true) {
         let dest = outputOptions.file;
 
-        if (dest.endsWith('.js') || dest.endsWith('.ts')) {
-          dest = dest.slice(0, -3);
-        }
-        dest = `${dest}.css`;
+        const parsed = path.parse(dest);
+        dest = path.join(parsed.dir, `${parsed.name}.css`);
 
         await fs.promises.mkdir(path.dirname(dest), { recursive: true });
         await fs.promises.writeFile(dest, css);

@@ -65,7 +65,12 @@ export const getImporterListLegacy = (
       });
   };
 
-  return [importer1].concat((importOption as never) || []);
+  const extras = Array.isArray(importOption)
+    ? importOption
+    : importOption
+      ? [importOption]
+      : [];
+  return [importer1, ...extras];
 };
 
 /**
@@ -98,5 +103,10 @@ export const getImporterListModern = (
     },
   };
 
-  return [importer].concat((importOption as never) || []);
+  const extras = Array.isArray(importOption)
+    ? importOption
+    : importOption
+      ? [importOption]
+      : [];
+  return [importer, ...extras];
 };
