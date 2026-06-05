@@ -66,6 +66,20 @@ interface RollupPluginSassSharedOptions {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   runtime?: any;
+
+  /**
+   * Whether the plugin should request a sourcemap from Sass and forward it to
+   * Rollup. Defaults to `false`.
+   *
+   * Rollup output options are not available at `transform` time, so the plugin
+   * cannot infer the desired sourcemap behavior from Rollup. Set this to `true`
+   * (in addition to enabling Rollup's own `output.sourcemap`) when you want the
+   * Sass-generated map to be returned alongside the compiled CSS.
+   *
+   * Only honored by the modern Sass API (`api: 'modern'`); the legacy API
+   * always emits a map when Sass produces one.
+   */
+  sourceMap?: boolean;
 }
 
 export type RollupPluginSassModernOptions = Omit<

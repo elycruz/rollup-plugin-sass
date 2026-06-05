@@ -1088,6 +1088,95 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
   test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_LEGACY);
   test(title, macro, TEST_PLUGIN_OPTIONS_DEFAULT_MODERN);
 }
+
+// #region modern api sourceMap opt-in (#221)
+//
+// Issue #221: the modern Sass API path used to hardcode `sourceMap: true`
+// because Rollup output options aren't available at `transform` time. That
+// produced an inert `{ mappings: '' }`-style map even when the user hadn't
+// asked for one. The fix is to make sourcemap emission an explicit opt-in via
+// the plugin's top-level `sourceMap` option.
+test(
+  'modern api: plugin should not emit a sourcemap from transform when ' +
+    "the `sourceMap` plugin option isn't set",
+  async (t) => {
+    const capturedMaps: unknown[] = [];
+
+    const outputBundle = await rollup({
+      input: 'test/fixtures/basic/index.js',
+      plugins: [
+        sass({ api: 'modern' }),
+        {
+          name: 'capture-transform-map',
+          // Runs immediately after the sass plugin's transform; the `map`
+          // argument here is whatever the previous plugin returned.
+          transform(_code, id) {
+            if (/\.s[ac]ss$/.test(id)) {
+              const moduleInfo = this.getModuleInfo(id);
+              capturedMaps.push(moduleInfo?.meta);
+            }
+            return null;
+          },
+        },
+      ],
+    });
+
+    const { output } = await outputBundle.generate({
+      format: 'es',
+      file: path.join(
+        getTestOutputDir('modern'),
+        'modern-no-sourcemap-default.js',
+      ),
+      sourcemap: false,
+    });
+
+    t.falsy(
+      output[0].map,
+      "output chunk should not contain a `map` entry when neither rollup nor the plugin's `sourceMap` option asks for one",
+    );
+  },
+);
+
+test(
+  'modern api: plugin should emit a sourcemap from transform when ' +
+    'the `sourceMap` plugin option is true',
+  async (t) => {
+    const outputFilePath = path.join(
+      getTestOutputDir('modern'),
+      'modern-sourcemap-opt-in.js',
+    );
+
+    const bundle = await rollup({
+      input: 'test/fixtures/basic/index.js',
+      plugins: [sass({ api: 'modern', sourceMap: true })],
+    });
+
+    const sourceMapFilePath = `${outputFilePath}.map`;
+
+    const writeResult = await bundle.write({
+      file: outputFilePath,
+      sourcemap: true,
+      format: 'esm',
+    });
+
+    t.true(
+      !!writeResult.output?.length,
+      'output should contain an output chunk',
+    );
+
+    t.true(
+      !!writeResult.output[0].map,
+      "rollup output chunk's `map` property should be set",
+    );
+
+    const contents = await fs.readFile(sourceMapFilePath);
+    t.true(
+      !!contents.toString(),
+      `${sourceMapFilePath} should have been written.`,
+    );
+  },
+);
+// #endregion modern api sourceMap opt-in (#221)
 // #endregion sourcemap
 
 {
