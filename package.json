@@ -88,7 +88,7 @@
     "happy-dom": "^20.0.2",
     "husky": "^9.0.11",
     "icss-utils": "^5.1.0",
-    "nyc": "^17.0.0",
+    "nyc": "^18.0.0",
     "postcss": "^8.4.16",
     "postcss-modules": "^6.0.1",
     "prettier": "^3.3.3",
