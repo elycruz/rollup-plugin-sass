@@ -92,7 +92,7 @@
     "postcss": "^8.5.25",
     "postcss-modules": "^6.0.1",
     "prettier": "^3.9.6",
-    "rollup": "^3.30.0",
+    "rollup": "^1 || ^2 || ^3",
     "sinon": "^18.0.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
