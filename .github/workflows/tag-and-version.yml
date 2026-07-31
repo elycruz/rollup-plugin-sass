@@ -1,0 +1,212 @@
+# Bumps the package version, runs lint/build/test, commits the bump, and pushes
+# an annotated `v<version>` tag.
+#
+# The heavy lifting is delegated to npm's `version` lifecycle (see the
+# `preversion`/`postversion` scripts in package.json) so that a maintainer
+# running `npm version <type>` locally gets exactly the same behaviour as this
+# workflow. See https://github.com/elycruz/rollup-plugin-sass/issues/177 .
+#
+# This workflow deliberately does NOT publish to npm and does NOT create a
+# GitHub Release - `publish.yml` is triggered by `release: created`, which this
+# never produces, so cutting an actual release stays an explicit human step.
+#
+# Caveat: pushes authenticated with GITHUB_TOKEN do not trigger other workflows,
+# so the release commit will not re-run `CI.yml`.  That is acceptable here since
+# lint, build, and test all run below, against the very tree being tagged.
+name: Tag and Version
+
+# Repository default workflow permission is `read`, so the job below has to
+# elevate explicitly in order to push.
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      release-type:
+        description: 'Semver release type to bump by'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+          - premajor
+          - preminor
+          - prepatch
+          - prerelease
+      preid:
+        description: "Prerelease identifier - only used by the 'pre*' release types"
+        required: false
+        default: 'rc'
+        type: string
+
+# Serialize bumps so two dispatches cannot race for the same version/tag.  Never
+# cancel in progress - a cancelled run could leave a commit without its tag.
+concurrency:
+  group: tag-and-version
+  cancel-in-progress: false
+
+jobs:
+  tag-and-version:
+    name: 'Tag and version (${{ inputs.release-type }})'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write # Push the version commit and the tag.
+
+    env:
+      # husky@9 short-circuits on this at both install and hook-exec time.  We
+      # already install with `--ignore-scripts` (so `core.hooksPath` is never
+      # set), but this keeps `.husky/pre-push` inert either way - otherwise it
+      # would re-run the whole test suite during `postversion`.
+      HUSKY: 0
+
+    steps:
+      # Run the guards before checkout so a mis-dispatch fails in seconds.
+      - name: 'Guard: must be dispatched from main'
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::This workflow may only be run from 'main' (got '${{ github.ref }}')."
+          exit 1
+
+      # `inputs.*` reach the shell via `env:` rather than `${{ }}` interpolation
+      # so that a crafted `preid` cannot inject shell.  The `options:` list above
+      # is NOT enforced for API-dispatched runs (`gh workflow run`, REST), hence
+      # the release-type allowlist here too.
+      - name: 'Guard: validate inputs'
+        env:
+          RELEASE_TYPE: ${{ inputs.release-type }}
+          PREID: ${{ inputs.preid }}
+        run: |
+          set -euo pipefail
+
+          case "$RELEASE_TYPE" in
+            major | minor | patch | premajor | preminor | prepatch | prerelease) ;;
+            *)
+              echo "::error::Invalid release type '$RELEASE_TYPE'."
+              exit 1
+              ;;
+          esac
+
+          case "$RELEASE_TYPE" in
+            pre*)
+              if ! printf '%s' "$PREID" | grep -Eq '^[0-9A-Za-z]+(-[0-9A-Za-z]+)*$'; then
+                echo "::error::Invalid preid '$PREID' - must be a semver prerelease identifier."
+                exit 1
+              fi
+              ;;
+          esac
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          # Full history and tags - the "tag already exists" guard below needs
+          # every tag, and `actions/checkout` fetches none by default.
+          fetch-depth: 0
+          # Writes the GITHUB_TOKEN into .git/config as an http.extraheader,
+          # which is what authenticates the `postversion` push.  Do not disable.
+          persist-credentials: true
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      # `--ignore-scripts` skips `prepare`, so build and test are not run twice
+      # (npm's `preversion` script runs them below), and husky never gets to set
+      # `core.hooksPath` - keeping `.husky/pre-push` and `.husky/commit-msg` out
+      # of this workflow's own git operations.
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: 'Guard: working tree is clean'
+        run: |
+          set -euo pipefail
+
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Working tree is dirty after checkout and install:"
+            git status --porcelain
+            exit 1
+          fi
+
+      # Bump into the working tree with every side effect suppressed, read the
+      # result, then revert.  This gives us the tag name up front so the guard
+      # below can fail *before* `npm version` starts committing - npm creates
+      # the commit and only then the tag, so a pre-existing tag would otherwise
+      # leave an untagged release commit behind.
+      - name: Resolve next version
+        id: next
+        env:
+          RELEASE_TYPE: ${{ inputs.release-type }}
+          PREID: ${{ inputs.preid }}
+        run: |
+          set -euo pipefail
+
+          CURRENT="$(npm pkg get version | tr -d '"')"
+          npm version "$RELEASE_TYPE" --preid "$PREID" --no-git-tag-version --ignore-scripts > /dev/null
+          NEXT="$(npm pkg get version | tr -d '"')"
+          git checkout -- package.json package-lock.json
+
+          if [ "$CURRENT" = "$NEXT" ]; then
+            echo "::error::Version would not change ($CURRENT)."
+            exit 1
+          fi
+
+          {
+            echo "current=$CURRENT"
+            echo "next=$NEXT"
+            echo "tag=v$NEXT"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "$CURRENT -> $NEXT (tag v$NEXT)"
+
+      - name: 'Guard: tag does not already exist'
+        env:
+          TAG: ${{ steps.next.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          if git rev-parse -q --verify "refs/tags/$TAG" > /dev/null; then
+            echo "::error::Tag $TAG already exists locally."
+            exit 1
+          fi
+
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" > /dev/null 2>&1; then
+            echo "::error::Tag $TAG already exists on origin."
+            exit 1
+          fi
+
+      # Commits are attributed to the Actions bot rather than an unrecognized author.
+      - name: Configure git identity
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      # Runs, in order: `preversion` (lint, build, test) -> bump package.json and
+      # package-lock.json -> commit -> annotated tag -> `postversion` (push).
+      # A failing `preversion` aborts before anything is committed or tagged.
+      - name: Bump, test, commit, tag, and push
+        env:
+          RELEASE_TYPE: ${{ inputs.release-type }}
+          PREID: ${{ inputs.preid }}
+        run: |
+          set -euo pipefail
+          npm version "$RELEASE_TYPE" --preid "$PREID" -m 'chore: release %s'
+
+      - name: Summary
+        run: |
+          {
+            echo "### Tagged \`${{ steps.next.outputs.tag }}\`"
+            echo
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| Release type | \`${{ inputs.release-type }}\` |"
+            echo "| Version | \`${{ steps.next.outputs.current }}\` → \`${{ steps.next.outputs.next }}\` |"
+            echo "| Commit | \`chore: release ${{ steps.next.outputs.next }}\` |"
+            echo
+            echo "Nothing was published. To release, create a GitHub Release for"
+            echo "\`${{ steps.next.outputs.tag }}\` - that triggers the \`Publish\` workflow."
+          } >> "$GITHUB_STEP_SUMMARY"

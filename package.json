@@ -12,7 +12,9 @@
     }
   },
   "scripts": {
-    "prepare": "npm run build && npm test && husky",
+    "prepare": "npm run build && npm test && (husky || exit 0)",
+    "preversion": "npm run lint && npm run build && npm test",
+    "postversion": "git push --follow-tags origin HEAD",
     "build": "npm run build-downlevel-dts && tsc --project tsconfig.build.json",
     "build-downlevel-dts": "node scripts/clean-and-run-downlevel-dts.js",
     "downlevel-dts": "downlevel-dts . ts3.5 [--to=3.5]",
