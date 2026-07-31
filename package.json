@@ -81,7 +81,7 @@
     "@types/resolve": "^1.20.6",
     "@types/sinon": "^17.0.4",
     "ava": "^6.4.1",
-    "coveralls-next": "^4.2.2",
+    "coveralls-next": "^6.0.2",
     "downlevel-dts": "^0.10.1",
     "eslint": "^9.39.5",
     "eslint-plugin-ava": "^15.1.0",
