@@ -5,6 +5,9 @@ import avaPlugin from 'eslint-plugin-ava';
 export default tseslint.config(
   {
     ignores: [
+      // Git worktrees for other branches - each carries its own copy of the
+      //  paths ignored below (`dist`, `ts3.5`, fixtures, etc.).
+      '.claude/worktrees',
       'dist',
       'ts3.5',
       '.tests-output',
