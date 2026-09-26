@@ -507,7 +507,7 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
           getTestOutputDir(pluginOptions.api),
           'support_output_prev-non-exist.js',
         );
-        await outputBundle.write({
+        const writeResult = await outputBundle.write({
           ...TEST_GENERATE_OPTIONS,
           file: outputFilePath,
         });
@@ -518,6 +518,20 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
         const outputStyleContent = await fs.readFile(outputStylePath);
         t.true(stripNewLines(outputStyleContent.toString()).includes(expectA));
         t.true(stripNewLines(outputStyleContent.toString()).includes(expectB));
+
+        // Asset must now appear in rollup's bundle representation, with
+        // its fileName resolved relative to the rollup output directory.
+        const expectedAssetFileName = path.relative(
+          path.dirname(outputFilePath),
+          outputStylePath,
+        );
+        const cssAsset = writeResult.output.find(
+          (it) => it.type === 'asset' && it.fileName === expectedAssetFileName,
+        );
+        t.truthy(
+          cssAsset,
+          `CSS asset (fileName="${expectedAssetFileName}") must be present in rollup output bundle`,
+        );
       },
       title: createApiOptionTestCaseTitle,
     });
@@ -541,7 +555,7 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
           getTestOutputDir(pluginOptions.api),
           'support-output-as-true.js',
         );
-        await outputBundle.write({
+        const writeResult = await outputBundle.write({
           ...TEST_GENERATE_OPTIONS,
           file: outputFilePath,
         });
@@ -553,6 +567,16 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
         const outputStyleContent = await fs.readFile(outputStylePath);
         t.true(outputStyleContent.toString().includes(expectA));
         t.true(outputStyleContent.toString().includes(expectB));
+
+        // Asset must now appear in rollup's bundle representation.
+        const expectedAssetFileName = path.basename(outputStylePath);
+        const cssAsset = writeResult.output.find(
+          (it) => it.type === 'asset' && it.fileName === expectedAssetFileName,
+        );
+        t.truthy(
+          cssAsset,
+          'CSS asset must be present in rollup output bundle',
+        );
       },
       title: createApiOptionTestCaseTitle,
     });
@@ -578,13 +602,18 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
           onwarn,
         });
 
-        await outputBundle.write({
+        const writeResult = await outputBundle.write({
           format: 'es',
           dir: outputDir,
+          // Pin `assetFileNames` so the emitted CSS asset lands at a
+          // predictable path that we can read back from disk.
+          assetFileNames: '[name][extname]',
         });
 
-        // The CSS file should be written as <entry-stem>.css inside outputDir.
-        // The entry chunk file name is derived from the input file name → "index.css".
+        // The CSS file should be emitted alongside the entry as
+        // `<entry-stem>.css` once `assetFileNames` is honored.
+        // The entry chunk file name is derived from the input file name
+        // → "index.css".
         const outputStylePath = path.join(outputDir, 'index.css');
         const outputStyleContent = await fs.readFile(outputStylePath);
         t.true(
@@ -594,6 +623,16 @@ const createApiOptionTestCaseTitle: TitleFn<[RollupPluginSassOptions]> = (
         t.true(
           stripNewLines(outputStyleContent.toString()).includes(expectB),
           `CSS file should include expectB content`,
+        );
+
+        // Asset should now appear in rollup's `bundle` representation
+        // (one of the core wins of switching to `this.emitFile`).
+        const cssAsset = writeResult.output.find(
+          (it) => it.type === 'asset' && it.fileName === 'index.css',
+        );
+        t.truthy(
+          cssAsset,
+          'CSS asset must be present in rollup output bundle',
         );
       },
       title: createApiOptionTestCaseTitle,
