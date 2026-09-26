@@ -3,6 +3,21 @@ import type {
   Options as SassOptions,
 } from 'sass';
 
+/**
+ * Minimal shape required from a sass-compatible runtime when using the
+ * modern asynchronous API.  Anything exposing {@link import('sass').compileStringAsync}
+ * (e.g. the `sass` module itself, or a compatible shim) satisfies this contract.
+ */
+export type SassRuntimeModern = Pick<typeof import('sass'), 'compileStringAsync'>;
+
+/**
+ * Minimal shape required from a sass-compatible runtime when using the
+ * legacy asynchronous API.  Anything exposing {@link import('sass').render}
+ * (e.g. the `sass` module itself, `node-sass`, or a compatible shim) satisfies
+ * this contract.
+ */
+export type SassRuntimeLegacy = Pick<typeof import('sass'), 'render'>;
+
 interface StyleSheetIdAndContent {
   id?: string;
   content?: string;
@@ -60,12 +75,6 @@ interface RollupPluginSassSharedOptions {
    * ```
    */
   output?: boolean | string | RollupPluginSassOutputFn;
-
-  /**
-   * Sass runtime instance - sass, node-sass or other etc..
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  runtime?: any;
 }
 
 export type RollupPluginSassModernOptions = Omit<
@@ -86,10 +95,20 @@ export type RollupPluginSassOptions =
   | (RollupPluginSassSharedOptions & {
       api: 'modern';
       options?: RollupPluginSassModernOptions;
+      /**
+       * Sass runtime instance - sass, or a compatible shim, exposing
+       * {@link import('sass').compileStringAsync}.
+       */
+      runtime?: SassRuntimeModern;
     })
   | (RollupPluginSassSharedOptions & {
       api?: 'legacy';
       options?: RollupPluginSassLegacyOptions;
+      /**
+       * Sass runtime instance - sass, node-sass, or a compatible shim, exposing
+       * {@link import('sass').render}.
+       */
+      runtime?: SassRuntimeLegacy;
     });
 
 export type RollupPluginSassState = {
