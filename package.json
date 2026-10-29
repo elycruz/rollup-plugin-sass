@@ -84,7 +84,7 @@
     "downlevel-dts": "^0.10.1",
     "eslint": "^9.39.5",
     "eslint-plugin-ava": "^15.1.0",
-    "happy-dom": "^20.11.1",
+    "happy-dom": "^21.0.4",
     "husky": "^9.1.7",
     "icss-utils": "^5.1.0",
     "nyc": "^18.0.0",
