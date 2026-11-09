@@ -68,14 +68,14 @@
   },
   "dependencies": {
     "@rollup/pluginutils": "^3 || ^4 || ^5",
-    "resolve": "^1.22.12",
-    "sass": "^1.99.0"
+    "resolve": "^1.22.14",
+    "sass": "^1.108.1"
   },
   "devDependencies": {
     "@ava/typescript": "^5.0.0",
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
-    "@eslint/js": "^9.17.0",
+    "@eslint/js": "^9.39.5",
     "@types/icss-utils": "^5.1.2",
     "@types/node": "^18.19.130",
     "@types/resolve": "^1.20.6",
@@ -84,18 +84,18 @@
     "downlevel-dts": "^0.10.1",
     "eslint": "^9.39.5",
     "eslint-plugin-ava": "^15.1.0",
-    "happy-dom": "^20.11.1",
+    "happy-dom": "^20.14.6",
     "husky": "^9.1.7",
     "icss-utils": "^5.1.0",
     "nyc": "^18.0.0",
-    "postcss": "^8.5.25",
+    "postcss": "^8.5.32",
     "postcss-modules": "^6.0.1",
-    "prettier": "^3.9.6",
+    "prettier": "^3.9.10",
     "rollup": "^1 || ^2 || ^3",
     "sinon": "^18.0.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.65.0"
+    "typescript-eslint": "^8.72.1"
   },
   "engines": {
     "node": ">=10"
