@@ -25,15 +25,20 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Version is read from the `packageManager` field in package.json
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          cache: 'pnpm'
 
-      - run: npm ci
+      # Runs the `prepare` script (build + test), which generates coverage data
+      - run: pnpm install --frozen-lockfile
 
-      - run: npm run output-coverage-lcov
+      - run: pnpm run output-coverage-lcov
 
       - name: Coveralls
         uses: coverallsapp/github-action@v2
@@ -54,12 +59,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Use Node.js
         uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
-          cache: 'npm'
+          cache: 'pnpm'
 
-      - run: npm ci --ignore-scripts
+      - run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - run: npm run ${{matrix.script}}
+      - run: pnpm run ${{ matrix.script }}

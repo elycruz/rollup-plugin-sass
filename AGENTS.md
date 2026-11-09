@@ -28,4 +28,4 @@ Ignore the following directories:
 
 1. Use optional chaining and proper null checks instead of `!`.
 2. Don't use `await` in `for/while/do` loops; Prefer `Promise.all` with array mapping, instead.
-3. Adhere to eslint rules and use `npm run lint:fix` to automatically fix issues when possible.
+3. Adhere to eslint rules and use `pnpm run lint:fix` to automatically fix issues when possible.

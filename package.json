@@ -12,11 +12,11 @@
     }
   },
   "scripts": {
-    "prepare": "npm run build && npm test && husky",
-    "build": "npm run build-downlevel-dts && tsc --project tsconfig.build.json",
+    "prepare": "pnpm run build && pnpm test && husky",
+    "build": "pnpm run build-downlevel-dts && tsc --project tsconfig.build.json",
     "build-downlevel-dts": "node scripts/clean-and-run-downlevel-dts.js",
     "downlevel-dts": "downlevel-dts . ts3.5 [--to=3.5]",
-    "test": "nyc --reporter=html --reporter=text ava && npm run test:types",
+    "test": "nyc --reporter=html --reporter=text ava && pnpm run test:types",
     "test:types": "tsc --project tsconfig.spec.json --noEmit",
     "coverage": "nyc report --reporter=text",
     "output-coverage-lcov": "nyc report --reporter=text-lcov > coverage/tests.lcov",
@@ -99,5 +99,6 @@
   },
   "engines": {
     "node": ">=10"
-  }
+  },
+  "packageManager": "pnpm@12.18.0"
 }

@@ -17,16 +17,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Setup dependencies
+      # Version is read from the `packageManager` field in package.json
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
           registry-url: https://registry.npmjs.org/
+          cache: 'pnpm'
 
+      # Runs the `prepare` script (build + test)
       - name: Install and test
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
+      # `--no-git-checks`: release checkouts are on a detached tag, not a branch
       - name: Publish Release
-        run: npm publish
+        run: pnpm publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

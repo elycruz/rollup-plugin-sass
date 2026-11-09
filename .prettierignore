@@ -1,6 +1,7 @@
 CHANGELOG.md
 AGENTS.md
 CLAUDE.md
+pnpm-lock.yaml
 md/**
 test/assets/**
 test/fixtures/**
