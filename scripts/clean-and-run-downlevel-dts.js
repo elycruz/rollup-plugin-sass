@@ -15,10 +15,8 @@ const tsConfigOutFilePath = path.join(outputDir, 'tsconfig.json');
 
 // Run 'clean-and-run' process
 (async () =>
-  // @note Conditional check here since we have a relaxed 'package.json.engines.node' value,
-  //   and `fs.rmdir` is being deprecated in later versions of node (node v18+).
-  // ----
-  (fs.rm ? fs.rm : fs.rmdir)(outputDir, { recursive: true })
+  fs
+    .rm(outputDir, { recursive: true })
     // If error is any other than "file doesn't exist"/"ENOENT" ensure error is thrown.
     .catch((err) => (err.code !== 'ENOENT' ? error(err) : null))
 
